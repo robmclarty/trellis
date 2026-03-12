@@ -1,21 +1,33 @@
 {
-  "title": "Trellis",
-  "slug": "trellis",
-  "tagline": "Spec-driven development from pitch to production.",
-  "author": "robmclarty",
-  "license": "MIT",
-  "categories": ["development", "planning", "specification"],
-  "keywords": [
-    "spec",
-    "specification",
-    "planning",
-    "implementation",
-    "compliance",
-    "tasks",
-    "shape-up",
-    "pipeline",
-    "development-workflow"
-  ],
-  "repository": "https://github.com/robmclarty/trellis",
-  "homepage": "https://github.com/robmclarty/trellis"
+  "name": "trellis",
+  "owner": {
+    "name": "Rob McLarty",
+    "email": "hello@robmclarty.com"
+  },
+  "metadata": {
+    "description": "Spec-driven development from pitch to production."
+  },
+  "plugins": [
+    {
+      "name": "trellis",
+      "source": ".",
+      "description": "A spec-driven development toolkit that takes features from problem framing through implementation using structured, composable skills.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": [
+        "spec",
+        "specification",
+        "planning",
+        "implementation",
+        "compliance",
+        "tasks",
+        "shape-up",
+        "pipeline",
+        "development-workflow"
+      ],
+      "repository": "https://github.com/robmclarty/trellis",
+      "homepage": "https://github.com/robmclarty/trellis",
+      "category": "development"
+    }
+  ]
 }
