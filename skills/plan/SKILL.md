@@ -1,9 +1,16 @@
 ---
-name: plan
-description: Creates a technical implementation plan at .specs/<feature-name>/plan.md that translates a spec's functional requirements into concrete architecture, technology, and code decisions. Use when the user wants to plan how to build a feature, make technology decisions, define file structure, or create an implementation strategy. Triggers on "write a plan", "plan the implementation", "how should we build this", "create a technical plan", "architect this", or any request to translate a spec into actionable technical decisions.
+name: Implementation Plan
+description: Creates a technical plan at .specs/<feature>/plan.md translating a spec's functional requirements into architecture, technology, and code decisions.
 ---
 
 # Plan
+
+## When to use
+
+- "write a plan", "plan the implementation", "how should we build this"
+- "create a technical plan", "architect this"
+- Any request to translate a spec into actionable technical decisions
+- Making technology decisions, defining file structure, or creating an implementation strategy
 
 Create a technical implementation plan at `.specs/<feature-name>/plan.md`.
 

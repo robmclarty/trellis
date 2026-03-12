@@ -1,10 +1,17 @@
 ---
-name: compliance
-description: Creates a regulatory and privacy review at .specs/<feature-name>/compliance.md by evaluating the spec against applicable regulations. Use when a feature handles personal data, student data, health data, or financial data, when operating in a regulated jurisdiction, or when adding a new market. Triggers on "compliance review", "check for FERPA", "GDPR review", "privacy review", "does this meet FIPPA", "regulatory check", or any request to evaluate a spec against privacy or regulatory requirements.
+name: Compliance Review
+description: Creates a regulatory and privacy review at .specs/<feature>/compliance.md by evaluating the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2).
 context: fork
 ---
 
 # Compliance
+
+## When to use
+
+- "compliance review", "check for FERPA", "GDPR review", "privacy review"
+- "does this meet FIPPA", "regulatory check"
+- When a feature handles personal data, student data, health data, or financial data
+- When operating in a regulated jurisdiction or adding a new market
 
 Create a regulatory and privacy review at `.specs/<feature-name>/compliance.md`.
 
@@ -19,15 +26,20 @@ Not every feature needs a compliance review. A purely internal tool with no user
 - `.specs/<feature-name>/spec.md` must exist and have passed clarify (no unresolved `[? ...]` markers in the spec body)
 - `.specs/guidelines.md` must exist
 
-## What to ask the user
+## Determining applicable regulations
 
-If the user runs `/compliance` without specifying which regulations apply, ask:
+Since this skill runs in an isolated context (`context: fork`) without access to conversation history, it cannot interactively ask the user questions. Instead, determine applicable regulations from the available artifacts:
 
-1. What kind of data does this feature handle? (Personal, student, health, financial, none)
-2. What jurisdictions does this feature operate in? (Country, state/province)
-3. Are there any organization-specific compliance requirements? (SOC 2, internal policies, contractual obligations)
+1. **From the spec's §4 (Data Model):** Identify data categories — personal data, student records, health data, financial data. Each category implies specific regulations.
+2. **From the spec's §9 (Constraints):** Look for jurisdiction or deployment constraints (e.g., "deployed in Canada" → FIPPA, "serves EU users" → GDPR).
+3. **From `guidelines.md`:** Check for infrastructure constraints that imply jurisdiction (e.g., `ca-central-1`).
+4. **From the pitch:** Check for mentions of target users (e.g., "K-12 schools" → FERPA/COPPA).
 
-Based on the answers, determine which regulations to evaluate against. Read the relevant reference files in `references/` for the core requirements of each applicable regulation.
+If the data model contains no sensitive categories and no jurisdictional constraints are found, note that no regulations apply and produce a minimal compliance document explaining why.
+
+> **Note:** When invoked through `/pipeline`, the pipeline skill asks the user about compliance requirements upfront (interactive mode question 3, auto mode question 10). This context is embedded in the spec's §9 or the pitch before compliance runs, enabling accurate regulation selection. When invoked standalone, compliance infers from artifacts only — if regulation scope is ambiguous, list the ambiguity in the Residual Risks section.
+
+Read the relevant reference files in `references/` for the core requirements of each applicable regulation.
 
 ## Output: `.specs/<feature-name>/compliance.md`
 

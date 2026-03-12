@@ -1,9 +1,16 @@
 ---
-name: pitch
-description: Creates a pitch document at .specs/<feature-name>/pitch.md that defines a problem domain with constraints, appetite, and solution shape. Use when the user wants to frame a new feature or initiative, propose a project, define scope before writing a spec, synthesize sketch results into a coherent initiative, or create a Shape Up style pitch. Triggers on "pitch this", "frame this problem", "let's scope this", "write a pitch for", "propose", or any request to define a problem and solution direction before committing to a full specification.
+name: Feature Pitch
+description: Creates a pitch document at .specs/<feature>/pitch.md defining a problem domain with constraints, appetite, and solution shape. Use to frame a feature before writing a spec.
 ---
 
 # Pitch
+
+## When to use
+
+- "pitch this", "frame this problem", "let's scope this"
+- "write a pitch for", "propose"
+- Any request to define a problem and solution direction before committing to a full specification
+- Synthesizing sketch results into a coherent initiative
 
 Create a pitch document at `.specs/<feature-name>/pitch.md`.
 

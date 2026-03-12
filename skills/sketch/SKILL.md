@@ -1,9 +1,15 @@
 ---
-name: sketch
-description: Creates a lightweight experiment document at .specs/sketches/<slug>.md to test a technical hypothesis. Use when the user wants to validate an assumption, try a library or pattern, explore a technical approach before committing, or run a small timeboxed experiment. Triggers on "let's try", "I want to test whether", "spike on", "experiment with", "sketch out", "is this feasible", or any request to explore a technical idea cheaply before building it for real.
+name: Technical Sketch
+description: Creates a lightweight experiment document at .specs/sketches/<slug>.md to test a technical hypothesis before committing to a larger initiative.
 ---
 
 # Sketch
+
+## When to use
+
+- "let's try", "I want to test whether", "spike on"
+- "experiment with", "sketch out", "is this feasible"
+- Any request to explore a technical idea cheaply before building it for real
 
 Create a new sketch document at `.specs/sketches/<slug>.md`.
 

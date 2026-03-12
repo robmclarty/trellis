@@ -1,8 +1,10 @@
-// Example: Service function pattern
-// Service functions are plain exported functions, not class methods.
-// They receive explicit dependencies (db handle, config) as parameters.
-// They return Result types or throw only at system boundaries.
-// Business logic lives here, not in route handlers.
+/**
+ * Example: Service function pattern
+ * Service functions are plain exported functions, not class methods.
+ * They receive explicit dependencies (db handle, config) as parameters.
+ * They return Result types or throw only at system boundaries.
+ * Business logic lives here, not in route handlers.
+ */
 
 import { eq, and, desc } from "drizzle-orm";
 import { passes } from "../schema/passes.js";

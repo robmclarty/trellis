@@ -1,9 +1,16 @@
 ---
-name: spec
-description: Creates a full functional specification at .specs/<feature-name>/spec.md defining what a system does and why. Use when the user wants to write a spec, define feature requirements, turn a pitch into a detailed specification, create a functional spec, or document what a system should do. Triggers on "write a spec", "spec this out", "define the requirements", "specify", "what should this system do", or any request to produce a complete, unambiguous description of a feature's behavior, data, interfaces, and constraints.
+name: Functional Spec
+description: Creates a full functional specification at .specs/<feature>/spec.md defining what a system does and why. Use to write or revise feature requirements.
 ---
 
 # Spec
+
+## When to use
+
+- "write a spec", "spec this out", "define the requirements", "specify"
+- "what should this system do"
+- Any request to produce a complete, unambiguous description of a feature's behavior, data, interfaces, and constraints
+- Turning a pitch into a detailed specification
 
 Create a functional specification at `.specs/<feature-name>/spec.md`.
 
@@ -28,6 +35,9 @@ If the user runs `/spec` without providing details, ask:
 4. Who interacts with it and what can each person do?
 
 If the user provides a description, extract as much structure as you can and confirm gaps. Prefer over-asking to under-asking. The spec is where precision matters most.
+
+5. Are there compliance or regulatory concerns? (Jurisdictions, data sensitivity — this context will be embedded in §9 so that downstream `/clarify` and `/compliance` skills, which run in isolated contexts, can resolve issues without interactive access to the user.)
+6. Any known ambiguities about data ownership, permissions, or integrations? (These will be captured as `[? CATEGORY: ...]` markers for `/clarify` to resolve.)
 
 ## Reading the pitch
 

@@ -1,10 +1,18 @@
 ---
-name: pipeline
-description: Orchestrates the full spec-driven development pipeline for a feature, running pitch, spec, clarify, compliance, plan, and tasks in sequence with automatic feedback loops. Use when the user wants to go from a problem description to a complete task breakdown in one session. Triggers on "run the pipeline", "pipeline", "take this from pitch to tasks", "full spec workflow", or any request to run the complete spec-driven process end-to-end.
+name: Spec Pipeline
+description: Orchestrates the full spec-driven pipeline (pitch → spec → clarify → compliance → plan → tasks) in one session with automatic feedback loops.
 disable-model-invocation: true
+allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
 # Pipeline
+
+## When to use
+
+- "run the pipeline", "pipeline", "take this from pitch to tasks"
+- "full spec workflow"
+- Any request to run the complete spec-driven process end-to-end
+- When the user wants to go from a problem description to a complete task breakdown in one session
 
 Orchestrate the full spec-driven development pipeline for a feature, from pitch through tasks.
 
@@ -31,18 +39,19 @@ Ask:
 1. What problem are you solving? (This seeds the pitch.)
 2. What's the feature name? (kebab-case, becomes the folder name under `.specs/`)
 3. Does this feature have compliance requirements? (If yes, which regulations? If unsure, the pipeline will try to detect this from the spec's data model.)
+4. Are there any known ambiguities or open questions I should be aware of? (Data ownership, permissions, privacy concerns, integration points — this context helps the clarify and compliance stages resolve issues without needing to ask you mid-run, since they run in isolated contexts.)
 
 ### Auto mode: extended upfront questions
 
 Ask all of the above, plus:
 
-4. Walk me through the user experience. What does someone do with this feature, step by step?
-5. What's the appetite? (Timeframe, team size, complexity budget)
-6. Are there any specific technical decisions you've already made?
-7. Does this integrate with an existing system? If so, describe the integration points.
-8. Are there any known no-gos I should encode?
-9. Any rabbit holes I should flag?
-10. Anything else I should know that might affect the spec, plan, or compliance review?
+5. Walk me through the user experience. What does someone do with this feature, step by step?
+6. What's the appetite? (Timeframe, team size, complexity budget)
+7. Are there any specific technical decisions you've already made?
+8. Does this integrate with an existing system? If so, describe the integration points.
+9. Are there any known no-gos I should encode?
+10. Any rabbit holes I should flag?
+11. Anything else I should know that might affect the spec, plan, or compliance review?
 
 Be thorough in this intake. Every question you skip here becomes a guess later. If the user's answers are thin in any area, push for more detail before proceeding. Once you start the auto run, you're committed to making all decisions yourself.
 
@@ -71,7 +80,7 @@ Do NOT pause for user review yet. Move directly to clarify. (Same in both modes.
 
 ### Stage 3: Clarify (automatic, may loop)
 
-Run the `/clarify` skill against the spec. This is an internal review pass.
+Run the `/clarify` skill against the spec. This is an internal review pass. Since clarify runs with `context: fork` (isolated context), embed any user-provided context from the upfront questions into the spec's §9 (Constraints) or §10 (Open Questions) before invoking clarify, so the forked agent has access to it.
 
 **If clarify finds issues that can be resolved from available context:** resolve them in place and continue. (Same in both modes.)
 
@@ -99,7 +108,7 @@ If the user requests changes, revise the spec and re-run clarify (Stage 3). Only
 
 **Run if:** The user specified regulations, OR the data model contains entities that likely require compliance review. (Same in both modes.)
 
-Generate `.specs/<feature-name>/compliance.md` following the `/compliance` skill.
+Generate `.specs/<feature-name>/compliance.md` following the `/compliance` skill. Since compliance runs with `context: fork`, ensure any user-provided regulation requirements and jurisdiction information from the upfront questions are embedded in the spec's §9 before invoking compliance.
 
 **If compliance finds no gaps:** continue to plan. (Same in both modes.)
 

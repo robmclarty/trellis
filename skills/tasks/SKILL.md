@@ -1,9 +1,15 @@
 ---
-name: tasks
-description: Creates an ordered task breakdown at .specs/<feature-name>/tasks.md that decomposes a plan into discrete, verifiable units of work organized in phases. Use when the user wants to break a plan into tasks, create a work breakdown, generate an implementation checklist, or prepare work items for execution. Triggers on "break this into tasks", "create tasks", "task breakdown", "what do I build first", "generate work items", or any request to decompose a technical plan into actionable steps.
+name: Task Breakdown
+description: Creates an ordered task breakdown at .specs/<feature>/tasks.md that decomposes a plan into discrete, verifiable units of work organized in phases.
 ---
 
 # Tasks
+
+## When to use
+
+- "break this into tasks", "create tasks", "task breakdown"
+- "what do I build first", "generate work items"
+- Any request to decompose a technical plan into actionable steps or prepare work items for execution
 
 Create an ordered task breakdown at `.specs/<feature-name>/tasks.md`.
 

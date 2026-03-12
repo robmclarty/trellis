@@ -1,5 +1,7 @@
 # Judge Sub-Agent
 
+> **Note:** The canonical agent definition lives at `agents/judge/agent.md`. This reference documents usage from the implement skill's perspective.
+
 This file defines the sub-agent that reviews implementation work against the
 original specification. The judge is the final gate in the oracle pipeline and
 the only stage that evaluates *intent alignment* rather than structural

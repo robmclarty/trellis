@@ -1,18 +1,15 @@
 ---
-name: implement
-description: >
-  Execute implementation from spec-driven artifacts (spec, plan, tasks, pitch),
-  sketch files, or freeform instructions through iterative oracle-driven feedback
-  loops until all acceptance criteria are met. Use this skill whenever the user says
-  "implement this", "build this", "/implement", or passes a feature folder, sketch
-  name, or inline instructions and expects working code as output. Also trigger when
-  the user has completed the spec pipeline and wants to move from planning to
-  execution. This skill orchestrates sub-agents, runs user-configured check stages,
-  and uses an LLM judge to verify acceptance criteria. Supports Ralph mode for
-  context-resilient long implementations, Open Spec format, and Promptfoo for
-  repeatable evaluations.
-allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, SubAgent
+name: Implement
+description: Executes implementation from spec-driven artifacts or freeform instructions through iterative oracle-driven feedback loops until all acceptance criteria are met.
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
 ---
+
+## When to use
+
+- "implement this", "build this", "/implement"
+- Passing a feature folder, sketch name, or inline instructions expecting working code
+- After completing the spec pipeline and wanting to move from planning to execution
+- Supports Ralph mode, Open Spec format, and Promptfoo for repeatable evaluations
 
 # Implement
 
@@ -23,7 +20,9 @@ verifies alignment with intent.
 
 Read `references/oracle-pipeline.md` before starting any implementation. It
 contains the full mechanics of the feedback loop, the judge sub-agent prompt, and
-notes on integration with external tools like Ralph and Promptfoo.
+notes on integration with external tools like Ralph and Promptfoo. See
+`references/external-integrations.md` for details on what these tools are, where
+to find them, and how they integrate with the implement skill.
 
 ## Invocation
 
@@ -359,130 +358,13 @@ If the judge says PARTIAL or FAIL, extract the specific failures, fix them,
 re-run the oracle pipeline, and re-submit to the judge. Limit: 2 judge
 re-submissions. After that, report to the user with the judge's feedback.
 
-## The `.implement-state.md` file
+See `references/implement-state-format.md` for the canonical `.implement-state.md` structure.
 
-This is the canonical record of the implementation session. It serves as
-persistent memory across context resets.
+See `references/git-usage.md` for git usage rules during implementation.
 
-Structure:
+See `references/sub-agent-strategy.md` for sub-agent spawning strategy and test-writing heuristics.
 
-```markdown
-# Implementation State
-
-## Input
-- Type: feature-folder | sketch | inline | hybrid
-- Feature: <folder name or "N/A">
-- Sketches: <list of sketch slugs or "N/A">
-- Paths: <list of artifact paths loaded>
-
-## Branch
-- Original: <branch name before implementation>
-- Working: <current branch, e.g., sketch/drizzle-multi-tenant>
-
-## Config
-- Package manager: pnpm
-- Type-check: `pnpm tsc --noEmit`
-- Lint: `biome check --fix && biome check`
-- Build: `pnpm build`
-- Test: `vitest run`
-- Ralph mode: off
-- Promptfoo: off
-
-## Oracle Pipeline
-- [x] typecheck: `pnpm tsc --noEmit`
-- [x] lint: `biome check --fix && biome check`
-- [x] build: `pnpm build`
-- [ ] test: (enabled when test writer creates files)
-- [x] judge: sub-agent
-
-## Acceptance Criteria
-- [x] AC-1 (task 1.1): Scaffold project directory (done, iteration 1)
-- [x] AC-2 (task 1.2): Set up database connection (done, iteration 1)
-- [ ] AC-3 (task 2.1): Define Drizzle schemas (pending)
-
-## Constraints
-- TypeScript strict mode
-- Fastify framework
-- Functional style, no classes
-- ...
-
-## Unknowns / Assumptions
-- Assumed X because spec didn't specify
-- ...
-
-## Iteration Log
-### Iteration 1
-- Scope: tasks 1.1, 1.2 (foundation)
-- Result: pass, both tasks completed
-- Oracle output: typecheck clean, lint had 2 auto-fixed issues, build clean
-```
-
-## Git usage rules
-
-Git is used ONLY for:
-1. **Reading the current branch name** (`git branch --show-current`)
-2. **Creating a new branch** (`git checkout -b <name>`)
-3. **Switching branches** (`git checkout <name>`)
-4. **Summarizing changes for the judge** (`git diff --stat`)
-
-Git is NOT used for:
-- Committing (the user decides when to commit)
-- Stashing
-- Pushing
-- Any other git operation that modifies history or remote state
-
-Do not make commits without explicit user acceptance. The user owns the git
-history.
-
-## Sub-agent strategy
-
-Spawn sub-agents to keep the main agent's context focused:
-
-1. **Test writer** — Produces test files from spec criteria. Runs in isolation.
-   See `references/test-writer-agent.md`.
-2. **Judge** — Reviews implementation against spec. Runs in isolation.
-   See `references/judge-agent.md`.
-3. **Task implementor** (optional, for parallel work) — When tasks within a
-   phase are marked `[parallel]` in tasks.md, you may spawn sub-agents to
-   implement independent tasks concurrently. Each sub-agent receives:
-   - The specific task(s) to implement
-   - Relevant plan.md sections
-   - Relevant spec.md sections
-   - The project guidelines
-   - The file structure from plan.md §6
-
-   The main agent coordinates: it spawns the sub-agents, collects their output,
-   writes files to disk, then runs the oracle pipeline against all changes.
-
-Sub-agents do NOT share context with each other or with the main agent's
-conversation history. They receive only what is explicitly passed to them.
-
-## When to write tests
-
-Tests are not the default starting point. Write tests when:
-
-- `tasks.md` includes a task whose "Verify" requires running code
-- `spec.md` §8 defines test scenarios as acceptance criteria
-- The logic involves tricky edge cases that type-checking and linting won't catch
-  (date math, permission logic, state machines, parsing)
-- You need a regression guard for a bug fixed during iteration
-- The criterion is behavioral and can't be verified by the judge alone
-
-When tests are warranted, use the test writer sub-agent. Tests encode the spec's
-intent, not the implementation's behavior.
-
-## Error recovery
-
-If a context reset occurs mid-implementation:
-
-1. Read `.implement-state.md`
-2. Read the artifacts from the recorded paths
-3. Check which criteria are done vs. pending
-4. Verify the working branch matches expectations
-5. Re-run the oracle pipeline to validate current state
-6. Resume from the next pending criterion
-
-The filesystem is memory, not the conversation.
+See `references/error-recovery.md` for context reset recovery procedure.
 
 ## Reporting
 

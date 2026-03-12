@@ -1,10 +1,17 @@
 ---
-name: clarify
-description: Reviews a spec for ambiguities across six structured categories and resolves them. Modifies the spec in place. Use after writing or revising a spec, when ambiguity markers exist in a spec, or when you want a fresh completeness review. Triggers on "clarify the spec", "review for gaps", "check for ambiguities", "are there any open questions in the spec", or any request to verify a spec is complete and unambiguous.
+name: Spec Clarifier
+description: Reviews a spec for ambiguities across six structured categories and resolves them in place. Use after writing or revising a spec, or for a fresh completeness review.
 context: fork
 ---
 
 # Clarify
+
+## When to use
+
+- "clarify the spec", "review for gaps", "check for ambiguities"
+- "are there any open questions in the spec"
+- Any request to verify a spec is complete and unambiguous
+- After writing or revising a spec, when ambiguity markers (`[? ...]`) exist
 
 Review the spec for ambiguities and resolve them. Modifies `.specs/<feature-name>/spec.md` in place.
 
@@ -58,25 +65,29 @@ Read the spec section by section and check for each of the six ambiguity categor
 - Are boundary conditions covered? (Empty lists, max limits, Unicode, timezone handling)
 - Are migration or transition states handled? (What happens during rollout, partial deployment, data migration?)
 
-### Step 3: Present findings
+### Step 3: Resolve findings
 
-Present all findings to the user, grouped by category. For each finding:
+Since this skill runs in an isolated context (`context: fork`) without access to conversation history, it cannot interactively ask the user for input. Instead:
 
-1. State the issue clearly
-2. Suggest a resolution if you have enough context
-3. Ask the user to confirm, revise, or defer to open questions
+**For findings resolvable from available context** (the spec itself, guidelines, pitch):
+- Resolve them directly. Remove the `[? ...]` marker and replace it with the resolved content, or add new content to the appropriate spec section.
+
+**For findings that require user judgment:**
+- Move them to §10 (Open Questions) with a clear description and a suggested resolution. Tag each with the ambiguity category: `[CLARIFY:PERMISSIONS] Should managers see reports from other departments? Suggested: no, scope to own department.`
+
+**For findings that require substantial spec revision:**
+- Note which sections need rework in §10 and recommend the user re-run `/spec` then `/clarify`.
+
+> **Note:** When invoked through `/pipeline`, the pipeline skill gathers user context upfront (in interactive mode via review pauses, in auto mode via extended intake questions). This context is passed to clarify, enabling better resolution. When invoked standalone, clarify works from the spec and available artifacts only.
 
 ### Step 4: Apply resolutions
 
-For findings the user resolves:
+For all resolved findings:
 - Remove the `[? ...]` marker and replace it with the resolved content
 - Or add new content to the appropriate spec section
 
-For findings the user defers:
-- Move them to §10 (Open Questions) with the reason for deferral
-
-For findings that require substantial spec revision:
-- Tell the user which sections need rework and suggest they re-run `/spec` with the new context, then come back to `/clarify`
+For all deferred findings:
+- Move them to §10 (Open Questions) with the reason for deferral and suggested resolution
 
 ### Step 5: Final check
 
@@ -91,4 +102,4 @@ Modified `spec.md` in place. No separate artifact. The clarify phase is a refine
 - [ ] Zero `[? ...]` markers remain in the spec body (all resolved or moved to §10)
 - [ ] Every category was checked, not just the ones with explicit markers
 - [ ] Deferred items in §10 have a reason and any preliminary thinking
-- [ ] The user confirmed each resolution (no silent assumptions)
+- [ ] Unresolvable items are in §10 with suggested resolutions and category tags

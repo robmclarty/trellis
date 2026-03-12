@@ -16,8 +16,8 @@ Trellis provides 10 skills organized into three groups: foundation, specificatio
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| **Guidelines** | `/guidelines` | Establish project-wide stack, conventions, and principles at `.specs/guidelines.md`. Run this first. |
-| **Sketch** | `/sketch` | Run a timeboxed experiment to test a technical hypothesis. Produces a document in `.specs/sketches/`. |
+| **Project Guidelines** | `/trellis:guidelines` | Establish project-wide stack, conventions, and principles at `.specs/guidelines.md`. Run this first. |
+| **Technical Sketch** | `/trellis:sketch` | Run a timeboxed experiment to test a technical hypothesis. Produces a document in `.specs/sketches/`. |
 
 ### Specification pipeline
 
@@ -25,35 +25,35 @@ These skills run in sequence. Each builds on the output of the previous one.
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| **Pitch** | `/pitch` | Frame a problem with constraints, appetite, and solution shape. Produces `.specs/<feature>/pitch.md`. |
-| **Spec** | `/spec` | Write a full functional specification defining what the system does and why. Produces `.specs/<feature>/spec.md`. |
-| **Clarify** | `/clarify` | Review the spec for ambiguities across six categories and resolve them in place. |
-| **Compliance** | `/compliance` | Evaluate the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). Produces `.specs/<feature>/compliance.md`. |
-| **Plan** | `/plan` | Translate the spec into concrete architecture, technology, and code decisions. Produces `.specs/<feature>/plan.md`. |
-| **Tasks** | `/tasks` | Decompose the plan into discrete, ordered, verifiable units of work. Produces `.specs/<feature>/tasks.md`. |
+| **Feature Pitch** | `/trellis:pitch` | Frame a problem with constraints, appetite, and solution shape. Produces `.specs/<feature>/pitch.md`. |
+| **Functional Spec** | `/trellis:spec` | Write a full functional specification defining what the system does and why. Produces `.specs/<feature>/spec.md`. |
+| **Spec Clarifier** | `/trellis:clarify` | Review the spec for ambiguities across six categories and resolve them in place. |
+| **Compliance Review** | `/trellis:compliance` | Evaluate the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). Produces `.specs/<feature>/compliance.md`. |
+| **Implementation Plan** | `/trellis:plan` | Translate the spec into concrete architecture, technology, and code decisions. Produces `.specs/<feature>/plan.md`. |
+| **Task Breakdown** | `/trellis:tasks` | Decompose the plan into discrete, ordered, verifiable units of work. Produces `.specs/<feature>/tasks.md`. |
 
 ### Execution
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| **Pipeline** | `/pipeline` | Orchestrate the full pipeline from pitch through tasks in one session. Supports interactive and automatic modes. |
-| **Implement** | `/implement` | Turn specs, sketches, or freeform instructions into working code through iterative oracle-driven feedback loops. |
+| **Spec Pipeline** | `/trellis:pipeline` | Orchestrate the full pipeline from pitch through tasks in one session. Supports interactive and automatic modes. |
+| **Implement** | `/trellis:implement` | Turn specs, sketches, or freeform instructions into working code through iterative oracle-driven feedback loops. |
 
 ## Typical workflow
 
 ```
-/guidelines          # once per project
-/sketch              # optional: explore unknowns
-/pitch               # frame the feature
-/spec                # define what it does
-/clarify             # resolve ambiguities
-/compliance          # if regulated data is involved
-/plan                # decide how to build it
-/tasks               # break it into work items
-/implement           # write the code
+/trellis:guidelines          # once per project
+/trellis:sketch              # optional: explore unknowns
+/trellis:pitch               # frame the feature
+/trellis:spec                # define what it does
+/trellis:clarify             # resolve ambiguities
+/trellis:compliance          # if regulated data is involved
+/trellis:plan                # decide how to build it
+/trellis:tasks               # break it into work items
+/trellis:implement           # write the code
 ```
 
-Or use `/pipeline` to run pitch through tasks in one pass.
+Or use `/trellis:pipeline` to run pitch through tasks in one pass.
 
 ## Project structure
 
@@ -72,6 +72,55 @@ All artifacts live under `.specs/` in your project:
     plan.md
     tasks.md
 ```
+
+See `examples/` for a complete sample `.specs/` directory showing what finished pipeline output looks like.
+
+## External integrations
+
+The `implement` skill can optionally integrate with external tools:
+
+### Ralph
+
+[Ralph](https://github.com/anthropics/ralph) is a CLI tool that provides context-resilient iteration for long-running Claude Code sessions. It works by killing and restarting the agent's context window at iteration boundaries, using `.implement-state.md` as the handoff mechanism.
+
+**When to use:** Large implementations with 10+ acceptance criteria or many files where context degradation becomes a concern.
+
+**Install:** Follow the instructions at the Ralph repository. The `ralph` CLI must be available on your PATH.
+
+**Invocation:** `ralph run --state .implement-state.md --command "/trellis:implement <feature-name>"`
+
+### Promptfoo
+
+[Promptfoo](https://www.promptfoo.dev/) is an eval framework for LLM outputs. The implement skill can generate Promptfoo configs from acceptance criteria for repeatable, versioned evaluation of implementation quality.
+
+**When to use:** Teams that build similar features often and want to codify judge criteria, A/B test prompts, or run regression checks against spec criteria.
+
+**Install:** `npm install -g promptfoo` or see the [Promptfoo docs](https://www.promptfoo.dev/docs/installation/).
+
+### Open Spec
+
+[Open Spec](https://github.com/open-spec/open-spec) is a structured requirements format designed for agentic interpretation. If your spec uses Open Spec format (fields like `validation_criteria`, `constraints`, `scope`), the implement skill uses its structure directly for more reliable criteria extraction.
+
+## Agents
+
+Trellis includes two built-in agents used by the implement skill:
+
+| Agent | Description |
+|-------|-------------|
+| **Judge** | Reviews implementation against specifications for intent alignment. Final gate in the oracle pipeline. |
+| **Test Writer** | Writes targeted tests for tricky logic from spec criteria before implementation exists. |
+
+These agents are defined in `agents/` and can be referenced by name from the implement skill.
+
+## Hooks
+
+Trellis includes optional hooks for document validation and workflow enforcement:
+
+| Hook | Trigger | Description |
+|------|---------|-------------|
+| `validate-spec-structure` | PostToolUse (Write/Edit) | Validates `.specs/` documents have required sections |
+| `check-implement-state` | PreToolUse (git commit) | Warns if acceptance criteria are incomplete |
+| `session-start` | SessionStart | Shows pipeline status for features in `.specs/` |
 
 ## License
 

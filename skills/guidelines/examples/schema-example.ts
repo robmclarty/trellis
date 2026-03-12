@@ -1,7 +1,9 @@
-// Example: Schema and data model pattern
-// Drizzle table definitions paired with Zod schemas for validation.
-// The Zod schema is the source of truth for input validation.
-// Drizzle handles persistence; Zod handles boundaries.
+/**
+ * Example: Schema and data model pattern
+ * Drizzle table definitions paired with Zod schemas for validation.
+ * The Zod schema is the source of truth for input validation.
+ * Drizzle handles persistence; Zod handles boundaries.
+ */
 
 import { pgTable, uuid, varchar, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { z } from "zod";

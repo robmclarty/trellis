@@ -1,9 +1,15 @@
 ---
-name: guidelines
-description: Creates or updates the project guidelines document at .specs/guidelines.md. Use when starting a new project, establishing stack and convention decisions, or when a fundamental technology or pattern decision has changed. Triggers on "set up guidelines", "update guidelines", "change our stack", "add a convention", or any request to establish or modify project-wide principles.
+name: Project Guidelines
+description: Creates or updates .specs/guidelines.md with project-wide stack, conventions, and principles. Use when starting a project or when a fundamental technology decision has changed.
 ---
 
 # Guidelines
+
+## When to use
+
+- "set up guidelines", "update guidelines"
+- "change our stack", "add a convention"
+- Any request to establish or modify project-wide principles
 
 Create or update the project guidelines document at `.specs/guidelines.md`.
 
@@ -55,7 +61,7 @@ After updating, scan the rest of the guidelines for anything that conflicts with
 
 Write a single markdown document with the following sections. Be concrete and opinionated. Every section should include examples, not just rules. A new contributor (or an LLM) reading this document should be able to write code that looks like it belongs in this project.
 
-Reference the example files in this skill's `examples/` directory for the level of concreteness expected in the Patterns section. These are illustrative; the actual patterns should match the user's stack.
+Reference the example files in this skill's `examples/` directory for the level of concreteness expected in the Patterns section. These are illustrative; the actual patterns should match the user's stack. Examples are provided for both TypeScript (Fastify/Drizzle/Zod) and Python (FastAPI/SQLAlchemy/Pydantic) to show that the guidelines skill is stack-agnostic.
 
 ### Sections
 

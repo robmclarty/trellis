@@ -1,7 +1,9 @@
-// Example: Route definition pattern
-// This shows the expected structure for an HTTP route handler.
-// Validation is declared at the route level using Zod schemas.
-// The handler receives typed, validated input and returns a typed response.
+/**
+ * Example: Route definition pattern
+ * This shows the expected structure for an HTTP route handler.
+ * Validation is declared at the route level using Zod schemas.
+ * The handler receives typed, validated input and returns a typed response.
+ */
 
 import { FastifyInstance } from "fastify";
 import { z } from "zod";

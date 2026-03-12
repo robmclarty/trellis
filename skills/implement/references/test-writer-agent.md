@@ -1,5 +1,7 @@
 # Test Writer Sub-Agent
 
+> **Note:** The canonical agent definition lives at `agents/test-writer/agent.md`. This reference documents usage from the implement skill's perspective.
+
 This file defines the sub-agent that writes targeted tests for tricky logic
 while the main agent implements. Spawn this agent when acceptance criteria
 involve edge cases, state transitions, permission logic, date/time math,
