@@ -5,7 +5,7 @@ A Claude Code plugin that bundles composable skills for spec-driven development.
 ## Install
 
 ```
-claude plugin add robmclarty/trellis
+/plugin marketplace add robmclarty/trellis
 ```
 
 ## Skills
