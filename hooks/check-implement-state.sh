@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # PreToolUse hook for Bash(git commit) — checks .implement-state.md
 # Warns if acceptance criteria are incomplete. Exit 0 (warn only).
+# Receives tool input as JSON on stdin.
+
+COMMAND=$(jq -r '.tool_input.command // empty')
+
+# Only check git commit commands
+if [[ "$COMMAND" != *"git commit"* ]]; then
+  exit 0
+fi
 
 STATE_FILE=".implement-state.md"
 

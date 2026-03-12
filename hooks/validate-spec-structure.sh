@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # PostToolUse hook for Write/Edit — validates .specs/ document structure.
 # Checks that documents under .specs/ have their minimum required sections.
+# Receives tool input as JSON on stdin.
 # Outputs warnings only (exit 0).
 
-FILE="$1"
+FILE=$(jq -r '.tool_input.file_path // empty')
+
+# Exit if jq failed or no file path
+if [ -z "$FILE" ]; then
+  exit 0
+fi
 
 # Only check files under .specs/
 if [[ "$FILE" != *".specs/"* ]]; then
