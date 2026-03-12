@@ -1,0 +1,17 @@
+{
+  "name": "trellis",
+  "version": "0.1.0",
+  "description": "A spec-driven development toolkit that takes features from problem framing through implementation using structured, composable skills.",
+  "skills": [
+    "skills/guidelines",
+    "skills/sketch",
+    "skills/pitch",
+    "skills/spec",
+    "skills/clarify",
+    "skills/compliance",
+    "skills/plan",
+    "skills/tasks",
+    "skills/pipeline",
+    "skills/implement"
+  ]
+}

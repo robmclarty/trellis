@@ -1,0 +1,21 @@
+{
+  "title": "Trellis",
+  "slug": "trellis",
+  "tagline": "Spec-driven development from pitch to production.",
+  "author": "robmclarty",
+  "license": "MIT",
+  "categories": ["development", "planning", "specification"],
+  "keywords": [
+    "spec",
+    "specification",
+    "planning",
+    "implementation",
+    "compliance",
+    "tasks",
+    "shape-up",
+    "pipeline",
+    "development-workflow"
+  ],
+  "repository": "https://github.com/robmclarty/trellis",
+  "homepage": "https://github.com/robmclarty/trellis"
+}
