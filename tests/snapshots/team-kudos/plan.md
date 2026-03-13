@@ -67,8 +67,8 @@ Services return `Result[T]` types (see guidelines service-example.py). Routes tr
 
 ## §9 — Deployment and Infrastructure
 
-No new infrastructure. Deploys with the existing FastAPI application. Migration via Alembic. No environment variables beyond the existing database connection.
+N/A — deploys within existing infrastructure.
 
 ## §10 — Migration Path
 
-New feature, no migration from existing system. Single Alembic migration creates the `kudos` table.
+N/A — greenfield feature, no migration concerns.

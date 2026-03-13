@@ -42,27 +42,32 @@ How the system is structured internally. Include:
 
 ### S3 -- Technology Decisions
 
-Every library, tool, and infrastructure choice with a one-sentence rationale. Organize as a table:
+Synthesize the project guidelines with this feature's spec to produce a focused set of technology decisions. Do NOT restate project-wide defaults that are already in guidelines (e.g., "HTTP framework: Fastify — project standard" adds no value here). Instead:
+
+- Identify which subset of guidelines technologies are relevant to this specific feature and why
+- Add any feature-specific technology decisions not covered by guidelines (e.g., cursor-based pagination, UUID v7 for sortable IDs)
+- Note rejected alternatives only for feature-specific choices (this prevents the implementor from re-evaluating a dead option)
+
+Organize as a table. The rationale column should explain why *this feature* needs this choice, not just cite the guidelines:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| HTTP framework | Fastify | Project standard per guidelines |
-| ORM | Drizzle | Project standard; schema-first, supports Postgres RLS |
-| Validation | Zod | Shared schemas for validation and type inference |
+| Pagination | Cursor-based (keyset) | Better performance than offset for chronological feeds |
+| ID generation | UUID v7 | Sortable by time, doubles as cursor |
 
-If a choice diverges from the guidelines, explain why. If a choice was considered and rejected, include it with the reason (this prevents the implementor from re-evaluating a dead option).
+If a choice diverges from the guidelines, explain why.
 
 ### S4 -- Data Access Patterns
 
-How the application interacts with its data layer. This is not the data model (that's in the spec). This is the implementation strategy:
+How this feature's data model (from spec §4) maps to the data layer. Filter guidelines data access patterns to only what's relevant to this feature. This is not the data model (that's in the spec). This is the implementation strategy for this feature's specific data needs:
 
-- How schemas are defined (Drizzle table definitions, Zod validation schemas)
 - Query patterns for the main operations (which queries need joins, aggregations, or complex filters)
-- Migration strategy (how the schema is versioned and deployed)
-- Connection management (pooling, timeouts, retry behavior)
-- If there are compliance constraints on data storage or access, show how the implementation satisfies them
+- Migration strategy specific to this feature's schema changes
+- Any compliance constraints on data storage or access and how the implementation satisfies them
 
 Include concrete code snippets showing the preferred patterns. These should follow the project guidelines and serve as copy-paste templates for the implementor.
+
+If this feature does not interact with a data layer, write: `N/A — this feature does not interact with a data layer.`
 
 ### S5 -- Interface Implementation
 
@@ -110,6 +115,8 @@ How the feature is built, deployed, and operated:
 - Health checks and monitoring
 - If there are compliance constraints on hosting or infrastructure, show how they're satisfied
 
+If this feature deploys within existing infrastructure with no new services, containers, or environment variables, write: `N/A — deploys within existing infrastructure.`
+
 ### S10 -- Migration Path
 
 If this feature replaces or extends an existing system:
@@ -119,7 +126,7 @@ If this feature replaces or extends an existing system:
 - What the rollback strategy is
 - How the old and new systems coexist during transition
 
-Skip this section if the feature is greenfield with no migration concerns.
+If the feature is greenfield with no migration concerns, write: `N/A — greenfield feature, no migration concerns.`
 
 ## Additional requirements
 
