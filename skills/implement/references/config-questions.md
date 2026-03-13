@@ -29,7 +29,7 @@ specific language, framework, linter, or type checker. Ask the following:
 
 6. **Ralph mode** — Auto-detected from the `with ralph` invocation modifier.
    Do not ask this as a question. If `with ralph` was passed, set
-   `Ralph mode: on` in `.claude/.implement-state.md`. Otherwise, set it to `off`.
+   `Ralph mode: on` in `{specsDir}/.state/implement-state.md`. Otherwise, set it to `off`.
 
 7. **Enable Promptfoo?** If yes, generate Promptfoo eval configs alongside the
    judge for repeatable evaluations. See the Promptfoo section in
@@ -39,5 +39,5 @@ specific language, framework, linter, or type checker. Ask the following:
    `validation_criteria`, `constraints`, `scope` fields), use its structure
    directly rather than re-analyzing.
 
-Store all configuration answers in `.claude/.implement-state.md` under a `## Config`
+Store all configuration answers in `{specsDir}/.state/implement-state.md` under a `## Config`
 section so they survive context resets.

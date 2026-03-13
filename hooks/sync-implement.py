@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PostToolUse hook for Write/Edit — syncs implement state after updates.
 
-After writes to .claude/.implement-state.md, calls scripts/parse-implement-state.py
+After writes to implement-state.md, calls scripts/parse-implement-state.py
 and outputs a progress summary. Exits silently for other files.
 """
 

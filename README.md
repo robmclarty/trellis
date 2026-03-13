@@ -97,7 +97,7 @@ The `implement` skill can optionally integrate with external tools:
 
 ### Ralph
 
-A bundled loop script (`scripts/ralph-loop.sh`) that provides context-fresh iteration for large implementations. Based on Geoffrey Huntley's Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context window, using `.claude/.implement-state.md` as filesystem memory between iterations.
+A bundled loop script (`scripts/ralph-loop.sh`) that provides context-fresh iteration for large implementations. Based on Geoffrey Huntley's Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context window, using `{specsDir}/.state/implement-state.md` as filesystem memory between iterations.
 
 **When to use:** Large implementations with 10+ acceptance criteria or many files where context degradation becomes a concern.
 

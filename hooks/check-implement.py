@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook for Bash(git commit) — checks .claude/.implement-state.md.
+"""PreToolUse hook for Bash(git commit) — checks implement state file.
 
 Warns if acceptance criteria are incomplete before committing.
 Calls scripts/parse-implement-state.py for structured data.
@@ -14,6 +14,15 @@ import sys
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def resolve_specs_dir():
+    """Read specsDir from trellis.json, default to .specs/."""
+    try:
+        with open("trellis.json") as f:
+            return json.load(f).get("specsDir", ".specs")
+    except (FileNotFoundError, json.JSONDecodeError):
+        return ".specs"
+
+
 def main():
     try:
         hook_input = json.load(sys.stdin)
@@ -24,7 +33,8 @@ def main():
     if "git commit" not in command:
         sys.exit(0)
 
-    state_file = ".claude/.implement-state.md"
+    specs_dir = resolve_specs_dir()
+    state_file = os.path.join(specs_dir, ".state", "implement-state.md")
     if not os.path.isfile(state_file):
         sys.exit(0)
 
@@ -45,7 +55,7 @@ def main():
 
     pending = data.get("pendingCount", 0)
     if pending > 0:
-        print(f"\u26a0 .claude/.implement-state.md has {pending} pending acceptance criteria.")
+        print(f"\u26a0 {state_file} has {pending} pending acceptance criteria.")
         print("  Consider completing all criteria before committing.")
 
         criteria = data.get("criteria", [])

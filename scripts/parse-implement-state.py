@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Parse .claude/.implement-state.md into structured JSON.
+"""Parse implement-state.md into structured JSON.
 
-Usage: parse-implement-state.py [path-to-.implement-state.md]
+Usage: parse-implement-state.py [path-to-implement-state.md]
 
-Defaults to .claude/.implement-state.md in the current directory.
+Defaults to .specs/.state/implement-state.md in the current directory.
 Outputs JSON with config, criteria, counts, and iteration info.
 """
 
@@ -158,7 +158,7 @@ def count_iterations(text):
 
 
 def main():
-    filepath = sys.argv[1] if len(sys.argv) > 1 else ".claude/.implement-state.md"
+    filepath = sys.argv[1] if len(sys.argv) > 1 else ".specs/.state/implement-state.md"
     result = parse_state_file(filepath)
 
     if result is None:

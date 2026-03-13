@@ -151,9 +151,9 @@ class TestCheckImplement(unittest.TestCase):
         self.assertEqual(out, "")
 
     def test_warns_on_pending_criteria(self):
-        claude_dir = os.path.join(self.tmp, ".claude")
-        os.makedirs(claude_dir, exist_ok=True)
-        state = os.path.join(claude_dir, ".implement-state.md")
+        state_dir = os.path.join(self.tmp, ".specs", ".state")
+        os.makedirs(state_dir, exist_ok=True)
+        state = os.path.join(state_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
@@ -166,9 +166,9 @@ class TestCheckImplement(unittest.TestCase):
         self.assertIn("2 pending", out)
 
     def test_silent_when_all_done(self):
-        claude_dir = os.path.join(self.tmp, ".claude")
-        os.makedirs(claude_dir, exist_ok=True)
-        state = os.path.join(claude_dir, ".implement-state.md")
+        state_dir = os.path.join(self.tmp, ".specs", ".state")
+        os.makedirs(state_dir, exist_ok=True)
+        state = os.path.join(state_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")

@@ -1,7 +1,7 @@
 ---
 name: implement
 description: Pre-flight context loader for the implement skill. Use when beginning implementation of a feature.
-allowed-tools: Bash, Read
+allowed-tools: Bash(git:*), Read
 user-invocable: true
 ---
 

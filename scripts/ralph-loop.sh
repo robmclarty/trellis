@@ -4,8 +4,8 @@
 # Usage: ralph-loop.sh <feature-name> [max-iterations]
 #
 # Wraps `claude -p` in a loop, restarting with a fresh context on each
-# iteration. Progress is tracked via .claude/.implement-state.md and parsed by
-# parse-implement-state.py between iterations.
+# iteration. Progress is tracked via {specsDir}/.state/implement-state.md
+# and parsed by parse-implement-state.py between iterations.
 #
 # Security: Runs without --dangerously-skip-permissions. Instead, generates
 # a scoped .claude/settings.local.json that allowlists only the tools and
@@ -18,9 +18,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations]}"
 MAX_ITERATIONS="${2:-10}"
 LOG_DIR="logs/ralph-${FEATURE}"
-STATE_FILE=".claude/.implement-state.md"
-PREFLIGHT_FILE=".claude/.implement-preflight.json"
 SETTINGS_FILE=".claude/settings.local.json"
+
+# Resolve specs dir from trellis.json (default: .specs)
+SPECS_DIR=$(python3 -c "
+import json
+try:
+    with open('trellis.json') as f:
+        print(json.load(f).get('specsDir', '.specs'))
+except Exception:
+    print('.specs')
+" 2>/dev/null || echo ".specs")
+
+STATE_FILE="${SPECS_DIR}/.state/implement-state.md"
+PREFLIGHT_FILE="${SPECS_DIR}/.state/implement-preflight.json"
 
 # Colors
 RED='\033[0;31m'
@@ -31,7 +42,7 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 mkdir -p "$LOG_DIR"
-mkdir -p .claude
+mkdir -p "${SPECS_DIR}/.state"
 
 # --- Helpers ---
 
@@ -51,23 +62,13 @@ print(d.get('$field', '$default'))
 }
 
 run_preflight() {
-  # Run pre-flight scripts and write results to .claude/.implement-preflight.json.
+  # Run pre-flight scripts and write results to the preflight JSON file.
   # This runs OUTSIDE Claude's context — Claude reads the JSON file instead
   # of invoking python3 itself.
-  local state_json preflight_json specs_dir
+  local state_json preflight_json
 
   # Parse current state
   state_json=$(parse_state)
-
-  # Resolve specs dir from trellis.json
-  specs_dir=$(python3 -c "
-import json, sys
-try:
-    with open('trellis.json') as f:
-        print(json.load(f).get('specsDir', '.specs'))
-except Exception:
-    print('.specs')
-" 2>/dev/null || echo ".specs")
 
   # Validate prerequisites
   local prereqs_json
@@ -75,8 +76,8 @@ except Exception:
 
   # Extract criteria
   local criteria_json='{}'
-  local tasks_path="${specs_dir}/${FEATURE}/tasks.md"
-  local spec_path="${specs_dir}/${FEATURE}/spec.md"
+  local tasks_path="${SPECS_DIR}/${FEATURE}/tasks.md"
+  local spec_path="${SPECS_DIR}/${FEATURE}/spec.md"
   if [[ -f "$tasks_path" ]]; then
     criteria_json=$(python3 "${SCRIPT_DIR}/extract-criteria.py" "$tasks_path" "$spec_path" 2>/dev/null || echo '{}')
   fi
@@ -90,7 +91,7 @@ prereqs = json.loads('''${prereqs_json}''')
 criteria = json.loads('''${criteria_json}''')
 
 preflight = {
-    'specsDir': '${specs_dir}',
+    'specsDir': '${SPECS_DIR}',
     'prereqs': prereqs,
     'state': state,
     'criteria': criteria,
@@ -106,7 +107,7 @@ with open('${PREFLIGHT_FILE}', 'w') as f:
 
 generate_permissions() {
   # Generate .claude/settings.local.json with scoped permissions from the
-  # oracle pipeline commands stored in .claude/.implement-state.md.
+  # oracle pipeline commands stored in the implement state file.
   local state_json
   state_json=$(parse_state)
 

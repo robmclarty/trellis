@@ -3,7 +3,7 @@
 ## Step 3: Analyze inputs and build checklist
 
 Read all loaded artifacts fully, then extract into a structured checklist written
-to `.claude/.implement-state.md`:
+to `{specsDir}/.state/implement-state.md`:
 
 **a) Acceptance criteria.** Sourced from:
 - `tasks.md` — Each task's "Verify" section becomes a criterion.
@@ -45,7 +45,7 @@ originalBranch=$(git branch --show-current)
 git checkout -b sketch/<sketch-slug>
 ```
 
-Store `originalBranch` in `.claude/.implement-state.md` under `## Branch`. When
+Store `originalBranch` in `{specsDir}/.state/implement-state.md` under `## Branch`. When
 implementation is complete (or abandoned), report to the user but do NOT switch
 back to the original branch automatically. The user decides when to merge,
 rebase, or discard.

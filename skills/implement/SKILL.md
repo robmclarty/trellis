@@ -20,13 +20,13 @@ iterative oracle-driven feedback loops. The input artifacts are the source of tr
 
 ## Pre-flight
 
-**If `.claude/.implement-preflight.json` exists** (Ralph mode — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context.
+**If `{specsDir}/.state/implement-preflight.json` exists** (Ralph mode — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context.
 
 **Otherwise** (interactive mode), run these scripts:
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
-If `.claude/.implement-state.md` exists, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/parse-implement-state.py` to get structured state data for resumption.
+If `{specsDir}/.state/implement-state.md` exists, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/parse-implement-state.py` to get structured state data for resumption.
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract-criteria.py <specs-dir>/<feature-name>/tasks.md <specs-dir>/<feature-name>/spec.md` to get structured acceptance criteria.
 
@@ -65,7 +65,7 @@ The optional `with <modifier>` suffix activates special execution modes:
 
 - **`with ralph`** — After Phase 0 and Phase 1 complete interactively, hand off
   Phase 2 to `scripts/ralph-loop.sh` for context-fresh iterations. Each iteration
-  runs in a new Claude Code context, using `.claude/.implement-state.md` as filesystem
+  runs in a new Claude Code context, using `{specsDir}/.state/implement-state.md` as filesystem
   memory. Use for large implementations (10+ acceptance criteria, many files).
 - **`with ralphd`** — Same as `with ralph`, but each iteration runs inside a
   Docker container with `--dangerously-skip-permissions`. Docker is the security
@@ -126,7 +126,7 @@ an ordered list of check stages, cheapest/fastest first:
 | 6. Custom checks | Spec-specific validation | Any command | Spec defines checks |
 | 7. Judge | Intent alignment | Sub-agent review | Always the final gate |
 
-Write the assembled pipeline to `.claude/.implement-state.md`.
+Write the assembled pipeline to `{specsDir}/.state/implement-state.md`.
 
 The pipeline is not fixed. If the user's project needs stages not listed here
 (e.g., a migration check, an MCP manifest validation, a Docker build), add them.
@@ -187,7 +187,7 @@ Implement the planned change. Follow this priority for guidance:
 4. `guidelines.md` for project-wide conventions
 5. Existing code in the project for style consistency
 
-If multiple sources conflict, flag the conflict in `.claude/.implement-state.md` and
+If multiple sources conflict, flag the conflict in `{specsDir}/.state/implement-state.md` and
 follow the most specific source (tasks > plan > spec > guidelines).
 
 ### Step 3: Run the oracle pipeline
@@ -220,7 +220,7 @@ pause and report to the user. Include:
 ### Step 4: Update state
 
 After the pipeline passes for this iteration's scope, update
-`.claude/.implement-state.md`:
+`{specsDir}/.state/implement-state.md`:
 - Mark completed criteria as `done`
 - Record which iteration completed them
 - If working from tasks.md, check the task checkbox
@@ -239,7 +239,7 @@ criteria, stop and report what's done, what's remaining, and why you stalled.
 When `with ralph` is specified in the invocation, Phase 2 is handed off to the
 bundled loop script instead of running all iterations in the current context.
 
-After Phase 0 and Phase 1 are complete (`.claude/.implement-state.md` is written with
+After Phase 0 and Phase 1 are complete (`{specsDir}/.state/implement-state.md` is written with
 config, pipeline, and criteria):
 
 1. Inform the user that Ralph mode is handing off to the loop script.
@@ -250,17 +250,17 @@ config, pipeline, and criteria):
 The loop script generates `.claude/settings.local.json` with scoped permissions
 from the oracle pipeline config and runs `claude -p` (without
 `--dangerously-skip-permissions`) in each iteration. Before each iteration, it
-runs pre-flight scripts and writes `.claude/.implement-preflight.json` so Claude doesn't
+runs pre-flight scripts and writes `{specsDir}/.state/implement-preflight.json` so Claude doesn't
 need python3 access.
 
-On resumption (when `.claude/.implement-state.md` already exists), the implement skill:
+On resumption (when `{specsDir}/.state/implement-state.md` already exists), the implement skill:
 
-- Reads `.claude/.implement-preflight.json` for pre-flight data (no python3 calls)
+- Reads `{specsDir}/.state/implement-preflight.json` for pre-flight data (no python3 calls)
 - Skips Phase 0 and Phase 1 entirely
 - Goes straight to Phase 2, picking up from the next pending criterion
 - Completes one iteration (one task or small batch), updates state, and exits
 
-The `.claude/.implement-state.md` file is the handoff mechanism between iterations.
+The `{specsDir}/.state/implement-state.md` file is the handoff mechanism between iterations.
 The loop script checks completion status between iterations using
 `parse-implement-state.py` and stops when all criteria pass, max iterations
 are reached (default 10), or 3 consecutive failures occur without progress.
@@ -301,7 +301,7 @@ The loop script builds the `trellis-ralphd` Docker image on first run (from
   volume and reused across all subsequent iterations.
 
 Resumption behavior is identical to Ralph mode — the implement skill reads
-`.claude/.implement-preflight.json`, skips Phases 0-1, and picks up from the
+`{specsDir}/.state/implement-preflight.json`, skips Phases 0-1, and picks up from the
 next pending criterion.
 
 ## Phase 3 — Judge review (final gate)
@@ -310,7 +310,7 @@ Spawn a sub-agent with the judge prompt from `references/judge-agent.md`.
 
 The judge receives:
 - The original spec (full text) or sketch content
-- The acceptance criteria checklist from `.claude/.implement-state.md`
+- The acceptance criteria checklist from `{specsDir}/.state/implement-state.md`
 - A summary of all files created or modified (`git diff --stat`, `find`, or
   `ls -la` on the relevant directories)
 - The key implementation decisions made
@@ -333,7 +333,7 @@ If the judge says PARTIAL or FAIL, extract the specific failures, fix them,
 re-run the oracle pipeline, and re-submit to the judge. Limit: 2 judge
 re-submissions. After that, report to the user with the judge's feedback.
 
-See `references/implement-state-format.md` for the canonical `.claude/.implement-state.md` structure.
+See `references/implement-state-format.md` for the canonical `{specsDir}/.state/implement-state.md` structure.
 
 See `references/git-usage.md` for git usage rules during implementation.
 
@@ -346,7 +346,7 @@ See `references/error-recovery.md` for context reset recovery procedure.
 When implementation is complete (or when stopping due to limits), report:
 
 1. **What was built**: Files created/modified, brief summary of architecture
-2. **Criteria status**: The final checklist from `.claude/.implement-state.md`
+2. **Criteria status**: The final checklist from `{specsDir}/.state/implement-state.md`
 3. **Iterations used**: How many loops it took
 4. **Decisions made**: Any unknowns you resolved and how
 5. **Branch status**: Which branch you're on, whether the user should review

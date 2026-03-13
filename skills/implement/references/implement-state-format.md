@@ -1,4 +1,4 @@
-# The `.claude/.implement-state.md` file
+# The `{specsDir}/.state/implement-state.md` file
 
 This is the canonical record of the implementation session. It serves as
 persistent memory across context resets.

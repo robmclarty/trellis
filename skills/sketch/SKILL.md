@@ -1,6 +1,6 @@
 ---
 name: sketch
-description: Creates a lightweight experiment document at .specs/sketches/{slug}.md to test a technical hypothesis before committing to a larger initiative.
+description: Use when user wants to Creates a lightweight experiment document at .specs/sketches/{slug}.md to test a technical hypothesis before committing to a larger initiative.
 allowed-tools: Task
 ---
 

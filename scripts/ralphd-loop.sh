@@ -150,11 +150,22 @@ fi
 FEATURE="${1:?Usage: ralphd-loop.sh <feature-name> [max-iterations]  or  ralphd-loop.sh --login}"
 MAX_ITERATIONS="${2:-10}"
 LOG_DIR="logs/ralphd-${FEATURE}"
-STATE_FILE=".claude/.implement-state.md"
-PREFLIGHT_FILE=".claude/.implement-preflight.json"
+
+# Resolve specs dir from trellis.json (default: .specs)
+SPECS_DIR=$(python3 -c "
+import json
+try:
+    with open('trellis.json') as f:
+        print(json.load(f).get('specsDir', '.specs'))
+except Exception:
+    print('.specs')
+" 2>/dev/null || echo ".specs")
+
+STATE_FILE="${SPECS_DIR}/.state/implement-state.md"
+PREFLIGHT_FILE="${SPECS_DIR}/.state/implement-preflight.json"
 
 mkdir -p "$LOG_DIR"
-mkdir -p .claude
+mkdir -p "${SPECS_DIR}/.state"
 
 build_image
 ensure_auth_volume
@@ -213,25 +224,16 @@ print(d.get('$field', '$default'))
 }
 
 run_preflight() {
-  local state_json specs_dir
+  local state_json
 
   state_json=$(parse_state)
-
-  specs_dir=$(python3 -c "
-import json, sys
-try:
-    with open('trellis.json') as f:
-        print(json.load(f).get('specsDir', '.specs'))
-except Exception:
-    print('.specs')
-" 2>/dev/null || echo ".specs")
 
   local prereqs_json
   prereqs_json=$(python3 "${SCRIPT_DIR}/validate-prereqs.py" implement "$FEATURE" 2>/dev/null || echo '{"valid":false,"missing":["unknown"]}')
 
   local criteria_json='{}'
-  local tasks_path="${specs_dir}/${FEATURE}/tasks.md"
-  local spec_path="${specs_dir}/${FEATURE}/spec.md"
+  local tasks_path="${SPECS_DIR}/${FEATURE}/tasks.md"
+  local spec_path="${SPECS_DIR}/${FEATURE}/spec.md"
   if [[ -f "$tasks_path" ]]; then
     criteria_json=$(python3 "${SCRIPT_DIR}/extract-criteria.py" "$tasks_path" "$spec_path" 2>/dev/null || echo '{}')
   fi
@@ -244,7 +246,7 @@ prereqs = json.loads('''${prereqs_json}''')
 criteria = json.loads('''${criteria_json}''')
 
 preflight = {
-    'specsDir': '${specs_dir}',
+    'specsDir': '${SPECS_DIR}',
     'prereqs': prereqs,
     'state': state,
     'criteria': criteria,
