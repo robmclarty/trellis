@@ -35,7 +35,7 @@ Compose a message containing exactly these sections:
   - Inline: paste the original instructions>
 
 ## Acceptance Criteria Checklist
-<paste the current checklist from .implement-state.md>
+<paste the current checklist from .claude/.implement-state.md>
 
 ## Changes Made
 <summary of files created or modified with brief notes about each file's
@@ -124,13 +124,13 @@ to the user with the judge's feedback and let them decide.
 
 If the judge returns UNCLEAR on specific criteria across multiple submissions,
 that's a signal the criterion itself is ambiguous. Flag it as an unknown in
-`.implement-state.md` and report it rather than guessing.
+`.claude/.implement-state.md` and report it rather than guessing.
 
 ## What the main agent does with the output
 
 1. Parse the VERDICT line to determine pass/fail
 2. For each criterion marked FAIL or UNCLEAR, add the judge's explanation to
-   the iteration log in `.implement-state.md`
+   the iteration log in `.claude/.implement-state.md`
 3. If PARTIAL: return to Phase 2 with the failing criteria as the next
    iteration's scope
 4. If PASS: report completion to the user

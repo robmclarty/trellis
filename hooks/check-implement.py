@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook for Bash(git commit) — checks .implement-state.md.
+"""PreToolUse hook for Bash(git commit) — checks .claude/.implement-state.md.
 
 Warns if acceptance criteria are incomplete before committing.
 Calls scripts/parse-implement-state.py for structured data.
@@ -24,7 +24,7 @@ def main():
     if "git commit" not in command:
         sys.exit(0)
 
-    state_file = ".implement-state.md"
+    state_file = ".claude/.implement-state.md"
     if not os.path.isfile(state_file):
         sys.exit(0)
 
@@ -45,7 +45,7 @@ def main():
 
     pending = data.get("pendingCount", 0)
     if pending > 0:
-        print(f"\u26a0 .implement-state.md has {pending} pending acceptance criteria.")
+        print(f"\u26a0 .claude/.implement-state.md has {pending} pending acceptance criteria.")
         print("  Consider completing all criteria before committing.")
 
         criteria = data.get("criteria", [])

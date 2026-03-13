@@ -17,18 +17,18 @@ window to avoid context degradation.
 **How it works:** When `with ralph` is specified:
 1. Phase 0 and Phase 1 run interactively in the current session (config
    questions, pipeline assembly, criteria extraction)
-2. After `.implement-state.md` is written, the skill launches
+2. After `.claude/.implement-state.md` is written, the skill launches
    `scripts/ralph-loop.sh <feature-name>`
 3. Before each iteration, the loop script runs pre-flight scripts
    (`validate-prereqs.py`, `parse-implement-state.py`, `extract-criteria.py`)
-   and writes results to `.implement-preflight.json` so Claude doesn't need
+   and writes results to `.claude/.implement-preflight.json` so Claude doesn't need
    python3 access
 4. The loop script generates `.claude/settings.local.json` with scoped
    permissions derived from the oracle pipeline config — only the user's
    specific toolchain commands, file tools, and git reads are allowed
 5. Each iteration runs `claude -p` (without `--dangerously-skip-permissions`)
    with `/trellis:implement <feature-name>`
-6. Between iterations, it parses `.implement-state.md` to check completion
+6. Between iterations, it parses `.claude/.implement-state.md` to check completion
 7. Each iteration resumes from the next pending criterion via the state file
 8. The loop stops when: all criteria pass, max iterations reached (default 10),
    or 3 consecutive failures occur without progress

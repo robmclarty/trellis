@@ -97,13 +97,13 @@ The `implement` skill can optionally integrate with external tools:
 
 ### Ralph
 
-[Ralph](https://github.com/anthropics/ralph) is a CLI tool that provides context-resilient iteration for long-running Claude Code sessions. It works by killing and restarting the agent's context window at iteration boundaries, using `.implement-state.md` as the handoff mechanism.
+[Ralph](https://github.com/anthropics/ralph) is a CLI tool that provides context-resilient iteration for long-running Claude Code sessions. It works by killing and restarting the agent's context window at iteration boundaries, using `.claude/.implement-state.md` as the handoff mechanism.
 
 **When to use:** Large implementations with 10+ acceptance criteria or many files where context degradation becomes a concern.
 
 **Install:** Follow the instructions at the Ralph repository. The `ralph` CLI must be available on your PATH.
 
-**Invocation:** `ralph run --state .implement-state.md --command "/trellis:implement <feature-name>"`
+**Invocation:** `ralph run --state .claude/.implement-state.md --command "/trellis:implement <feature-name>"`
 
 ### Promptfoo
 

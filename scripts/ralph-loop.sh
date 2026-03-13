@@ -4,7 +4,7 @@
 # Usage: ralph-loop.sh <feature-name> [max-iterations]
 #
 # Wraps `claude -p` in a loop, restarting with a fresh context on each
-# iteration. Progress is tracked via .implement-state.md and parsed by
+# iteration. Progress is tracked via .claude/.implement-state.md and parsed by
 # parse-implement-state.py between iterations.
 #
 # Security: Runs without --dangerously-skip-permissions. Instead, generates
@@ -18,8 +18,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations]}"
 MAX_ITERATIONS="${2:-10}"
 LOG_DIR="logs/ralph-${FEATURE}"
-STATE_FILE=".implement-state.md"
-PREFLIGHT_FILE=".implement-preflight.json"
+STATE_FILE=".claude/.implement-state.md"
+PREFLIGHT_FILE=".claude/.implement-preflight.json"
 SETTINGS_FILE=".claude/settings.local.json"
 
 # Colors
@@ -31,6 +31,7 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 mkdir -p "$LOG_DIR"
+mkdir -p .claude
 
 # --- Helpers ---
 
@@ -50,7 +51,7 @@ print(d.get('$field', '$default'))
 }
 
 run_preflight() {
-  # Run pre-flight scripts and write results to .implement-preflight.json.
+  # Run pre-flight scripts and write results to .claude/.implement-preflight.json.
   # This runs OUTSIDE Claude's context — Claude reads the JSON file instead
   # of invoking python3 itself.
   local state_json preflight_json specs_dir
@@ -105,11 +106,9 @@ with open('${PREFLIGHT_FILE}', 'w') as f:
 
 generate_permissions() {
   # Generate .claude/settings.local.json with scoped permissions from the
-  # oracle pipeline commands stored in .implement-state.md.
+  # oracle pipeline commands stored in .claude/.implement-state.md.
   local state_json
   state_json=$(parse_state)
-
-  mkdir -p .claude
 
   python3 -c "
 import json, sys

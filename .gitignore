@@ -1,4 +1,4 @@
 .DS_Store
 node_modules/
-.implement-state.md
-.implement-preflight.json
+.claude/.implement-state.md
+.claude/.implement-preflight.json
