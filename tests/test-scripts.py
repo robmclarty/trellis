@@ -94,6 +94,8 @@ class TestValidatePrereqs(unittest.TestCase):
     def test_implement_checks_feature_dir(self):
         specs = os.path.join(self.tmp, ".specs", "my-feature")
         os.makedirs(specs)
+        with open(os.path.join(self.tmp, ".specs", "guidelines.md"), "w") as f:
+            f.write("# Guidelines")
         rc, data, _ = run_script("validate-prereqs.py", ["implement", "my-feature"], cwd=self.tmp)
         self.assertEqual(rc, 0)
         self.assertTrue(data["valid"])

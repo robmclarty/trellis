@@ -33,11 +33,11 @@ PREREQS = {
     "sketch": ["guidelines.md"],
     "pitch": ["guidelines.md"],
     "spec": ["guidelines.md", "{feature}/pitch.md"],
-    "clarify": ["{feature}/spec.md"],
+    "clarify": ["{feature}/spec.md", "guidelines.md"],
     "compliance": ["{feature}/spec.md", "guidelines.md"],
     "plan": ["{feature}/spec.md", "guidelines.md"],
     "tasks": ["{feature}/plan.md", "{feature}/spec.md"],
-    "implement": ["{feature}/"],
+    "implement": ["{feature}/", "guidelines.md"],
     "pipeline": ["guidelines.md"],
 }
 
