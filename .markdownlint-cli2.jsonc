@@ -1,0 +1,13 @@
+{
+  "config": {
+    // Allow long lines — prompt files and specs are prose-heavy
+    "MD013": false,
+    // Allow duplicate headings in different sections
+    "MD024": { "siblings_only": true },
+    // Allow raw HTML (used in some prompt templates)
+    "MD033": false,
+    // Allow bare URLs
+    "MD034": false
+  },
+  "ignores": ["node_modules/**"]
+}

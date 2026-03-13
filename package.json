@@ -1,6 +1,6 @@
 {
   "name": "trellis",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "A Claude Code plugin that bundles composable skills for spec-driven development. Take a feature from problem framing through implementation using structured, repeatable phases.",
   "homepage": "https://github.com/robmclarty/trellis#readme",
   "repository": {
@@ -13,13 +13,27 @@
     "url": "https://robmclarty.com"
   },
   "scripts": {
+    "postinstall": "command -v ruff >/dev/null || echo '⚠ ruff not found — install with: brew install ruff'; command -v shellcheck >/dev/null || echo '⚠ shellcheck not found — install with: brew install shellcheck'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "",
-    "lint": "",
-    "lint:fix": "",
-    "plugincheck": ""
+    "lint": "npm run lint:json && npm run lint:md && npm run lint:py && npm run lint:sh",
+    "lint:fix": "npm run lint:json:fix && npm run lint:md:fix && npm run lint:py:fix",
+    "lint:json": "prettier --check '**/*.json' --ignore-path .prettierignore",
+    "lint:json:fix": "prettier --write '**/*.json' --ignore-path .prettierignore",
+    "lint:md": "markdownlint-cli2 '**/*.md' '#node_modules'",
+    "lint:md:fix": "markdownlint-cli2 --fix '**/*.md' '#node_modules'",
+    "lint:py": "ruff check scripts/ hooks/ tests/",
+    "lint:py:fix": "ruff check --fix scripts/ hooks/ tests/",
+    "lint:sh": "shellcheck scripts/*.sh tests/*.sh",
+    "plugincheck": "agnix --target claude-code .",
+    "plugincheck:fix": "agnix --target claude-code --fix ."
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "agnix": "^0.16.1",
+    "markdownlint-cli2": "^0.21.0",
+    "prettier": "^3.8.1"
   }
 }
