@@ -1,5 +1,5 @@
 ---
-name: Spec Clarifier
+name: trellis:clarify
 description: Reviews a spec for ambiguities across six structured categories and resolves them in place. Use after writing or revising a spec, or for a fresh completeness review.
 context: fork
 ---

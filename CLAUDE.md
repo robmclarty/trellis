@@ -9,10 +9,10 @@ Every feature goes through structured phases. Each phase produces a durable mark
 ## Skill relationships
 
 ```
-Foundation:     guidelines ──────────────────────────────────────────────┐
+Foundation:     guidelines ─────────────────────────────────────────────┐
                 sketch ─────────────────────────┐                       │
                                                 │                       │
-Pipeline:       pitch → spec → clarify → compliance → plan → tasks     │
+Pipeline:       pitch → spec → clarify → compliance → plan → tasks      │
                   │       │       │          │          │       │       │
                   └───────┴───────┴──────────┴──────────┴───────┘       │
                           ↑ all inherit from guidelines ────────────────┘

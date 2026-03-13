@@ -1,5 +1,5 @@
 ---
-name: Feature Pitch
+name: trellis:pitch
 description: Creates a pitch document at .specs/<feature>/pitch.md defining a problem domain with constraints, appetite, and solution shape. Use to frame a feature before writing a spec.
 ---
 

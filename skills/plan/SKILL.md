@@ -1,5 +1,5 @@
 ---
-name: Implementation Plan
+name: trellis:plan
 description: Creates a technical plan at .specs/<feature>/plan.md translating a spec's functional requirements into architecture, technology, and code decisions.
 ---
 

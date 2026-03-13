@@ -1,5 +1,5 @@
 ---
-name: Functional Spec
+name: trellis:spec
 description: Creates a full functional specification at .specs/<feature>/spec.md defining what a system does and why. Use to write or revise feature requirements.
 ---
 
