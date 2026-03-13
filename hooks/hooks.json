@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/session-start.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.py"
           }
         ]
       }
@@ -16,15 +16,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/validate-structure.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/validate-structure.py"
           },
           {
             "type": "command",
-            "command": "python3 hooks/count-markers.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/count-markers.py"
           },
           {
             "type": "command",
-            "command": "python3 hooks/sync-implement.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/sync-implement.py"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/check-implement.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/check-implement.py"
           }
         ]
       }
