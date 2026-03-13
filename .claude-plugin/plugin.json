@@ -2,24 +2,23 @@
   "name": "trellis",
   "version": "0.4.3",
   "description": "A spec-driven development toolkit that takes features from problem framing through implementation using structured, composable skills.",
+  "license": "MIT",
   "author": {
     "name": "Rob McLarty",
     "email": "hello@robmclarty.com",
     "url": "https://robmclarty.com"
   },
-  "skills": [
-    "./skills/guidelines",
-    "./skills/sketch",
-    "./skills/pitch",
-    "./skills/spec",
-    "./skills/clarify",
-    "./skills/compliance",
-    "./skills/plan",
-    "./skills/tasks",
-    "./skills/pipeline",
-    "./skills/implement",
-    "./commands/status",
-    "./commands/pipeline",
-    "./commands/implement"
-  ]
+  "keywords": [
+    "spec",
+    "specification",
+    "planning",
+    "implementation",
+    "compliance",
+    "tasks",
+    "shape-up",
+    "pipeline",
+    "development-workflow"
+  ],
+  "repository": "https://github.com/robmclarty/trellis",
+  "homepage": "https://github.com/robmclarty/trellis"
 }

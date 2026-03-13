@@ -1,0 +1,25 @@
+{
+  "name": "trellis",
+  "version": "0.4.3",
+  "description": "A Claude Code plugin that bundles composable skills for spec-driven development. Take a feature from problem framing through implementation using structured, repeatable phases.",
+  "homepage": "https://github.com/robmclarty/trellis#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robmclarty/trellis.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Rob McLarty",
+    "url": "https://robmclarty.com"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "",
+    "lint": "",
+    "lint:fix": "",
+    "plugincheck": ""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
