@@ -13,6 +13,10 @@ description: Creates or updates .specs/guidelines.md with project-wide stack, co
 
 Create or update the project guidelines document at `.specs/guidelines.md`.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 Establish the non-negotiable principles that govern all work in this project. Guidelines are the foundation every other phase inherits from. They define how code should look, feel, and behave regardless of what feature is being built.
@@ -23,7 +27,25 @@ This skill operates in two modes depending on whether `.specs/guidelines.md` alr
 
 ### Create mode (no existing guidelines)
 
-If `.specs/guidelines.md` does not exist, this is a fresh project. Ask the user:
+If `.specs/guidelines.md` does not exist, this is a fresh project.
+
+#### Step 0: Choose specs directory
+
+Before anything else, check whether `trellis.json` exists at the project root.
+
+- **If `trellis.json` does not exist**, ask the user: "Where should Trellis store spec artifacts? The default is `.specs/` — press Enter to accept or provide a custom path (e.g., `docs/specs`, `design`)."
+  - Write their choice (or the default) to `trellis.json` at the project root:
+    ```json
+    {
+      "specsDir": ".specs"
+    }
+    ```
+  - Create the directory if it doesn't exist.
+- **If `trellis.json` already exists**, read `specsDir` from it and use that directory. Do not re-ask.
+
+All references to `.specs/` in this skill (and all other Trellis skills) refer to the configured specs directory.
+
+#### Step 1: Ask the user
 
 1. What is the tech stack? (language, runtime, framework, core libraries)
 2. What architectural style do they prefer? (functional, OOP, procedural, hybrid)

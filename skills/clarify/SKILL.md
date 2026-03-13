@@ -15,6 +15,10 @@ context: fork
 
 Review the spec for ambiguities and resolve them. Modifies `.specs/<feature-name>/spec.md` in place.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 Clarify is a structured review pass over the spec. It finds every unresolved ambiguity (both explicit markers and implicit gaps), categorizes them, and either resolves them directly or flags them for the user to decide. This phase exists because specs written in a single pass almost always contain assumptions that need to be surfaced and tested.

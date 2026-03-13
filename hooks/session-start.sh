@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# SessionStart hook — shows pipeline status for features in .specs/
-# Exits silently if no .specs/ directory exists.
+# SessionStart hook — shows pipeline status for the specs directory.
+# Exits silently if no specs directory exists.
 
-SPECS_DIR=".specs"
+# Read specsDir from trellis.json, default to .specs
+if [ -f "trellis.json" ]; then
+  SPECS_DIR=$(sed -n 's/.*"specsDir"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' trellis.json)
+fi
+SPECS_DIR="${SPECS_DIR:-.specs}"
 
 if [ ! -d "$SPECS_DIR" ]; then
   exit 0

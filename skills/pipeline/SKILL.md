@@ -16,6 +16,10 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 Orchestrate the full spec-driven development pipeline for a feature, from pitch through tasks.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 The pipeline drives all feature-specific phases in sequence, handling the feedback loops between them. Instead of running `/pitch`, then `/spec`, then `/clarify`, then `/compliance`, then `/plan`, then `/tasks` manually, you run `/pipeline` once and it manages the progression, loopbacks, and gating.

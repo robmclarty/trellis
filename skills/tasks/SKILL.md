@@ -13,6 +13,10 @@ description: Creates an ordered task breakdown at .specs/<feature>/tasks.md that
 
 Create an ordered task breakdown at `.specs/<feature-name>/tasks.md`.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 Tasks decomposes the plan into discrete, ordered units of work. Each task is small enough to be completed in a single focused session (roughly 1-4 hours of work) and produces a verifiable result. An implementor (human or LLM) should be able to pick up a task, understand what to do without reading the entire plan, and know when they're done.

@@ -57,7 +57,7 @@ Or use `/trellis:pipeline` to run pitch through tasks in one pass.
 
 ## Project structure
 
-All artifacts live under `.specs/` in your project:
+All artifacts live under a specs directory in your project (`.specs/` by default):
 
 ```
 .specs/
@@ -74,6 +74,18 @@ All artifacts live under `.specs/` in your project:
 ```
 
 See `examples/` for a complete sample `.specs/` directory showing what finished pipeline output looks like.
+
+### Custom specs directory
+
+When you first run `/trellis:guidelines`, you'll be asked where to store spec artifacts. The default is `.specs/`, but you can provide any path (e.g., `docs/specs`, `design`). Your choice is saved to `trellis.json` at the project root:
+
+```json
+{
+  "specsDir": ".specs"
+}
+```
+
+All skills and hooks read from this file, falling back to `.specs/` if it doesn't exist.
 
 ## External integrations
 

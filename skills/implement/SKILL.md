@@ -15,6 +15,10 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
 
 Turn specifications, sketches, or freeform instructions into working code through
 iterative oracle-driven feedback loops. The input artifacts are the source of truth.
+
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
 A pipeline of machine-readable checks is the termination signal. An LLM judge
 verifies alignment with intent.
 

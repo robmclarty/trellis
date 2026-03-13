@@ -14,6 +14,10 @@ description: Creates a full functional specification at .specs/<feature>/spec.md
 
 Create a functional specification at `.specs/<feature-name>/spec.md`.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 The spec is the source of truth for what the system does. It is a complete, unambiguous description of the feature's behavior, data, interfaces, and constraints. Everything downstream (compliance review, technical plan, tasks, implementation) derives from the spec. If the spec is wrong, everything built on it is wrong.

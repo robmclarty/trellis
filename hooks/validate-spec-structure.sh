@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
-# PostToolUse hook for Write/Edit — validates .specs/ document structure.
-# Checks that documents under .specs/ have their minimum required sections.
+# PostToolUse hook for Write/Edit — validates spec document structure.
+# Checks that documents under the specs directory have their minimum required sections.
 # Receives tool input as JSON on stdin.
 # Outputs warnings only (exit 0).
+
+# Read specsDir from trellis.json, default to .specs
+if [ -f "trellis.json" ]; then
+  SPECS_DIR=$(sed -n 's/.*"specsDir"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' trellis.json)
+fi
+SPECS_DIR="${SPECS_DIR:-.specs}"
 
 FILE=$(jq -r '.tool_input.file_path // empty')
 
@@ -11,8 +17,8 @@ if [ -z "$FILE" ]; then
   exit 0
 fi
 
-# Only check files under .specs/
-if [[ "$FILE" != *".specs/"* ]]; then
+# Only check files under the specs directory
+if [[ "$FILE" != *"$SPECS_DIR/"* ]]; then
   exit 0
 fi
 

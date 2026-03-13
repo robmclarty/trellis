@@ -14,6 +14,10 @@ description: Creates a pitch document at .specs/<feature>/pitch.md defining a pr
 
 Create a pitch document at `.specs/<feature-name>/pitch.md`.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 A pitch defines a problem domain with enough shape to evaluate whether it's worth pursuing, without locking in all the specifics. It sits between exploratory sketches and a full specification. Inspired by Shape Up's concept of a pitch: it communicates the problem, the appetite (how much time/effort is warranted), the no-gos, and a rough solution shape. A pitch is a bet, not a blueprint.

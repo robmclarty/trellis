@@ -13,6 +13,10 @@ description: Creates a lightweight experiment document at .specs/sketches/<slug>
 
 Create a new sketch document at `.specs/sketches/<slug>.md`.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 A sketch is a small, timeboxed experiment to test a hypothesis. It exists to answer a specific question cheaply before committing to a larger initiative. Sketches are disposable by nature but their findings are durable. A pitch may reference zero or more sketches to justify its approach.

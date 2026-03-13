@@ -15,6 +15,10 @@ context: fork
 
 Create a regulatory and privacy review at `.specs/<feature-name>/compliance.md`.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 Compliance reviews the spec through a regulatory lens. It identifies which regulations apply, evaluates the spec against their requirements, and flags anything that needs to change. This phase produces its own artifact rather than modifying the spec, because regulatory constraints are a distinct concern that may evolve independently as laws change or as the product enters new markets.

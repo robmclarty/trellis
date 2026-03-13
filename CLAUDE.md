@@ -4,7 +4,7 @@ Trellis is a Claude Code plugin for **spec-driven development**. It provides 10 
 
 ## Philosophy
 
-Every feature goes through structured phases. Each phase produces a durable markdown artifact in `.specs/`. Downstream phases inherit upstream artifacts — the spec references the pitch, the plan references the spec, tasks reference the plan, and implementation follows the tasks.
+Every feature goes through structured phases. Each phase produces a durable markdown artifact in the specs directory (`.specs/` by default, configurable via `trellis.json`). Downstream phases inherit upstream artifacts — the spec references the pitch, the plan references the spec, tasks reference the plan, and implementation follows the tasks.
 
 ## Skill relationships
 
@@ -31,4 +31,5 @@ Execution:      implement (turns tasks into working code)
 - **`context: fork`**: Clarify and Compliance run in isolated contexts. They cannot ask the user questions mid-run. The pipeline skill gathers user input upfront and embeds it in the spec before invoking forked skills.
 - **`.implement-state.md`**: Filesystem-based memory for the implement skill. Survives context resets and enables Ralph mode (context-fresh iterations).
 - **Agents**: Judge and Test Writer are defined in `agents/` and spawned by the implement skill as isolated sub-agents for spec compliance review and test generation.
-- **Hooks**: Optional validators for `.specs/` document structure, implementation state checks, and session startup status.
+- **Hooks**: Optional validators for spec document structure, implementation state checks, and session startup status.
+- **`trellis.json`**: Stores the configured specs directory (`specsDir`). Created by `/guidelines` on first run. All skills and hooks read from it, falling back to `.specs/` if absent.

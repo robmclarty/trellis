@@ -14,6 +14,10 @@ description: Creates a technical plan at .specs/<feature>/plan.md translating a 
 
 Create a technical implementation plan at `.specs/<feature-name>/plan.md`.
 
+## Specs directory resolution
+
+Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+
 ## Purpose
 
 The plan translates the spec's *what* into *how*. It makes every technical decision the implementor needs: architecture, libraries, file structure, data access patterns, integration approaches, and deployment strategy. The spec says "the system exposes a REST API for managing passes." The plan says "Fastify server with route modules under `src/routes/`, Drizzle for data access, Zod schemas shared between validation and type inference, deployed as a Docker container to ECS in ca-central-1."
