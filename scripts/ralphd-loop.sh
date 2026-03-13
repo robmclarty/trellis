@@ -183,17 +183,15 @@ check_auth() {
   # The volume is mounted at /home/claude/.claude — if it has auth files,
   # `claude -p` will pick them up. We check by looking for any credential
   # files in the volume.
-  local has_auth
-  has_auth=$(docker run --rm \
+  docker run --rm \
     -v "${AUTH_VOLUME}:/home/claude/.claude" \
     "$IMAGE_NAME" \
-    --version 2>/dev/null) || true
+    --version 2>/dev/null || true
 
   # If `claude --version` works, the binary is fine. But we need to check
   # if auth is configured. Try a minimal prompt — if it fails with an auth
   # error, we know login is needed.
   echo -e "${CYAN}Checking authentication in Docker volume...${RESET}"
-  local auth_test
   if echo "say ok" | docker run --rm -i \
     -v "${AUTH_VOLUME}:/home/claude/.claude" \
     "$IMAGE_NAME" \
@@ -260,6 +258,7 @@ with open('${PREFLIGHT_FILE}', 'w') as f:
   echo -e "${CYAN}Pre-flight written to ${PREFLIGHT_FILE}${RESET}"
 }
 
+# shellcheck disable=SC2329  # invoked indirectly via trap
 cleanup() {
   rm -f "$PREFLIGHT_FILE"
   echo -e "${YELLOW}Cleaned up ${PREFLIGHT_FILE}${RESET}"

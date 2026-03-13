@@ -44,7 +44,7 @@ echo "==================="
 
 # Check every snapshot file still matches examples/
 while IFS= read -r snap_file; do
-  rel="${snap_file#$SNAPSHOTS/}"
+  rel="${snap_file#"$SNAPSHOTS"/}"
   example_file="$EXAMPLES/$rel"
 
   if [ ! -f "$example_file" ]; then
@@ -63,7 +63,7 @@ done < <(find "$SNAPSHOTS" -name "*.md" | sort)
 
 # Check for new files in examples/ not in snapshots
 while IFS= read -r example_file; do
-  rel="${example_file#$EXAMPLES/}"
+  rel="${example_file#"$EXAMPLES"/}"
   snap_file="$SNAPSHOTS/$rel"
 
   if [ ! -f "$snap_file" ]; then

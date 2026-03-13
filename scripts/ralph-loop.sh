@@ -65,7 +65,7 @@ run_preflight() {
   # Run pre-flight scripts and write results to the preflight JSON file.
   # This runs OUTSIDE Claude's context — Claude reads the JSON file instead
   # of invoking python3 itself.
-  local state_json preflight_json
+  local state_json
 
   # Parse current state
   state_json=$(parse_state)
@@ -168,6 +168,7 @@ for tool in allowed:
   echo -e "${CYAN}Permissions written to ${SETTINGS_FILE}${RESET}"
 }
 
+# shellcheck disable=SC2329  # invoked indirectly via trap
 cleanup() {
   # Remove generated files on exit
   rm -f "$PREFLIGHT_FILE"
