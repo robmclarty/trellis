@@ -1,7 +1,7 @@
 ---
 name: tasks
 description: Creates an ordered task breakdown at .specs/{feature}/tasks.md that decomposes a plan into discrete, verifiable units of work organized in phases.
-allowed-tools: Read, Glob, Grep, Agent
+allowed-tools: Read, Glob, Grep, Task
 ---
 
 # Tasks

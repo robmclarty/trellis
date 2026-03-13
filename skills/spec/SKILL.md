@@ -1,7 +1,7 @@
 ---
 name: spec
 description: Creates a full functional specification at .specs/{feature}/spec.md defining what a system does and why. Use to write or revise feature requirements.
-allowed-tools: Read, Write, Edit, Glob, Grep, Agent
+allowed-tools: Read, Write, Edit, Glob, Grep, Task
 ---
 
 # Spec
