@@ -1,6 +1,6 @@
 {
   "name": "trellis",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "A Claude Code plugin that bundles composable skills for spec-driven development. Take a feature from problem framing through implementation using structured, repeatable phases.",
   "homepage": "https://github.com/robmclarty/trellis#readme",
   "repository": {
@@ -17,9 +17,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "",
     "lint": "npm run lint:json && npm run lint:md && npm run lint:py && npm run lint:sh",
-    "lint:fix": "npm run lint:json:fix && npm run lint:md:fix && npm run lint:py:fix",
-    "lint:json": "prettier --check '**/*.json' --ignore-path .prettierignore",
-    "lint:json:fix": "prettier --write '**/*.json' --ignore-path .prettierignore",
+    "lint:fix": "npm run lint:md:fix && npm run lint:py:fix",
+    "lint:json": "bash scripts/lint-json.sh",
     "lint:md": "markdownlint-cli2 '**/*.md' '#node_modules'",
     "lint:md:fix": "markdownlint-cli2 --fix '**/*.md' '#node_modules'",
     "lint:py": "ruff check scripts/ hooks/ tests/",
@@ -33,7 +32,6 @@
   },
   "devDependencies": {
     "agnix": "^0.16.1",
-    "markdownlint-cli2": "^0.21.0",
-    "prettier": "^3.8.1"
+    "markdownlint-cli2": "^0.21.0"
   }
 }
