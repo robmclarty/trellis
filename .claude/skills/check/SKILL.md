@@ -1,6 +1,6 @@
 ---
 name: check
-description: Use when user wants to Run all project checks (lint, tests, plugin validation)
+description: Run all project checks (lint, tests, plugin validation). Use when verifying project health.
 disable-model-invocation: true
 allowed-tools: Bash(npm run *), Bash(npm test *), Bash(python3 tests/*), Bash(bash tests/*)
 ---

@@ -1,7 +1,7 @@
 ---
 name: pipeline
-description: Use when user wants to Pre-flight context for pipeline skill
-allowed-tools: Bash(git:*), Read
+description: Pre-flight context loader for the pipeline skill. Use when starting the spec pipeline for a feature.
+allowed-tools: Bash, Read
 user-invocable: true
 ---
 

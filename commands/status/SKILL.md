@@ -1,7 +1,7 @@
 ---
 name: status
-description: Use when user wants to Show pipeline status for all features
-allowed-tools: Bash(git:*), Read
+description: Show pipeline status for all features. Use when checking progress across the spec pipeline.
+allowed-tools: Bash, Read
 user-invocable: true
 ---
 
