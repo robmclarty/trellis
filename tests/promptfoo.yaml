@@ -1,0 +1,249 @@
+# Promptfoo eval config for Trellis skills.
+#
+# Tests that Claude follows skill instructions by feeding it
+# skill prompts + mock project context and asserting structural
+# properties of the output.
+#
+# Install: npm install -g promptfoo
+# Run:     promptfoo eval -c tests/promptfoo.yaml
+# View:    promptfoo view
+
+description: Trellis skill output validation
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-20250514
+    config:
+      max_tokens: 4096
+      temperature: 0
+
+defaultTest:
+  options:
+    transformVars: '{ ...vars }'
+
+prompts:
+  - id: skill-prompt
+    raw: |
+      {{skill_instructions}}
+
+      ---
+
+      {{user_input}}
+
+tests:
+  # ============================================================
+  # Guidelines skill
+  # ============================================================
+  - description: "guidelines: produces all required sections"
+    vars:
+      skill_instructions: file://skills/guidelines/SKILL.md
+      user_input: |
+        I want to set up guidelines for my project.
+
+        Here's the context:
+        - Stack: TypeScript, Node.js 22, Fastify, Drizzle ORM, Zod, PostgreSQL 16
+        - Architecture: layered (routes → services → models)
+        - Conventions: camelCase for code, kebab-case for files, ESM only
+        - Testing: vitest, real database via testcontainers, no mocks
+        - Infrastructure: Docker on Fly.io, GitHub Actions CI
+
+        The specs directory is ".specs/" (default).
+        Write the guidelines file content now. Do not ask questions.
+    assert:
+      - type: icontains
+        value: "## Stack"
+      - type: icontains
+        value: "## Architecture"
+      - type: icontains
+        value: "## Conventions"
+      - type: icontains
+        value: "## Patterns"
+      - type: icontains
+        value: "## Testing"
+      - type: icontains
+        value: "## Infrastructure"
+      - type: icontains
+        value: Fastify
+      - type: icontains
+        value: Drizzle
+
+  # ============================================================
+  # Pitch skill
+  # ============================================================
+  - description: "pitch: produces all required sections"
+    vars:
+      skill_instructions: file://skills/pitch/SKILL.md
+      user_input: |
+        Guidelines exist at .specs/guidelines.md.
+        Feature name: user-invitations
+
+        Problem: Admins currently add users manually via a SQL console. This is
+        error-prone and doesn't scale. We need a self-service invitation flow.
+
+        Appetite: 3 weeks, one developer.
+        No-gos: no SSO integration, no bulk import, no role assignment during invite.
+
+        Write the pitch now. Do not ask questions.
+    assert:
+      - type: icontains
+        value: "## Problem"
+      - type: icontains
+        value: "## Appetite"
+      - type: icontains
+        value: "## Shape"
+      - type: icontains
+        value: "## No-Gos"
+      - type: icontains
+        value: "## Rabbit Holes"
+      - type: icontains
+        value: invitation
+
+  # ============================================================
+  # Spec skill
+  # ============================================================
+  - description: "spec: produces numbered sections with required markers"
+    vars:
+      skill_instructions: file://skills/spec/SKILL.md
+      user_input: |
+        Guidelines exist at .specs/guidelines.md (TypeScript/Fastify/Drizzle stack).
+        Pitch exists at .specs/user-invitations/pitch.md.
+
+        The pitch says:
+        - Problem: Admins add users via SQL. Need self-service invitations.
+        - Appetite: 3 weeks.
+        - Shape: Admin sends invite email with token. Recipient clicks link, creates account.
+        - No-gos: no SSO, no bulk import, no role assignment at invite time.
+
+        Write the spec now. Do not ask questions. Use numbered sections (§1-§10).
+    assert:
+      - type: contains
+        value: "§1"
+      - type: contains
+        value: "§2"
+      - type: contains
+        value: "§8"
+      - type: contains
+        value: "§9"
+      - type: icontains
+        value: "Success Criteria"
+      - type: icontains
+        value: "Constraints"
+
+  # ============================================================
+  # Plan skill
+  # ============================================================
+  - description: "plan: produces numbered sections with technology decisions"
+    vars:
+      skill_instructions: file://skills/plan/SKILL.md
+      user_input: |
+        Guidelines: TypeScript, Fastify, Drizzle ORM, Zod, PostgreSQL.
+        Spec exists with: invite creation endpoint, token validation endpoint,
+        account creation endpoint. Data model: invitations table with token,
+        email, status, expiry.
+
+        Write the plan now. Do not ask questions. Use numbered sections (§1-§10).
+    assert:
+      - type: contains
+        value: "§1"
+      - type: contains
+        value: "§2"
+      - type: contains
+        value: "§3"
+      - type: contains
+        value: "§6"
+      - type: icontains
+        value: "File Structure"
+
+  # ============================================================
+  # Tasks skill
+  # ============================================================
+  - description: "tasks: produces phased task breakdown with verify steps"
+    vars:
+      skill_instructions: file://skills/tasks/SKILL.md
+      user_input: |
+        Plan exists with: Fastify routes, Drizzle schemas, Zod validation,
+        3 endpoints (create invite, validate token, create account).
+        File structure: src/routes/, src/services/, src/models/, src/schemas/.
+
+        Spec success criteria:
+        1. Admin can send invitation email
+        2. Recipient can create account via token
+        3. Expired tokens are rejected
+        4. Duplicate emails are rejected
+
+        Write the tasks now. Do not ask questions. Use Phase sections.
+    assert:
+      - type: icontains
+        value: "## Phase 1"
+      - type: icontains
+        value: "## Phase 2"
+      - type: icontains
+        value: "**Do:**"
+      - type: icontains
+        value: "**Verify:**"
+      - type: contains
+        value: "- [ ]"
+
+  # ============================================================
+  # Sketch skill
+  # ============================================================
+  - description: "sketch: produces hypothesis/method/findings/verdict"
+    vars:
+      skill_instructions: file://skills/sketch/SKILL.md
+      user_input: |
+        Guidelines exist. I want to sketch whether Resend can handle
+        transactional invite emails with link tracking at our scale
+        (~500 invites/month).
+
+        Slug: resend-invite-emails
+        Hypothesis: Resend's free tier handles 500 emails/month with
+        delivery tracking and we can integrate it in under a day.
+
+        Method: Read the docs, check rate limits, write a small test
+        script that sends 5 emails via the API.
+
+        Findings: Free tier allows 3000 emails/month. API is simple REST.
+        Delivery webhooks work. SDK is 50 lines to integrate.
+
+        Verdict: Viable.
+
+        Write the sketch document now. Do not ask questions.
+    assert:
+      - type: icontains
+        value: "## Hypothesis"
+      - type: icontains
+        value: "## Method"
+      - type: icontains
+        value: "## Findings"
+      - type: icontains
+        value: "## Verdict"
+      - type: icontains
+        value: "Viable"
+
+  # ============================================================
+  # Cross-skill: pipeline artifact consistency
+  # ============================================================
+  - description: "spec references pitch context correctly"
+    vars:
+      skill_instructions: file://skills/spec/SKILL.md
+      user_input: |
+        Guidelines exist at .specs/guidelines.md.
+        Pitch exists at .specs/user-invitations/pitch.md.
+
+        The pitch says:
+        - Problem: Manual user onboarding via SQL console.
+        - No-gos: no SSO, no bulk import.
+
+        Write the spec. Ensure §1 references the pitch and §9 preserves
+        the no-gos. Do not ask questions.
+    assert:
+      - type: contains
+        value: "§1"
+      - type: contains
+        value: "§9"
+      - type: icontains
+        value: "pitch"
+      # No-gos should be preserved from the pitch
+      - type: icontains
+        value: "SSO"
+      - type: icontains
+        value: "bulk"

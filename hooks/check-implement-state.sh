@@ -17,7 +17,7 @@ if [ ! -f "$STATE_FILE" ]; then
   exit 0
 fi
 
-PENDING=$(grep -c '^\- \[ \]' "$STATE_FILE" 2>/dev/null || echo "0")
+PENDING=$(grep -c '^\- \[ \]' "$STATE_FILE" 2>/dev/null || true)
 
 if [ "$PENDING" -gt 0 ]; then
   echo "⚠ .implement-state.md has $PENDING pending acceptance criteria."
