@@ -1,6 +1,6 @@
 {
   "name": "trellis",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A spec-driven development toolkit that takes features from problem framing through implementation using structured, composable skills.",
   "author": {
     "name": "Rob McLarty",
