@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash hooks/session-start.sh"
+            "command": "python3 hooks/session-start.py"
           }
         ]
       }
@@ -16,7 +16,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash hooks/validate-spec-structure.sh"
+            "command": "python3 hooks/validate-structure.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 hooks/count-markers.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 hooks/sync-implement.py"
           }
         ]
       }
@@ -27,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash hooks/check-implement-state.sh"
+            "command": "python3 hooks/check-implement.py"
           }
         ]
       }

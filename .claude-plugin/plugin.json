@@ -1,6 +1,6 @@
 {
   "name": "trellis",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "A spec-driven development toolkit that takes features from problem framing through implementation using structured, composable skills.",
   "author": {
     "name": "Rob McLarty",
@@ -17,6 +17,9 @@
     "./skills/plan",
     "./skills/tasks",
     "./skills/pipeline",
-    "./skills/implement"
+    "./skills/implement",
+    "./commands/status",
+    "./commands/pipeline",
+    "./commands/implement"
   ]
 }

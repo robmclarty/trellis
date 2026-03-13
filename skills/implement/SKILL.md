@@ -16,9 +16,16 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
 Turn specifications, sketches, or freeform instructions into working code through
 iterative oracle-driven feedback loops. The input artifacts are the source of truth.
 
-## Specs directory resolution
+**Recommended effort: high.** Multi-phase coordination with oracle-driven feedback loops and error recovery.
 
-Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+## Pre-flight
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
+
+If `.implement-state.md` exists, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/parse-implement-state.py` to get structured state data for resumption.
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract-criteria.py <specs-dir>/<feature-name>/tasks.md <specs-dir>/<feature-name>/spec.md` to get structured acceptance criteria.
+
 A pipeline of machine-readable checks is the termination signal. An LLM judge
 verifies alignment with intent.
 
@@ -79,111 +86,11 @@ Determine what the user provided:
 
 ### Step 2: Ask configuration questions
 
-Before writing any code, collect the user's tooling context. Do not assume any
-specific language, framework, linter, or type checker. Ask the following:
+Read `references/config-questions.md` for the full list of configuration questions to ask.
 
-**Required questions:**
+### Steps 3–5: Analyze inputs, branch management, and summary
 
-1. **What type-check command should the pipeline run?** Examples: `tsc --noEmit`,
-   `pnpm tsc --noEmit`, `pyright`, `mypy --strict`, `flow check`, `none`. If the
-   user says "none," skip the type-check stage entirely.
-
-2. **What lint/format commands should the pipeline run?** The user may have one or
-   more tools. Examples: `biome check --fix && biome check`, `eslint --fix . &&
-   eslint .`, `prettier --write . && prettier --check .`, `ruff check --fix . &&
-   ruff check .`, `oxlint`, `stylelint`, or any combination. Accept a list. If
-   the user says "none," skip the lint stage.
-
-3. **What build command should the pipeline run?** Examples: `pnpm build`,
-   `npm run build`, `cargo build`, `go build ./...`, `none`. If "none," skip it.
-
-4. **What test command should the pipeline run?** Examples: `vitest run`,
-   `jest`, `pytest`, `go test ./...`, `none`. If "none," tests are only run
-   when the test writer sub-agent creates them (scoped to the new test files).
-
-**Optional questions (ask if relevant based on input type):**
-
-5. **Package manager?** `pnpm`, `npm`, `yarn`, `bun`, `cargo`, `pip`, `go mod`,
-   etc. Needed for install commands and script invocation.
-
-6. **Enable Ralph mode?** If yes, assume `ralph` CLI commands are available.
-   Implementation iterations use Ralph for context-fresh loops. See the
-   Ralph section in `references/oracle-pipeline.md`.
-
-7. **Enable Promptfoo?** If yes, generate Promptfoo eval configs alongside the
-   judge for repeatable evaluations. See the Promptfoo section in
-   `references/oracle-pipeline.md`.
-
-8. **Open Spec format?** If the spec uses Open Spec structure (look for
-   `validation_criteria`, `constraints`, `scope` fields), use its structure
-   directly rather than re-analyzing.
-
-Store all configuration answers in `.implement-state.md` under a `## Config`
-section so they survive context resets.
-
-### Step 3: Analyze inputs and build checklist
-
-Read all loaded artifacts fully, then extract into a structured checklist written
-to `.implement-state.md`:
-
-**a) Acceptance criteria.** Sourced from:
-- `tasks.md` — Each task's "Verify" section becomes a criterion.
-- `spec.md` §8 (Success Criteria) — Each scenario becomes a criterion.
-- Sketch verdicts — If implementing a sketch, the hypothesis itself is the
-  criterion ("does this approach work?").
-- Inline text — Extract anything that describes "done."
-
-For each criterion, determine:
-- A short identifier (e.g., `AC-1`, `AC-2`, or the task ID like `1.1`, `1.2`)
-- A one-line summary
-- Whether it's machine-verifiable (a script can check it) or judgment-based
-  (needs the LLM judge)
-- Status: `pending`
-
-**b) Constraints.** Sourced from:
-- `plan.md` §3 (Technology Decisions) — locked-in choices
-- `spec.md` §9 (Constraints) — scope, technical, and operational limits
-- `compliance.md` — regulatory constraints
-- `guidelines.md` — project-wide conventions
-- User's inline overrides
-
-**c) Unknowns.** Anything ambiguous or unaddressed. If a `spec.md` still has
-`[? ...]` markers or §10 has open questions, list them. If a sketch verdict is
-"inconclusive" or "viable with caveats," surface the caveats.
-
-If the input is too vague to extract any acceptance criteria, stop and ask the
-user to clarify before proceeding.
-
-### Step 4: Branch management (sketch implementations only)
-
-When implementing from sketch files:
-
-```bash
-# Record the current branch
-originalBranch=$(git branch --show-current)
-
-# Create and switch to a new branch named after the sketch
-git checkout -b sketch/<sketch-slug>
-```
-
-Store `originalBranch` in `.implement-state.md` under `## Branch`. When
-implementation is complete (or abandoned), report to the user but do NOT switch
-back to the original branch automatically. The user decides when to merge,
-rebase, or discard.
-
-For feature folder implementations, do NOT create a branch unless the user
-explicitly asks. Work on whatever branch is currently checked out.
-
-### Step 5: Print summary and confirm
-
-Present to the user before writing any code:
-- Input source(s) identified (feature folder, sketch names, inline)
-- How many acceptance criteria were extracted
-- Which are machine-verifiable vs. judgment-based
-- The oracle pipeline stages that will run, with the exact commands
-- Branch status (if a new branch was created)
-- Any unknowns or assumptions being flagged
-- Ask for confirmation to proceed
+Read `references/phase-zero-analysis.md` for the detailed process of building the acceptance criteria checklist, managing branches for sketch implementations, and presenting the summary for user confirmation.
 
 ## Phase 1 — Oracle pipeline assembly
 

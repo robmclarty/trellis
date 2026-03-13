@@ -15,9 +15,13 @@ context: fork
 
 Review the spec for ambiguities and resolve them. Modifies `.specs/<feature-name>/spec.md` in place.
 
-## Specs directory resolution
+**Recommended effort: high.** Analytical judgment across six ambiguity categories, requires careful reading.
 
-Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+## Pre-flight
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py clarify <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract-markers.py <specs-dir>/<feature-name>/spec.md` to get a structured count of existing ambiguity markers before starting the review.
 
 ## Purpose
 

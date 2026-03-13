@@ -16,9 +16,13 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 Orchestrate the full spec-driven development pipeline for a feature, from pitch through tasks.
 
-## Specs directory resolution
+**Recommended effort: high.** Orchestration with judgment calls, feedback loops, and mode-dependent decision-making.
 
-Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+## Pre-flight
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py pipeline <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` to detect which artifacts already exist and determine the resumption point.
 
 ## Purpose
 
@@ -36,28 +40,7 @@ The pipeline accepts an optional argument to control its mode:
 - `/pipeline` — **Interactive mode** (default). Pauses for user review after each major stage.
 - `/pipeline auto` — **Automatic mode**. Gathers all context upfront, then runs the entire pipeline without pausing. Makes best-guess decisions at every point where interactive mode would ask the user.
 
-### Interactive mode: upfront questions
-
-Ask:
-
-1. What problem are you solving? (This seeds the pitch.)
-2. What's the feature name? (kebab-case, becomes the folder name under `.specs/`)
-3. Does this feature have compliance requirements? (If yes, which regulations? If unsure, the pipeline will try to detect this from the spec's data model.)
-4. Are there any known ambiguities or open questions I should be aware of? (Data ownership, permissions, privacy concerns, integration points — this context helps the clarify and compliance stages resolve issues without needing to ask you mid-run, since they run in isolated contexts.)
-
-### Auto mode: extended upfront questions
-
-Ask all of the above, plus:
-
-5. Walk me through the user experience. What does someone do with this feature, step by step?
-6. What's the appetite? (Timeframe, team size, complexity budget)
-7. Are there any specific technical decisions you've already made?
-8. Does this integrate with an existing system? If so, describe the integration points.
-9. Are there any known no-gos I should encode?
-10. Any rabbit holes I should flag?
-11. Anything else I should know that might affect the spec, plan, or compliance review?
-
-Be thorough in this intake. Every question you skip here becomes a guess later. If the user's answers are thin in any area, push for more detail before proceeding. Once you start the auto run, you're committed to making all decisions yourself.
+Read `references/intake-questions.md` for the full list of questions to ask in each mode.
 
 ## Execution flow
 
@@ -176,25 +159,7 @@ Summarize what was produced:
 - [AUTO] FIPPA storage requirement satisfied by ca-central-1 deployment. Verify provider compliance certification.
 ```
 
-## Loop limits
-
-| Loop | Max iterations | On exceed (interactive) | On exceed (auto) |
-|------|---------------|------------------------|-------------------|
-| Clarify → Spec | 3 | Pause, present issues to user | Move to §10 as `[AUTO]`, continue |
-| Compliance → Spec | 2 | Pause, present issues to user | Document as residual risks, continue |
-| User review → any stage | No limit | User is always in control | N/A (no pauses) |
-
-## Interruption and resumption
-
-If the user stops the pipeline mid-run (or the conversation ends), the pipeline is resumable. Because each stage writes its artifact to disk, the pipeline can detect which artifacts exist and resume from the next incomplete stage:
-
-- `pitch.md` exists but not `spec.md` → resume at Stage 2
-- `spec.md` exists but has `[? ...]` markers → resume at Stage 3 (clarify)
-- `spec.md` is clean, no `compliance.md` and compliance is needed → resume at Stage 5
-- `compliance.md` exists but not `plan.md` → resume at Stage 6
-- `plan.md` exists but not `tasks.md` → resume at Stage 7
-
-When resuming, tell the user where you're picking up and confirm they want to continue from that point. If the original run was in auto mode, ask if they want to continue in auto mode or switch to interactive.
+Read `references/pipeline-control.md` for loop limits and resumption logic.
 
 ## Quality gate
 

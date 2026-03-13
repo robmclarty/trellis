@@ -30,6 +30,7 @@ Execution:      implement (turns tasks into working code)
 
 - **`context: fork`**: Clarify and Compliance run in isolated contexts. They cannot ask the user questions mid-run. The pipeline skill gathers user input upfront and embeds it in the spec before invoking forked skills.
 - **`.implement-state.md`**: Filesystem-based memory for the implement skill. Survives context resets and enables Ralph mode (context-fresh iterations).
-- **Agents**: Judge and Test Writer are defined in `agents/` and spawned by the implement skill as isolated sub-agents for spec compliance review and test generation.
-- **Hooks**: Optional validators for spec document structure, implementation state checks, and session startup status.
+- **Agents**: Generation agents (pitch-writer, spec-writer, plan-writer, task-writer, guidelines-writer, sketch-writer) run on Sonnet for cost-efficient document generation. Judge and Test Writer run on Opus for analytical tasks. All defined in `agents/` and spawned by their parent skills.
+- **Scripts**: Deterministic work (prereq validation, marker extraction, criteria parsing, pipeline status, state parsing) lives in `scripts/` as standalone Python scripts that output JSON. Skills call these in pre-flight; hooks call them for event-driven checks.
+- **Hooks**: Python-based validators in `hooks/` for spec structure, ambiguity markers, implementation state, and session startup status. Two-layer architecture: hooks handle orchestration (stdin JSON, relevance filtering, formatting), scripts handle data processing.
 - **`trellis.json`**: Stores the configured specs directory (`specsDir`). Created by `/guidelines` on first run. All skills and hooks read from it, falling back to `.specs/` if absent.

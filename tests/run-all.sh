@@ -9,8 +9,16 @@ cd "$ROOT"
 
 FAILED=0
 
+echo "=== Script tests ==="
+if python3 tests/test-scripts.py; then
+  echo ""
+else
+  FAILED=1
+  echo ""
+fi
+
 echo "=== Hook tests ==="
-if bash tests/test-hooks.sh; then
+if python3 tests/test-hooks.py; then
   echo ""
 else
   FAILED=1

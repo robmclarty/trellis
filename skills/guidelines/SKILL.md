@@ -1,6 +1,7 @@
 ---
 name: trellis:guidelines
 description: Creates or updates .specs/guidelines.md with project-wide stack, conventions, and principles. Use when starting a project or when a fundamental technology decision has changed.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 ---
 
 # Guidelines
@@ -13,13 +14,11 @@ description: Creates or updates .specs/guidelines.md with project-wide stack, co
 
 Create or update the project guidelines document at `.specs/guidelines.md`.
 
-## Specs directory resolution
+**Recommended effort: medium.** Interview-driven with structured generation into a fixed section template.
 
-Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+## Pre-flight
 
-## Purpose
-
-Establish the non-negotiable principles that govern all work in this project. Guidelines are the foundation every other phase inherits from. They define how code should look, feel, and behave regardless of what feature is being built.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py guidelines` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
 ## Modes
 
@@ -62,42 +61,9 @@ If `.specs/guidelines.md` already exists, read it first. Then ask the user:
 1. What changed? (new library, dropped dependency, revised convention, infrastructure shift)
 2. Why? (one sentence is fine; this helps evaluate downstream impact)
 
-Apply the changes surgically. Do not rewrite sections that haven't changed. For each change:
+## Generation
 
-- Update the affected section in place
-- If a new pattern or snippet is needed, add it alongside existing ones (or replace if the old pattern is obsolete)
-- Add a brief changelog entry at the bottom of the document under a `## Changelog` section, formatted as:
-
-```markdown
-## Changelog
-
-- **YYYY-MM-DD** — Replaced Express with Fastify as HTTP framework. Updated route pattern examples.
-- **YYYY-MM-DD** — Added Zod validation conventions and example snippets.
-```
-
-After updating, scan the rest of the guidelines for anything that conflicts with the change. A stack swap (e.g., switching ORMs) may ripple into Patterns, Testing, and Infrastructure sections. Flag any inconsistencies and fix them.
-
-**Downstream impact:** If the change affects existing feature specs or plans, note which features under `.specs/` might need review. Don't modify them automatically, but tell the user: "This change may affect the plan for `hall-pass-extraction` since it references the old ORM pattern in §4."
-
-## Output: `.specs/guidelines.md`
-
-Write a single markdown document with the following sections. Be concrete and opinionated. Every section should include examples, not just rules. A new contributor (or an LLM) reading this document should be able to write code that looks like it belongs in this project.
-
-Reference the example files in this skill's `examples/` directory for the level of concreteness expected in the Patterns section. These are illustrative; the actual patterns should match the user's stack. Examples are provided for both TypeScript (Fastify/Drizzle/Zod) and Python (FastAPI/SQLAlchemy/Pydantic) to show that the guidelines skill is stack-agnostic.
-
-### Sections
-
-**Stack** — Language, runtime, framework, core libraries. Name specific packages. "Fastify" not "a web framework." Include version constraints only if they matter.
-
-**Architecture** — The structural patterns used across the project. Module organization, dependency direction, how layers communicate. If the project is a monorepo, describe the workspace layout. If it uses a specific pattern (hexagonal, layered, feature-sliced), name it and show a concrete example of how a module is structured.
-
-**Conventions** — Naming (variables, functions, types, files, directories), code style preferences, import ordering, error handling approach. Show right and wrong examples side by side where helpful.
-
-**Patterns** — 2-4 concrete code snippets showing the preferred way to do common things in this project. These are not abstract descriptions. They are copy-paste-and-adapt templates. Examples: how to define a route, how to define a schema, how to structure a service function, how to handle errors at boundaries.
-
-**Testing** — When tests appear in the development process, what gets tested and what doesn't, preferred test structure, any frameworks or conventions. Be honest about the team's actual practice, not an aspirational ideal.
-
-**Infrastructure** — Deployment model, CI/CD expectations, environment management, any cloud or hosting constraints.
+After gathering all user input via the interview, spawn the `guidelines-writer` agent. Pass it: the specs directory path and all interview responses. The agent will generate the guidelines document.
 
 ## Quality gate
 

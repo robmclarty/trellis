@@ -1,6 +1,7 @@
 ---
 name: trellis:sketch
 description: Creates a lightweight experiment document at .specs/sketches/<slug>.md to test a technical hypothesis before committing to a larger initiative.
+allowed-tools: Agent
 ---
 
 # Sketch
@@ -13,17 +14,11 @@ description: Creates a lightweight experiment document at .specs/sketches/<slug>
 
 Create a new sketch document at `.specs/sketches/<slug>.md`.
 
-## Specs directory resolution
+**Recommended effort: low.** Short output; the user provides most of the content, the skill just structures it.
 
-Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+## Pre-flight
 
-## Purpose
-
-A sketch is a small, timeboxed experiment to test a hypothesis. It exists to answer a specific question cheaply before committing to a larger initiative. Sketches are disposable by nature but their findings are durable. A pitch may reference zero or more sketches to justify its approach.
-
-## Prerequisites
-
-- `.specs/guidelines.md` must exist. Sketches should respect the project's stack and conventions even when experimenting. If the sketch deliberately violates a guideline (e.g., testing a library outside the standard stack), note that explicitly.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py sketch` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
 ## What to ask the user
 
@@ -35,28 +30,9 @@ If the user runs `/sketch` without enough context, ask:
 
 If the user provides a description, extract the hypothesis from it. Every sketch must have a falsifiable hypothesis.
 
-## Naming
+## Generation
 
-The slug should be a short kebab-case name describing the experiment: `drizzle-multi-tenant`, `local-llm-formatting`, `websocket-vs-polling`. Ask the user or infer from context.
-
-## Output: `.specs/sketches/<slug>.md`
-
-A lightweight markdown document with four sections. Keep it short. A sketch is a lab notebook entry, not a report.
-
-### Sections
-
-**Hypothesis** — One or two sentences stating what you believe to be true and what you're testing. Frame it as falsifiable: "Drizzle can handle multi-tenant schema isolation using Postgres RLS without custom query wrappers." Not: "Explore Drizzle multi-tenancy."
-
-**Method** — What you actually did or plan to do. Concrete steps: built a small prototype, read the docs and found X, wrote a benchmark, tried it in a branch. If code was written, note where it lives (branch name, throwaway repo, inline snippet). Keep this brief.
-
-**Findings** — What you learned. Include specifics: performance numbers, API limitations discovered, patterns that worked or didn't. If the hypothesis was wrong, explain what was surprising. Findings should be useful to someone who didn't run the experiment.
-
-**Verdict** — One of four values:
-
-- **Viable** — The hypothesis held. This approach can move forward.
-- **Viable with caveats** — It works, but with tradeoffs or constraints that a pitch should account for. List the caveats.
-- **Not viable** — The hypothesis was falsified. Explain why. This is a valuable outcome.
-- **Inconclusive** — The experiment didn't produce enough signal. Note what would be needed to get a clearer answer.
+After gathering all user input, spawn the `sketch-writer` agent. Pass it: the specs directory path and all user-provided context (hypothesis, approach, constraints, slug name). The agent will generate the sketch document.
 
 ## Quality gate
 

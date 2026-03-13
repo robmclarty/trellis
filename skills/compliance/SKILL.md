@@ -15,9 +15,11 @@ context: fork
 
 Create a regulatory and privacy review at `.specs/<feature-name>/compliance.md`.
 
-## Specs directory resolution
+**Recommended effort: high.** Cross-referencing spec data models against regulatory requirements with nuanced applicability judgments.
 
-Before starting, read `trellis.json` from the project root. If it exists and has a `specsDir` field, use that value as the specs directory. Otherwise, default to `.specs/`. All references to `.specs/` in this document refer to the resolved specs directory.
+## Pre-flight
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py compliance <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
 ## Purpose
 
@@ -43,7 +45,7 @@ If the data model contains no sensitive categories and no jurisdictional constra
 
 > **Note:** When invoked through `/pipeline`, the pipeline skill asks the user about compliance requirements upfront (interactive mode question 3, auto mode question 10). This context is embedded in the spec's §9 or the pitch before compliance runs, enabling accurate regulation selection. When invoked standalone, compliance infers from artifacts only — if regulation scope is ambiguous, list the ambiguity in the Residual Risks section.
 
-Read the relevant reference files in `references/` for the core requirements of each applicable regulation.
+Read only the reference files in `references/` for regulations determined to be applicable. Do not load all five regulation references upfront.
 
 ## Output: `.specs/<feature-name>/compliance.md`
 
