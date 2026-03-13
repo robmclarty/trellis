@@ -1,5 +1,5 @@
 ---
-name: trellis:pipeline-start
+name: pipeline
 description: Pre-flight context for pipeline skill
 allowed-tools: Bash, Read
 user-invocable: true

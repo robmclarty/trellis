@@ -1,5 +1,5 @@
 ---
-name: trellis:sketch
+name: sketch
 description: Creates a lightweight experiment document at .specs/sketches/<slug>.md to test a technical hypothesis before committing to a larger initiative.
 allowed-tools: Agent
 ---

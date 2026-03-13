@@ -1,5 +1,5 @@
 ---
-name: trellis:status
+name: status
 description: Show pipeline status for all features
 allowed-tools: Bash, Read
 user-invocable: true

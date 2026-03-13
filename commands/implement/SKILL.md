@@ -1,5 +1,5 @@
 ---
-name: trellis:implement-start
+name: implement
 description: Pre-flight context for implement skill
 allowed-tools: Bash, Read
 user-invocable: true
