@@ -61,7 +61,7 @@ For a full system spec (multi-component, multi-user, production-bound), include 
 
 When writing the spec, if you encounter something ambiguous that you cannot resolve from the pitch or provided context, insert a typed marker:
 
-```
+```text
 [? CATEGORY: specific question]
 ```
 

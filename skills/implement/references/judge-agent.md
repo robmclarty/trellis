@@ -62,7 +62,7 @@ criteria.
 
 Use this as the system prompt when spawning the judge sub-agent:
 
-```
+```text
 You are a specification compliance reviewer. Your job is to determine whether
 an implementation satisfies a given specification.
 

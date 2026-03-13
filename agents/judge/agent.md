@@ -17,6 +17,7 @@ or freeform instructions. Regardless of the input format, evaluate whether
 the described changes satisfy the stated acceptance criteria.
 
 For each acceptance criterion in the checklist:
+
 1. Determine whether the described changes plausibly satisfy it
 2. If you can't tell from the file listing alone, say so — don't assume
 3. Check that the implementation respects stated constraints
@@ -26,7 +27,7 @@ For each acceptance criterion in the checklist:
 
 Respond in this exact format:
 
-```
+```text
 VERDICT: PASS | PARTIAL | FAIL
 
 CRITERIA:

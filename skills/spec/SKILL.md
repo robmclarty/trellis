@@ -32,8 +32,8 @@ If the user runs `/spec` without providing details, ask:
 
 If the user provides a description, extract as much structure as you can and confirm gaps. Prefer over-asking to under-asking. The spec is where precision matters most.
 
-5. Are there compliance or regulatory concerns? (Jurisdictions, data sensitivity — this context will be embedded in §9 so that downstream `/clarify` and `/compliance` skills, which run in isolated contexts, can resolve issues without interactive access to the user.)
-6. Any known ambiguities about data ownership, permissions, or integrations? (These will be captured as `[? CATEGORY: ...]` markers for `/clarify` to resolve.)
+1. Are there compliance or regulatory concerns? (Jurisdictions, data sensitivity — this context will be embedded in §9 so that downstream `/clarify` and `/compliance` skills, which run in isolated contexts, can resolve issues without interactive access to the user.)
+2. Any known ambiguities about data ownership, permissions, or integrations? (These will be captured as `[? CATEGORY: ...]` markers for `/clarify` to resolve.)
 
 ## Generation
 

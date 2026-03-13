@@ -9,6 +9,7 @@ Bump the project version using semver. Accepts one argument: `major`, `minor`, o
 ## Semver rules
 
 Given a version `MAJOR.MINOR.PATCH`:
+
 - `patch` → increment PATCH, e.g. 0.4.6 → 0.4.7
 - `minor` → increment MINOR, reset PATCH, e.g. 0.4.6 → 0.5.0
 - `major` → increment MAJOR, reset MINOR and PATCH, e.g. 0.4.6 → 1.0.0

@@ -51,6 +51,7 @@ Read `references/intake-questions.md` for the full list of questions to ask in e
 Generate `.specs/<feature-name>/pitch.md` following the `/pitch` skill.
 
 **Interactive:** Pause for user review. Present the pitch and ask:
+
 - Does the problem framing match your understanding?
 - Is the appetite right?
 - Are the no-gos and rabbit holes complete?
@@ -82,6 +83,7 @@ Run the `/clarify` skill against the spec. This is an internal review pass. Sinc
 ### Stage 4: User spec review
 
 **Interactive:** Pause for user review. Present the clarified spec and ask:
+
 - Does this capture what you want to build?
 - Any sections that feel wrong or incomplete?
 
@@ -110,6 +112,7 @@ Generate `.specs/<feature-name>/compliance.md` following the `/compliance` skill
 Generate `.specs/<feature-name>/plan.md` following the `/plan` skill, reading from the spec, compliance (if present), and guidelines.
 
 **Interactive:** Pause for user review. Present the plan and ask:
+
 - Do the technology decisions look right?
 - Does the architecture match your mental model?
 - Anything missing from the file structure or deployment strategy?
@@ -123,6 +126,7 @@ If the user requests changes, revise the plan. No need to re-run earlier stages 
 Generate `.specs/<feature-name>/tasks.md` following the `/tasks` skill, reading from the plan and spec.
 
 **Interactive:** Pause for user review. Present the tasks and ask:
+
 - Is the phasing right?
 - Are tasks sized appropriately?
 - Any ordering issues?
@@ -135,7 +139,7 @@ If the user requests changes, revise the tasks. The pipeline is complete once th
 
 Summarize what was produced:
 
-```
+```text
 .specs/<feature-name>/
   pitch.md       ✓
   spec.md        ✓
@@ -148,7 +152,7 @@ Summarize what was produced:
 
 **Auto:** Tell the user the pipeline is complete, then present a summary of every `[AUTO]` decision made during the run. Group them by artifact and category. This is the user's review checklist: the list of assumptions they should verify before running `/implement`. Example:
 
-```
+```markdown
 ## Auto decisions requiring review
 
 ### spec.md §10

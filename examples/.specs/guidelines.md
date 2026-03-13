@@ -15,7 +15,7 @@
 
 Layered architecture with clear separation:
 
-```
+```text
 app/
   routes/       # FastAPI routers — validation, HTTP concerns only
   services/     # Business logic — plain async functions, no HTTP awareness

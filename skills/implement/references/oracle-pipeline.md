@@ -25,19 +25,22 @@ actionable feedback, not just detecting pass/fail.
 **Type-checker output (varies by tool):**
 
 TypeScript (tsc):
-```
+
+```text
 src/routes/passes.ts(42,7): error TS2345: Argument of type 'string' is not
 assignable to parameter of type 'number'.
 ```
 
 Python (mypy):
-```
+
+```text
 src/services/auth.py:18: error: Argument 1 to "verify" has incompatible
 type "str"; expected "int"  [arg-type]
 ```
 
 Python (pyright):
-```
+
+```text
 src/services/auth.py:18:5 - error: Argument of type "str" is not assignable
 to parameter of type "int"
 ```
@@ -48,23 +51,27 @@ rewrite the whole file to fix a type error.
 **Linter output (varies by tool):**
 
 Biome:
-```
+
+```text
 src/services/auth.ts:18:5 lint/suspicious/noExplicitAny ━━━━━━━━━
   Unexpected any. Specify a different type.
 ```
 
 ESLint:
-```
+
+```text
 src/services/auth.ts:18:5  error  Unexpected any value  @typescript-eslint/no-explicit-any
 ```
 
 Ruff:
-```
+
+```text
 src/services/auth.py:18:5: E501 Line too long (120 > 88)
 ```
 
 OxLint:
-```
+
+```text
 × eslint(no-unused-vars): 'foo' is defined but never used.
   ╭─[src/services/auth.ts:18:5]
 ```
@@ -78,10 +85,12 @@ type-check passed, the problem is likely in the build config, not the code.
 Read the build error carefully before changing source files.
 
 **Test output:**
-```
+
+```text
  FAIL  src/services/passes.test.ts > createPass > rejects expired pass type
    AssertionError: expected 'active' to be 'rejected'
 ```
+
 Extract: test name, expected vs. actual, file. This tells you exactly what
 behavior is wrong.
 
@@ -191,6 +200,7 @@ tests:
 ```
 
 When Promptfoo is enabled, the implement skill:
+
 1. Generates a `promptfoo.yaml` config from the acceptance criteria during
    Phase 1
 2. Runs `promptfoo eval` as an additional pipeline stage (after tests, before
@@ -247,6 +257,7 @@ Phase 3 as a final regression check.
 
 If the spec involves schema changes, suggest the user add a migration check
 as a custom stage:
+
 ```bash
 pnpm drizzle-kit generate  # should succeed
 pnpm drizzle-kit check     # should report no drift

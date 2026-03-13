@@ -1,6 +1,7 @@
 # Tasks: Team Kudos
 
 ## Phase 1: Foundation
+
 > Milestone: Kudos table exists, model and schemas defined, migration applied.
 
 - [ ] 1.1 — Create SQLAlchemy model for kudos
@@ -16,6 +17,7 @@
   **Verify:** `kudos` table exists in the database with correct columns, constraints, and enum type.
 
 ## Phase 2: Core API
+
 > Milestone: All four endpoints work end-to-end.
 
 - [ ] 2.1 — Implement create kudos endpoint
@@ -35,6 +37,7 @@
   **Verify:** Manager sees counts grouped by recipient or category. Non-manager gets 403. Time range filter works correctly.
 
 ## Phase 3: Testing
+
 > Milestone: All tests pass, full coverage of spec §8 success criteria.
 
 - [ ] 3.1 — Write service tests

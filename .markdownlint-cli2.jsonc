@@ -7,7 +7,13 @@
     // Allow raw HTML (used in some prompt templates)
     "MD033": false,
     // Allow bare URLs
-    "MD034": false
+    "MD034": false,
+    // Frontmatter files don't start with h1
+    "MD041": false,
+    // Table column alignment style is too strict for prompt/reference tables
+    "MD060": false,
+    // Bold text used intentionally as labels in prompt files
+    "MD036": false
   },
   "ignores": ["node_modules/**"]
 }

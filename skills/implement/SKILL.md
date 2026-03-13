@@ -41,7 +41,7 @@ how they integrate with the implement skill.
 
 ## Invocation
 
-```
+```text
 /implement <input> [with <modifier>]
 ```
 
@@ -162,6 +162,7 @@ for the full heuristic), spawn the test writer sub-agent to produce targeted
 tests before writing implementation code.
 
 The test writer runs in an isolated context. Pass it only:
+
 - The relevant criteria (from tasks.md "Verify" or spec.md §8)
 - The expected module path (from plan.md §6)
 - Project test conventions (from the user's config and guidelines.md)
@@ -194,7 +195,7 @@ follow the most specific source (tasks > plan > spec > guidelines).
 
 Execute each enabled stage in order. Stop at the first failure.
 
-```
+```text
 → typecheck  → PASS → lint → PASS → build → PASS → test → PASS → judge → PASS
                 ↓              ↓              ↓             ↓              ↓
               FAIL           FAIL           FAIL          FAIL           FAIL
@@ -205,6 +206,7 @@ Execute each enabled stage in order. Stop at the first failure.
 ```
 
 For each failing stage:
+
 - Parse the structured error output
 - Fix the specific issues identified
 - Re-run from the failing stage (not from the beginning, unless the fix was
@@ -212,6 +214,7 @@ For each failing stage:
 
 **Per-stage retry limit: 3 attempts.** If a single stage fails 3 times in a row,
 pause and report to the user. Include:
+
 - Which stage is failing
 - The error output from the last attempt
 - What you've tried
@@ -221,6 +224,7 @@ pause and report to the user. Include:
 
 After the pipeline passes for this iteration's scope, update
 `{specsDir}/.state/implement-state.md`:
+
 - Mark completed criteria as `done`
 - Record which iteration completed them
 - If working from tasks.md, check the task checkbox
@@ -288,6 +292,7 @@ After Phase 0 and Phase 1 are complete:
 
 The loop script builds the `trellis-ralphd` Docker image on first run (from
 `scripts/Dockerfile.ralphd`), then for each iteration:
+
 - Runs pre-flight scripts on the host (same as Ralph)
 - Launches `docker run --rm -v $(pwd):/workspace` with a named auth volume
   (`trellis-ralphd-auth`) mounted at `/home/claude/.claude`
@@ -295,6 +300,7 @@ The loop script builds the `trellis-ralphd` Docker image on first run (from
 - No `.claude/settings.local.json` is generated (Docker is the sandbox)
 
 **Authentication:** Supports two modes:
+
 - **API key:** Export `ANTHROPIC_API_KEY` — passed into the container as an env var
 - **OAuth/subscription:** Run `ralphd-loop.sh --login` once to authenticate
   interactively. The OAuth session is stored in the `trellis-ralphd-auth` Docker
@@ -309,6 +315,7 @@ next pending criterion.
 Spawn a sub-agent with the judge prompt from `references/judge-agent.md`.
 
 The judge receives:
+
 - The original spec (full text) or sketch content
 - The acceptance criteria checklist from `{specsDir}/.state/implement-state.md`
 - A summary of all files created or modified (`git diff --stat`, `find`, or
@@ -317,7 +324,7 @@ The judge receives:
 
 The judge produces a structured verdict:
 
-```
+```text
 VERDICT: PASS | PARTIAL | FAIL
 
 For each acceptance criterion:

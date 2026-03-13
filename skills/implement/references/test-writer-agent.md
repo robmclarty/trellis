@@ -25,6 +25,7 @@ sketch hypotheses). Spawn this agent for criteria that are:
   reading it. You need to run it.
 
 Do NOT spawn this agent for:
+
 - CRUD operations where the type system and schema validation cover correctness
 - UI/formatting concerns
 - Criteria that the LLM judge can assess from a file review
@@ -59,7 +60,7 @@ that the tests should reference>
 
 Use this as the system prompt when spawning the sub-agent:
 
-```
+```text
 You are a test writer. You write focused, minimal tests for specific
 behaviors described in a specification. You are not writing tests for
 coverage metrics. You are writing tests that serve as oracle signals —
@@ -128,7 +129,7 @@ agent's conversation history. It receives only what you pass to it.
 
 The ideal workflow is:
 
-```
+```text
 Main agent (Phase 2, Step 1: Plan)
   ├── Identifies AC-3 and AC-7 as tricky/behavioral
   ├── Spawns test writer for AC-3 → receives test file → writes to disk

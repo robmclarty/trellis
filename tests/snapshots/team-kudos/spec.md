@@ -23,6 +23,7 @@ All authenticated users are team members. Manager role is additive.
 ## §4 — Data Model
 
 **Kudos**
+
 | Field | Type | Constraints |
 |-------|------|-------------|
 | id | UUID | PK, generated |
@@ -35,19 +36,23 @@ All authenticated users are team members. Manager role is additive.
 ## §5 — Interfaces
 
 **POST /api/kudos** — Create a kudos
+
 - Input: `{ recipient_id, message, category }`
 - Output: `201` with created kudos object
 - Errors: `400` invalid input, `404` recipient not found, `422` self-kudos
 
 **GET /api/kudos** — Feed (paginated)
+
 - Query: `?cursor=<id>&limit=<n>` (default limit 20, max 100)
 - Output: `200` with `{ items: Kudos[], next_cursor: string | null }`
 
 **DELETE /api/kudos/:id** — Delete own kudos
+
 - Output: `204`
 - Errors: `403` not the sender, `404` not found
 
 **GET /api/kudos/stats** — Manager stats
+
 - Query: `?from=<date>&to=<date>&group_by=recipient|category`
 - Output: `200` with `{ stats: [{ key, count }] }`
 - Errors: `403` not a manager

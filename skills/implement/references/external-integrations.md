@@ -15,6 +15,7 @@ window to avoid context degradation.
 **How to use:** `/implement <feature> with ralph`
 
 **How it works:** When `with ralph` is specified:
+
 1. Phase 0 and Phase 1 run interactively in the current session (config
    questions, pipeline assembly, criteria extraction)
 2. After `{specsDir}/.state/implement-state.md` is written, the skill launches
@@ -54,6 +55,7 @@ boundary instead of scoped permission allowlists.
 **How to use:** `/implement <feature> with ralphd`
 
 **How it works:** When `with ralphd` is specified:
+
 1. Phase 0 and Phase 1 run interactively (same as Ralph)
 2. After `{specsDir}/.state/implement-state.md` is written, the skill launches
    `scripts/ralphd-loop.sh <feature-name>`
@@ -68,6 +70,7 @@ boundary instead of scoped permission allowlists.
 8. Same termination conditions as Ralph
 
 **Authentication:** Two modes, auto-detected:
+
 - **API key:** If `ANTHROPIC_API_KEY` is set, it's passed into the container.
   No extra setup needed.
 - **OAuth/subscription:** Run `ralphd-loop.sh --login` once. This opens an
@@ -82,11 +85,13 @@ the auth volume — no host filesystem, no host processes.
 container. No `.claude/settings.local.json` is generated.
 
 **Requirements:**
+
 - `docker` installed and daemon running
 - One of: `ANTHROPIC_API_KEY` env var, or `ralphd-loop.sh --login` completed
 - Sufficient disk space for the Docker image (~500MB)
 
 **When to use:** Same scenarios as Ralph, plus:
+
 - When scoped permissions are too restrictive (e.g., the implementation needs
   commands that are hard to predict in advance)
 - When you want full `--dangerously-skip-permissions` behavior without
@@ -94,6 +99,7 @@ container. No `.claude/settings.local.json` is generated.
 - CI/CD environments where Docker is available and host isolation is preferred
 
 **Trade-offs vs. Ralph:**
+
 - **Pros:** No permission allowlist to maintain, Claude can run any command it
   needs, simpler security model
 - **Cons:** Docker overhead per iteration (~2-5s startup), requires Docker
@@ -109,6 +115,7 @@ model comparison, and repeatable test suites.
 via `npm install -g promptfoo`
 
 **How it integrates:** When Promptfoo is enabled in Phase 0:
+
 1. The implement skill generates a `promptfoo.yaml` config from acceptance
    criteria during Phase 1
 2. `promptfoo eval` runs as an additional pipeline stage (after tests, before

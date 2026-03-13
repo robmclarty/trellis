@@ -34,11 +34,13 @@ Before anything else, check whether `trellis.json` exists at the project root.
 
 - **If `trellis.json` does not exist**, ask the user: "Where should Trellis store spec artifacts? The default is `.specs/` — press Enter to accept or provide a custom path (e.g., `docs/specs`, `design`)."
   - Write their choice (or the default) to `trellis.json` at the project root:
+
     ```json
     {
       "specsDir": ".specs"
     }
     ```
+
   - Create the directory if it doesn't exist.
 - **If `trellis.json` already exists**, read `specsDir` from it and use that directory. Do not re-ask.
 

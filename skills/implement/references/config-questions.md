@@ -24,18 +24,18 @@ specific language, framework, linter, or type checker. Ask the following:
 
 ## Optional questions (ask if relevant based on input type)
 
-5. **Package manager?** `pnpm`, `npm`, `yarn`, `bun`, `cargo`, `pip`, `go mod`,
+1. **Package manager?** `pnpm`, `npm`, `yarn`, `bun`, `cargo`, `pip`, `go mod`,
    etc. Needed for install commands and script invocation.
 
-6. **Ralph mode** — Auto-detected from the `with ralph` invocation modifier.
+2. **Ralph mode** — Auto-detected from the `with ralph` invocation modifier.
    Do not ask this as a question. If `with ralph` was passed, set
    `Ralph mode: on` in `{specsDir}/.state/implement-state.md`. Otherwise, set it to `off`.
 
-7. **Enable Promptfoo?** If yes, generate Promptfoo eval configs alongside the
+3. **Enable Promptfoo?** If yes, generate Promptfoo eval configs alongside the
    judge for repeatable evaluations. See the Promptfoo section in
    `references/oracle-pipeline.md`.
 
-8. **Open Spec format?** If the spec uses Open Spec structure (look for
+4. **Open Spec format?** If the spec uses Open Spec structure (look for
    `validation_criteria`, `constraints`, `scope` fields), use its structure
    directly rather than re-analyzing.
 

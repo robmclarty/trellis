@@ -8,7 +8,7 @@ Every feature goes through structured phases. Each phase produces a durable mark
 
 ## Skill relationships
 
-```
+```text
 Foundation:     guidelines ─────────────────────────────────────────────┐
                 sketch ─────────────────────────┐                       │
                                                 │                       │

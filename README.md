@@ -4,7 +4,7 @@ A Claude Code plugin that bundles composable skills for spec-driven development.
 
 ## Install
 
-```
+```bash
 /plugin marketplace add robmclarty/trellis
 ```
 
@@ -45,7 +45,7 @@ These skills run in sequence. Each builds on the output of the previous one.
 
 ## Typical workflow
 
-```
+```bash
 /trellis:guidelines          # once per project
 /trellis:sketch              # optional: explore unknowns
 /trellis:pitch               # frame the feature
@@ -63,7 +63,7 @@ Or use `/trellis:pipeline` to run pitch through tasks in one pass.
 
 All artifacts live under a specs directory in your project (`.specs/` by default):
 
-```
+```text
 .specs/
   guidelines.md
   sketches/
@@ -156,7 +156,7 @@ Walk through the full pipeline manually, reviewing and adjusting each artifact b
 
 **1. Set up guidelines (once per project)**
 
-```
+```text
 > /trellis:guidelines
 
 Stack: Python 3.12, FastAPI, SQLAlchemy async, PostgreSQL 16, Pydantic, pytest
@@ -170,7 +170,7 @@ This creates `.specs/guidelines.md` and `trellis.json`.
 
 **2. Sketch (optional — explore a technical unknown)**
 
-```
+```text
 > /trellis:sketch
 
 Slug: cursor-pagination
@@ -186,7 +186,7 @@ Creates `.specs/sketches/cursor-pagination.md`.
 
 **3. Pitch the feature**
 
-```
+```text
 > /trellis:pitch
 
 Feature name: team-kudos
@@ -201,7 +201,7 @@ Creates `.specs/team-kudos/pitch.md`. Review the problem framing, appetite, and 
 
 **4. Write the spec**
 
-```
+```text
 > /trellis:spec team-kudos
 ```
 
@@ -211,7 +211,7 @@ Review the spec. This is the most important human checkpoint — everything down
 
 **5. Clarify ambiguities**
 
-```
+```text
 > /trellis:clarify team-kudos
 ```
 
@@ -219,7 +219,7 @@ Scans the spec for implicit gaps across six categories (data ownership, permissi
 
 **6. Compliance review (if needed)**
 
-```
+```text
 > /trellis:compliance team-kudos
 ```
 
@@ -227,7 +227,7 @@ Skip this for team kudos (no PII, no regulated data). For features handling pers
 
 **7. Create the plan**
 
-```
+```text
 > /trellis:plan team-kudos
 ```
 
@@ -237,7 +237,7 @@ Review the plan. This is your last chance to adjust implementation details befor
 
 **8. Break into tasks**
 
-```
+```text
 > /trellis:tasks team-kudos
 ```
 
@@ -245,7 +245,7 @@ Decomposes the plan into phased, ordered, verifiable work items. Each task has a
 
 **9. Implement**
 
-```
+```text
 > /trellis:implement team-kudos
 ```
 
@@ -255,7 +255,7 @@ Reads the tasks, plan, spec, and guidelines. Asks for your tooling commands (typ
 
 Run the entire specification pipeline in one pass. Auto mode gathers all context upfront, makes best-guess decisions at every point where interactive mode would pause, and documents every autonomous decision as an `[AUTO]` tag for your review.
 
-```
+```text
 > /trellis:pipeline auto
 
 Feature name: team-kudos
@@ -273,7 +273,7 @@ The pipeline runs pitch → spec → clarify → compliance (skipped) → plan �
 - A summary of all generated artifacts
 - A list of every `[AUTO]` decision it made, grouped by artifact
 
-```
+```text
 Pipeline complete:
   .specs/team-kudos/pitch.md       ✓
   .specs/team-kudos/spec.md        ✓

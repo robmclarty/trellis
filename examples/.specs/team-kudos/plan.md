@@ -6,7 +6,7 @@ A FastAPI service with four REST endpoints backed by PostgreSQL via SQLAlchemy a
 
 ## §2 — Architecture
 
-```
+```text
 app/
   routes/kudos.py          # FastAPI router with 4 endpoints
   services/kudos_service.py # Business logic functions
@@ -38,7 +38,7 @@ Each spec §5 endpoint maps to a route function in `routes/kudos.py` that valida
 
 ## §6 — File Structure
 
-```
+```text
 app/
   routes/kudos.py
   services/kudos_service.py
@@ -54,6 +54,7 @@ alembic/
 ## §7 — Error Handling Strategy
 
 Services return `Result[T]` types (see guidelines service-example.py). Routes translate:
+
 - `Ok` → appropriate 2xx
 - `Err(not_found)` → 404
 - `Err(forbidden)` → 403

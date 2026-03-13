@@ -6,6 +6,7 @@ Read all loaded artifacts fully, then extract into a structured checklist writte
 to `{specsDir}/.state/implement-state.md`:
 
 **a) Acceptance criteria.** Sourced from:
+
 - `tasks.md` — Each task's "Verify" section becomes a criterion.
 - `spec.md` §8 (Success Criteria) — Each scenario becomes a criterion.
 - Sketch verdicts — If implementing a sketch, the hypothesis itself is the
@@ -13,6 +14,7 @@ to `{specsDir}/.state/implement-state.md`:
 - Inline text — Extract anything that describes "done."
 
 For each criterion, determine:
+
 - A short identifier (e.g., `AC-1`, `AC-2`, or the task ID like `1.1`, `1.2`)
 - A one-line summary
 - Whether it's machine-verifiable (a script can check it) or judgment-based
@@ -20,6 +22,7 @@ For each criterion, determine:
 - Status: `pending`
 
 **b) Constraints.** Sourced from:
+
 - `plan.md` §3 (Technology Decisions) — locked-in choices
 - `spec.md` §9 (Constraints) — scope, technical, and operational limits
 - `compliance.md` — regulatory constraints
@@ -56,6 +59,7 @@ explicitly asks. Work on whatever branch is currently checked out.
 ## Step 5: Print summary and confirm
 
 Present to the user before writing any code:
+
 - Input source(s) identified (feature folder, sketch names, inline)
 - How many acceptance criteria were extracted
 - Which are machine-verifiable vs. judgment-based
