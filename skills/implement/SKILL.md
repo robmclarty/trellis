@@ -20,6 +20,10 @@ iterative oracle-driven feedback loops. The input artifacts are the source of tr
 
 ## Pre-flight
 
+**If `.implement-preflight.json` exists** (Ralph mode — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context.
+
+**Otherwise** (interactive mode), run these scripts:
+
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
 If `.implement-state.md` exists, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/parse-implement-state.py` to get structured state data for resumption.
@@ -237,11 +241,15 @@ config, pipeline, and criteria):
    the Bash tool.
 3. The current interactive session ends here — the loop script takes over.
 
-The loop script runs `claude -p` with `/trellis:implement <feature-name>` in
-each iteration. On resumption (when `.implement-state.md` already exists), the
-implement skill:
+The loop script generates `.claude/settings.local.json` with scoped permissions
+from the oracle pipeline config and runs `claude -p` (without
+`--dangerously-skip-permissions`) in each iteration. Before each iteration, it
+runs pre-flight scripts and writes `.implement-preflight.json` so Claude doesn't
+need python3 access.
 
-- Detects existing state via pre-flight
+On resumption (when `.implement-state.md` already exists), the implement skill:
+
+- Reads `.implement-preflight.json` for pre-flight data (no python3 calls)
 - Skips Phase 0 and Phase 1 entirely
 - Goes straight to Phase 2, picking up from the next pending criterion
 - Completes one iteration (one task or small batch), updates state, and exits

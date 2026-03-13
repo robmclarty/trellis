@@ -131,19 +131,25 @@ Ralph mode is activated via `/implement <feature> with ralph`. After Phase 0
 and Phase 1 complete interactively, the skill launches the bundled loop script
 (`scripts/ralph-loop.sh`), which manages the iteration lifecycle:
 
-1. Each iteration runs `claude -p` with `/trellis:implement <feature-name>`
-2. The implement skill writes all progress to `.implement-state.md` before
+1. Before each iteration, the loop script runs pre-flight scripts and writes
+   `.implement-preflight.json` — Claude reads this instead of running python3
+2. The loop script generates `.claude/settings.local.json` with scoped
+   permissions derived from the oracle pipeline config
+3. Each iteration runs `claude -p` (no `--dangerously-skip-permissions`) with
+   `/trellis:implement <feature-name>`
+4. The implement skill writes all progress to `.implement-state.md` before
    completing each iteration
-3. The loop script parses `.implement-state.md` between iterations to check
+5. The loop script parses `.implement-state.md` between iterations to check
    completion
-4. On restart, the skill reads `.implement-state.md`, finds pending criteria,
-   and resumes
+6. On restart, the skill reads `.implement-preflight.json`, finds pending
+   criteria, and resumes
 
 **When to use it:** Large implementations with 10+ acceptance criteria or work
 spanning many files. For small implementations (2-3 criteria), skip it.
 
-**What Ralph adds:** Protection against context degradation. Quality stays
-consistent across all iterations because each one starts fresh.
+**What Ralph adds:** Protection against context degradation and least-privilege
+security. Quality stays consistent across all iterations because each one
+starts fresh, and scoped permissions prevent unintended command execution.
 
 ### Promptfoo
 

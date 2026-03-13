@@ -19,12 +19,27 @@ window to avoid context degradation.
    questions, pipeline assembly, criteria extraction)
 2. After `.implement-state.md` is written, the skill launches
    `scripts/ralph-loop.sh <feature-name>`
-3. The loop script runs `claude -p` with `/trellis:implement <feature-name>`
-   in each iteration
-4. Between iterations, it parses `.implement-state.md` to check completion
-5. Each iteration resumes from the next pending criterion via the state file
-6. The loop stops when: all criteria pass, max iterations reached (default 10),
+3. Before each iteration, the loop script runs pre-flight scripts
+   (`validate-prereqs.py`, `parse-implement-state.py`, `extract-criteria.py`)
+   and writes results to `.implement-preflight.json` so Claude doesn't need
+   python3 access
+4. The loop script generates `.claude/settings.local.json` with scoped
+   permissions derived from the oracle pipeline config — only the user's
+   specific toolchain commands, file tools, and git reads are allowed
+5. Each iteration runs `claude -p` (without `--dangerously-skip-permissions`)
+   with `/trellis:implement <feature-name>`
+6. Between iterations, it parses `.implement-state.md` to check completion
+7. Each iteration resumes from the next pending criterion via the state file
+8. The loop stops when: all criteria pass, max iterations reached (default 10),
    or 3 consecutive failures occur without progress
+
+**Security model:** Ralph iterations run with least-privilege permissions.
+The loop script generates an allowlist from the oracle pipeline commands
+configured during Phase 1. Claude can only execute the specific type-check,
+lint, build, and test commands the user provided, plus file operations and
+git reads. No `--dangerously-skip-permissions`, no arbitrary command execution.
+If Claude needs a command not on the allowlist, the iteration fails safely
+and the user can add it to the config.
 
 **When to use:** Large implementations (10+ acceptance criteria, many files)
 where context degradation is a concern. Skip for small implementations (2-3
