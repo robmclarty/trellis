@@ -14,30 +14,34 @@ Trellis provides 10 skills organized into three groups: foundation, specificatio
 
 ### Foundation
 
-| Skill | Command | Description |
-|-------|---------|-------------|
-| **Project Guidelines** | `/trellis:guidelines` | Establish project-wide stack, conventions, and principles at `.specs/guidelines.md`. Run this first. |
-| **Technical Sketch** | `/trellis:sketch` | Run a timeboxed experiment to test a technical hypothesis. Produces a document in `.specs/sketches/`. |
+- `/trellis:guidelines`
+  Establish project-wide stack, conventions, and principles at `.specs/guidelines.md`. Run this first.
+- `/trellis:sketch`
+  Run a timeboxed experiment to test a technical hypothesis. Produces a document in `.specs/sketches/`.
 
 ### Specification pipeline
 
 These skills run in sequence. Each builds on the output of the previous one.
 
-| Skill | Command | Description |
-|-------|---------|-------------|
-| **Feature Pitch** | `/trellis:pitch` | Frame a problem with constraints, appetite, and solution shape. Produces `.specs/<feature>/pitch.md`. |
-| **Functional Spec** | `/trellis:spec` | Write a full functional specification defining what the system does and why. Produces `.specs/<feature>/spec.md`. |
-| **Spec Clarifier** | `/trellis:clarify` | Review the spec for ambiguities across six categories and resolve them in place. |
-| **Compliance Review** | `/trellis:compliance` | Evaluate the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). Produces `.specs/<feature>/compliance.md`. |
-| **Implementation Plan** | `/trellis:plan` | Translate the spec into concrete architecture, technology, and code decisions. Produces `.specs/<feature>/plan.md`. |
-| **Task Breakdown** | `/trellis:tasks` | Decompose the plan into discrete, ordered, verifiable units of work. Produces `.specs/<feature>/tasks.md`. |
+- `/trellis:pitch`
+  Frame a problem with constraints, appetite, and solution shape. Produces `.specs/<feature>/pitch.md`.
+- `/trellis:spec`
+  Write a full functional specification defining what the system does and why. Produces `.specs/<feature>/spec.md`.
+- `/trellis:clarify`
+  Review the spec for ambiguities across six categories and resolve them in place.
+- `/trellis:compliance`
+  Evaluate the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). Produces `.specs/<feature>/compliance.md`.
+- `/trellis:plan`
+  Translate the spec into concrete architecture, technology, and code decisions. Produces `.specs/<feature>/plan.md`.
+- `/trellis:tasks`
+  Decompose the plan into discrete, ordered, verifiable units of work. Produces `.specs/<feature>/tasks.md`.
 
 ### Execution
 
-| Skill | Command | Description |
-|-------|---------|-------------|
-| **Spec Pipeline** | `/trellis:pipeline` | Orchestrate the full pipeline from pitch through tasks in one session. Supports interactive and automatic modes. |
-| **Implement** | `/trellis:implement` | Turn specs, sketches, or freeform instructions into working code through iterative oracle-driven feedback loops. |
+- `/trellis:pipeline`
+  Orchestrate the full pipeline from pitch through tasks in one session. Supports interactive and automatic modes.
+- `/trellis:implement`
+  Turn specs, sketches, or freeform instructions into working code through iterative oracle-driven feedback loops.
 
 ## Typical workflow
 
