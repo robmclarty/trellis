@@ -31,14 +31,14 @@ verifies alignment with intent.
 
 Read `references/oracle-pipeline.md` before starting any implementation. It
 contains the full mechanics of the feedback loop, the judge sub-agent prompt, and
-notes on integration with external tools like Ralph and Promptfoo. See
-`references/external-integrations.md` for details on what these tools are, where
-to find them, and how they integrate with the implement skill.
+notes on integration with tools like Ralph and Promptfoo. See
+`references/external-integrations.md` for details on what these tools are and
+how they integrate with the implement skill.
 
 ## Invocation
 
 ```
-/implement <input>
+/implement <input> [with <modifier>]
 ```
 
 `<input>` is one of the following (or a combination):
@@ -54,6 +54,15 @@ to find them, and how they integrate with the implement skill.
 These can be combined. For instance, a user might pass a feature folder plus an
 additional inline instruction like "start with Phase 2 tasks only" or "skip the
 MCP layer for now."
+
+### Modifiers
+
+The optional `with <modifier>` suffix activates special execution modes:
+
+- **`with ralph`** — After Phase 0 and Phase 1 complete interactively, hand off
+  Phase 2 to `scripts/ralph-loop.sh` for context-fresh iterations. Each iteration
+  runs in a new Claude Code context, using `.implement-state.md` as filesystem
+  memory. Use for large implementations (10+ acceptance criteria, many files).
 
 ## Phase 0 — Input intake and configuration
 
@@ -215,30 +224,32 @@ If criteria remain, return to Step 1 for the next iteration.
 **Global iteration limit: 10.** If you hit 10 iterations without completing all
 criteria, stop and report what's done, what's remaining, and why you stalled.
 
-### Ralph mode iteration (when enabled)
+### Ralph mode (when `with ralph` is active)
 
-When the user enables Ralph mode, the iteration loop changes. Instead of running
-all iterations in a single context, each iteration (or small batch) uses a fresh
-context via Ralph:
+When `with ralph` is specified in the invocation, Phase 2 is handed off to the
+bundled loop script instead of running all iterations in the current context.
 
-```bash
-# Ralph handles the context reset. The implement skill writes state to disk,
-# Ralph kills the context, restarts, and the skill resumes from .implement-state.md.
+After Phase 0 and Phase 1 are complete (`.implement-state.md` is written with
+config, pipeline, and criteria):
 
-ralph run --state .implement-state.md --command "/implement <feature-name>"
-```
+1. Inform the user that Ralph mode is handing off to the loop script.
+2. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name>` via
+   the Bash tool.
+3. The current interactive session ends here — the loop script takes over.
 
-The `.implement-state.md` file is the handoff mechanism. On each fresh context:
+The loop script runs `claude -p` with `/trellis:implement <feature-name>` in
+each iteration. On resumption (when `.implement-state.md` already exists), the
+implement skill:
 
-1. Read `.implement-state.md`
-2. Read the spec/plan/tasks from the recorded paths
-3. Check which criteria are done vs. pending
-4. Re-run the oracle pipeline to validate current state
-5. Resume from the next pending criterion
+- Detects existing state via pre-flight
+- Skips Phase 0 and Phase 1 entirely
+- Goes straight to Phase 2, picking up from the next pending criterion
+- Completes one iteration (one task or small batch), updates state, and exits
 
-Use Ralph mode for large implementations (10+ acceptance criteria, many files).
-For small implementations (2-3 criteria), the overhead of context resets isn't
-worth it.
+The `.implement-state.md` file is the handoff mechanism between iterations.
+The loop script checks completion status between iterations using
+`parse-implement-state.py` and stops when all criteria pass, max iterations
+are reached (default 10), or 3 consecutive failures occur without progress.
 
 ## Phase 3 — Judge review (final gate)
 

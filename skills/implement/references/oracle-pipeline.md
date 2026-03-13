@@ -127,23 +127,17 @@ the `.implement-state.md` file, which serves as filesystem-based memory.
 
 **How it works when enabled:**
 
-The user has the Ralph CLI installed. When Ralph mode is on, the implement
-skill structures its iterations to be Ralph-compatible:
+Ralph mode is activated via `/implement <feature> with ralph`. After Phase 0
+and Phase 1 complete interactively, the skill launches the bundled loop script
+(`scripts/ralph-loop.sh`), which manages the iteration lifecycle:
 
-1. Each iteration writes all progress to `.implement-state.md` before
-   completing
-2. Ralph can kill and restart the context at iteration boundaries
-3. On restart, the skill reads `.implement-state.md`, finds pending criteria,
+1. Each iteration runs `claude -p` with `/trellis:implement <feature-name>`
+2. The implement skill writes all progress to `.implement-state.md` before
+   completing each iteration
+3. The loop script parses `.implement-state.md` between iterations to check
+   completion
+4. On restart, the skill reads `.implement-state.md`, finds pending criteria,
    and resumes
-
-The ralph CLI invocation looks like:
-
-```bash
-ralph run --state .implement-state.md --command "/implement <input>"
-```
-
-Ralph's termination check: parse `.implement-state.md` and check if all
-acceptance criteria are marked `[x]`.
 
 **When to use it:** Large implementations with 10+ acceptance criteria or work
 spanning many files. For small implementations (2-3 criteria), skip it.
@@ -213,8 +207,9 @@ What Open Spec gives you:
   section has explicit pass/fail conditions. Phase 0 can extract these more
   reliably than from prose.
 - **Explicit scope boundaries.** Prevents the "guess at scope" problem.
-- **Composability with Ralph.** Open Spec + Ralph is designed as a pair: the
+- **Composability with Ralph.** Open Spec + Ralph work well as a pair: the
   spec provides the "what" and Ralph provides the iteration resilience.
+  Use `/implement <feature> with ralph` to activate.
 
 ---
 

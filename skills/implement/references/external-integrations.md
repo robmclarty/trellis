@@ -1,26 +1,30 @@
 # External Integrations
 
-The implement skill can optionally integrate with external tools. These are
-**not bundled with Trellis** — they are separate tools the user installs
-independently. The implement skill detects their availability through the
-Phase 0 configuration questions.
+The implement skill can optionally integrate with external tools. Some are
+bundled with Trellis, others are separate tools the user installs
+independently. The implement skill detects their availability through
+invocation modifiers or Phase 0 configuration questions.
 
 ## Ralph
 
-**What it is:** A CLI tool that provides context-resilient iteration for
-long-running Claude Code sessions. It kills and restarts the agent's context
-window at iteration boundaries, using a state file as the handoff mechanism.
+**What it is:** A bundled loop script (`scripts/ralph-loop.sh`) that provides
+context-fresh iteration for large implementations. Based on Geoffrey Huntley's
+Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context
+window to avoid context degradation.
 
-**Where to find it:** [github.com/anthropics/ralph](https://github.com/anthropics/ralph)
+**How to use:** `/implement <feature> with ralph`
 
-**How it integrates:** When Ralph mode is enabled in Phase 0:
-- The implement skill writes all progress to `.implement-state.md` at each
-  iteration boundary
-- Ralph manages the context lifecycle: kill → restart → resume
-- On restart, the skill reads `.implement-state.md` and resumes from the next
-  pending criterion
-
-**Invocation:** `ralph run --state .implement-state.md --command "/trellis:implement <feature-name>"`
+**How it works:** When `with ralph` is specified:
+1. Phase 0 and Phase 1 run interactively in the current session (config
+   questions, pipeline assembly, criteria extraction)
+2. After `.implement-state.md` is written, the skill launches
+   `scripts/ralph-loop.sh <feature-name>`
+3. The loop script runs `claude -p` with `/trellis:implement <feature-name>`
+   in each iteration
+4. Between iterations, it parses `.implement-state.md` to check completion
+5. Each iteration resumes from the next pending criterion via the state file
+6. The loop stops when: all criteria pass, max iterations reached (default 10),
+   or 3 consecutive failures occur without progress
 
 **When to use:** Large implementations (10+ acceptance criteria, many files)
 where context degradation is a concern. Skip for small implementations (2-3

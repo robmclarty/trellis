@@ -27,9 +27,9 @@ specific language, framework, linter, or type checker. Ask the following:
 5. **Package manager?** `pnpm`, `npm`, `yarn`, `bun`, `cargo`, `pip`, `go mod`,
    etc. Needed for install commands and script invocation.
 
-6. **Enable Ralph mode?** If yes, assume `ralph` CLI commands are available.
-   Implementation iterations use Ralph for context-fresh loops. See the
-   Ralph section in `references/oracle-pipeline.md`.
+6. **Ralph mode** — Auto-detected from the `with ralph` invocation modifier.
+   Do not ask this as a question. If `with ralph` was passed, set
+   `Ralph mode: on` in `.implement-state.md`. Otherwise, set it to `off`.
 
 7. **Enable Promptfoo?** If yes, generate Promptfoo eval configs alongside the
    judge for repeatable evaluations. See the Promptfoo section in
