@@ -10,9 +10,10 @@ if [ -f "trellis.json" ]; then
 fi
 SPECS_DIR="${SPECS_DIR:-.specs}"
 
-FILE=$(jq -r '.tool_input.file_path // empty')
+INPUT=$(cat)
+FILE=$(printf '%s' "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))" 2>/dev/null)
 
-# Exit if jq failed or no file path
+# Exit if parsing failed or no file path
 if [ -z "$FILE" ]; then
   exit 0
 fi

@@ -3,7 +3,8 @@
 # Warns if acceptance criteria are incomplete. Exit 0 (warn only).
 # Receives tool input as JSON on stdin.
 
-COMMAND=$(jq -r '.tool_input.command // empty')
+INPUT=$(cat)
+COMMAND=$(printf '%s' "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null)
 
 # Only check git commit commands
 if [[ "$COMMAND" != *"git commit"* ]]; then
