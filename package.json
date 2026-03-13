@@ -24,8 +24,8 @@
     "lint:py": "ruff check scripts/ hooks/ tests/",
     "lint:py:fix": "ruff check --fix scripts/ hooks/ tests/",
     "lint:sh": "shellcheck scripts/*.sh tests/*.sh",
-    "plugincheck": "agnix --target claude-code .",
-    "plugincheck:fix": "agnix --target claude-code --fix ."
+    "plugincheck": "agnix .",
+    "plugincheck:fix": "agnix --fix ."
   },
   "engines": {
     "node": ">=20"
