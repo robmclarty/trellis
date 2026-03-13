@@ -97,13 +97,23 @@ The `implement` skill can optionally integrate with external tools:
 
 ### Ralph
 
-[Ralph](https://github.com/anthropics/ralph) is a CLI tool that provides context-resilient iteration for long-running Claude Code sessions. It works by killing and restarting the agent's context window at iteration boundaries, using `.claude/.implement-state.md` as the handoff mechanism.
+A bundled loop script (`scripts/ralph-loop.sh`) that provides context-fresh iteration for large implementations. Based on Geoffrey Huntley's Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context window, using `.claude/.implement-state.md` as filesystem memory between iterations.
 
 **When to use:** Large implementations with 10+ acceptance criteria or many files where context degradation becomes a concern.
 
-**Install:** Follow the instructions at the Ralph repository. The `ralph` CLI must be available on your PATH.
+**Invocation:** `/trellis:implement <feature-name> with ralph`
 
-**Invocation:** `ralph run --state .claude/.implement-state.md --command "/trellis:implement <feature-name>"`
+Phase 0 and Phase 1 run interactively (config questions, pipeline assembly), then the loop script takes over. Each iteration runs with scoped permissions — only the specific toolchain commands configured during setup are allowed. The loop stops when all criteria pass, max iterations are reached (default 10), or 3 consecutive failures occur.
+
+### Ralphd (Docker-sandboxed Ralph)
+
+A variant of Ralph that runs each iteration inside a Docker container with `--dangerously-skip-permissions`. Docker is the security boundary — no scoped permission allowlists needed.
+
+**When to use:** Same scenarios as Ralph, plus when scoped permissions are too restrictive or when you want full command access inside a sandboxed environment.
+
+**Requirements:** `docker` installed and running. Supports both API key (`ANTHROPIC_API_KEY` env var) and OAuth/subscription auth (one-time `scripts/ralphd-loop.sh --login`).
+
+**Invocation:** `/trellis:implement <feature-name> with ralphd`
 
 ### Promptfoo
 
