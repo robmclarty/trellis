@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Executes implementation from spec-driven artifacts or freeform instructions through iterative oracle-driven feedback loops until all acceptance criteria are met.
+description: Use when user wants to Executes implementation from spec-driven artifacts or freeform instructions through iterative oracle-driven feedback loops until all acceptance criteria are met.
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: plan-writer
 description: Generates technical implementation plans from specs and guidelines
-model: claude-sonnet-4-20250514
+model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 

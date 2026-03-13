@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Creates a technical plan at .specs/<feature>/plan.md translating a spec's functional requirements into architecture, technology, and code decisions.
+description: Creates a technical plan at .specs//plan.md translating a spec's functional requirements into architecture, technology, and code decisions.
 allowed-tools: Read, Glob, Grep, Agent
 ---
 

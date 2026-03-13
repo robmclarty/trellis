@@ -1,7 +1,7 @@
 ---
 name: guidelines-writer
 description: Generates project guidelines documents from user interview
-model: claude-sonnet-4-20250514
+model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: Test Writer
 description: Writes targeted tests for tricky logic from specification criteria before implementation exists.
-model: claude-sonnet-4-20250514
+model: sonnet
 allowed-tools: Read, Write, Glob, Grep
 ---
 

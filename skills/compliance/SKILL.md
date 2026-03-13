@@ -1,7 +1,8 @@
 ---
 name: compliance
-description: Creates a regulatory and privacy review at .specs/<feature>/compliance.md by evaluating the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2).
+description: Creates a regulatory and privacy review at .specs//compliance.md by evaluating the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2).
 context: fork
+agent: general-purpose
 ---
 
 # Compliance

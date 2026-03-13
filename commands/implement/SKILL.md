@@ -1,7 +1,7 @@
 ---
 name: implement
-description: Pre-flight context for implement skill
-allowed-tools: Bash, Read
+description: Use when user wants to Pre-flight context for implement skill
+allowed-tools: Bash(git:*), Read
 user-invocable: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: test
-description: Run the project test suite
+description: Use when user wants to Run the project test suite
 disable-model-invocation: true
 allowed-tools: Bash(npm test *), Bash(npm run test *), Bash(python3 tests/*)
 ---

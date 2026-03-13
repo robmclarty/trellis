@@ -1,7 +1,7 @@
 ---
 name: pitch-writer
 description: Generates pitch documents from user-provided context
-model: claude-sonnet-4-20250514
+model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 

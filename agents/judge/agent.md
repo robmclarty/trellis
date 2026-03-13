@@ -1,7 +1,7 @@
 ---
 name: Judge
 description: Reviews implementation against specifications for intent alignment and acceptance criteria compliance.
-model: claude-sonnet-4-20250514
+model: sonnet
 allowed-tools: Read, Glob, Grep
 ---
 

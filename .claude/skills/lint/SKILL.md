@@ -1,6 +1,6 @@
 ---
 name: lint
-description: Run all project linters (JSON, Markdown, Python, shell)
+description: Use when user wants to Run all project linters (JSON, Markdown, Python, shell)
 disable-model-invocation: true
 allowed-tools: Bash(npm run lint*), Bash(npm run plugincheck*)
 ---

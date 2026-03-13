@@ -1,7 +1,7 @@
 ---
 name: task-writer
 description: Generates task breakdowns from plans and specs
-model: claude-sonnet-4-20250514
+model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 

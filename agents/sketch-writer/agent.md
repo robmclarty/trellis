@@ -1,7 +1,7 @@
 ---
 name: sketch-writer
 description: Generates experiment/sketch documents from user hypotheses
-model: claude-sonnet-4-20250514
+model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 

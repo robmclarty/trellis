@@ -1,6 +1,6 @@
 ---
 name: version
-description: Bump the project version (major, minor, or patch) across all manifest files
+description: Use when user wants to Bump the project version (major, minor, or patch) across all manifest files
 allowed-tools: Read, Edit
 ---
 
