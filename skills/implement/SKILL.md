@@ -67,6 +67,12 @@ The optional `with <modifier>` suffix activates special execution modes:
   Phase 2 to `scripts/ralph-loop.sh` for context-fresh iterations. Each iteration
   runs in a new Claude Code context, using `.claude/.implement-state.md` as filesystem
   memory. Use for large implementations (10+ acceptance criteria, many files).
+- **`with ralphd`** — Same as `with ralph`, but each iteration runs inside a
+  Docker container with `--dangerously-skip-permissions`. Docker is the security
+  boundary — no scoped permissions needed. Requires `docker` on the host.
+  Supports both API key (`ANTHROPIC_API_KEY`) and OAuth/subscription auth
+  (one-time `ralphd-loop.sh --login`). The image is built automatically on
+  first run.
 
 ## Phase 0 — Input intake and configuration
 
@@ -258,6 +264,45 @@ The `.claude/.implement-state.md` file is the handoff mechanism between iteratio
 The loop script checks completion status between iterations using
 `parse-implement-state.py` and stops when all criteria pass, max iterations
 are reached (default 10), or 3 consecutive failures occur without progress.
+
+### Ralphd mode (when `with ralphd` is active)
+
+Same flow as Ralph mode, but each `claude -p` iteration runs inside a Docker
+container instead of directly on the host. This replaces the scoped-permissions
+model with Docker-level isolation — `--dangerously-skip-permissions` is safe
+because the container's filesystem access is limited to the bind-mounted project
+directory.
+
+After Phase 0 and Phase 1 are complete:
+
+1. **Pre-launch auth check.** Run
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --check-auth` via the Bash
+   tool. If it exits non-zero, auth is missing — run
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --login` to trigger the
+   interactive OAuth flow (the user completes it in their browser). This only
+   happens once; subsequent runs reuse the stored session.
+2. Inform the user that Ralphd mode is handing off to the Docker loop script.
+3. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh <feature-name>` via
+   the Bash tool.
+4. The current interactive session ends here — the loop script takes over.
+
+The loop script builds the `trellis-ralphd` Docker image on first run (from
+`scripts/Dockerfile.ralphd`), then for each iteration:
+- Runs pre-flight scripts on the host (same as Ralph)
+- Launches `docker run --rm -v $(pwd):/workspace` with a named auth volume
+  (`trellis-ralphd-auth`) mounted at `/home/claude/.claude`
+- Claude runs with `--dangerously-skip-permissions` inside the container
+- No `.claude/settings.local.json` is generated (Docker is the sandbox)
+
+**Authentication:** Supports two modes:
+- **API key:** Export `ANTHROPIC_API_KEY` — passed into the container as an env var
+- **OAuth/subscription:** Run `ralphd-loop.sh --login` once to authenticate
+  interactively. The OAuth session is stored in the `trellis-ralphd-auth` Docker
+  volume and reused across all subsequent iterations.
+
+Resumption behavior is identical to Ralph mode — the implement skill reads
+`.claude/.implement-preflight.json`, skips Phases 0-1, and picks up from the
+next pending criterion.
 
 ## Phase 3 — Judge review (final gate)
 

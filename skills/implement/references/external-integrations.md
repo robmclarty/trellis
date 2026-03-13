@@ -45,6 +45,61 @@ and the user can add it to the config.
 where context degradation is a concern. Skip for small implementations (2-3
 criteria).
 
+## Ralphd (Docker-sandboxed Ralph)
+
+**What it is:** A variant of Ralph that runs each iteration inside a Docker
+container with `--dangerously-skip-permissions`. Uses Docker as the security
+boundary instead of scoped permission allowlists.
+
+**How to use:** `/implement <feature> with ralphd`
+
+**How it works:** When `with ralphd` is specified:
+1. Phase 0 and Phase 1 run interactively (same as Ralph)
+2. After `.claude/.implement-state.md` is written, the skill launches
+   `scripts/ralphd-loop.sh <feature-name>`
+3. On first run, the script builds the `trellis-ralphd` Docker image from
+   `scripts/Dockerfile.ralphd` (Node.js 22 + Claude Code + git + python3)
+4. Before each iteration, pre-flight scripts run on the host (same as Ralph)
+5. Each iteration runs `docker run --rm -i` with the project directory
+   bind-mounted and a named auth volume (`trellis-ralphd-auth`) providing
+   credentials at `/home/claude/.claude`
+6. `claude -p --dangerously-skip-permissions` runs inside the container
+7. Between iterations, state is parsed on the host (same as Ralph)
+8. Same termination conditions as Ralph
+
+**Authentication:** Two modes, auto-detected:
+- **API key:** If `ANTHROPIC_API_KEY` is set, it's passed into the container.
+  No extra setup needed.
+- **OAuth/subscription:** Run `ralphd-loop.sh --login` once. This opens an
+  interactive container where you complete the OAuth flow in your browser. The
+  session is stored in the `trellis-ralphd-auth` Docker volume and reused by
+  all subsequent iterations — no re-login needed unless the token expires.
+
+**Security model:** Docker container isolation replaces the scoped-permissions
+model. The container can only access the bind-mounted project directory and
+the auth volume — no host filesystem, no host processes.
+`--dangerously-skip-permissions` is safe because the blast radius is the
+container. No `.claude/settings.local.json` is generated.
+
+**Requirements:**
+- `docker` installed and daemon running
+- One of: `ANTHROPIC_API_KEY` env var, or `ralphd-loop.sh --login` completed
+- Sufficient disk space for the Docker image (~500MB)
+
+**When to use:** Same scenarios as Ralph, plus:
+- When scoped permissions are too restrictive (e.g., the implementation needs
+  commands that are hard to predict in advance)
+- When you want full `--dangerously-skip-permissions` behavior without
+  exposing the host filesystem
+- CI/CD environments where Docker is available and host isolation is preferred
+
+**Trade-offs vs. Ralph:**
+- **Pros:** No permission allowlist to maintain, Claude can run any command it
+  needs, simpler security model
+- **Cons:** Docker overhead per iteration (~2-5s startup), requires Docker
+  installed, image build on first run, container filesystem is ephemeral
+  (only the bind-mount persists)
+
 ## Promptfoo
 
 **What it is:** An eval framework for LLM outputs that supports assertions,
