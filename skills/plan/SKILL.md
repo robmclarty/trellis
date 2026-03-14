@@ -8,7 +8,7 @@ allowed-tools: Read, Glob, Grep, Task
 
 ## When to use
 
-- "write a plan", "plan the implementation", "how should we build this"
+- "plan the implementation", "how should we build this"
 - "create a technical plan", "architect this"
 - Any request to translate a spec into actionable technical decisions
 - Making technology decisions, defining file structure, or creating an implementation strategy

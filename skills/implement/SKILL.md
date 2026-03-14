@@ -6,7 +6,7 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Task
 
 ## When to use
 
-- "implement this", "build this", "/implement"
+- "implement this", "build this"
 - Passing a feature folder, sketch name, or inline instructions expecting working code
 - After completing the spec pipeline and wanting to move from planning to execution
 - Supports Ralph mode, Open Spec format, and Promptfoo for repeatable evaluations
