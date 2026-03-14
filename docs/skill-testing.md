@@ -18,8 +18,8 @@ structural properties without checking exact wording.
 
 [Promptfoo](https://www.promptfoo.dev/) is a dedicated LLM evaluation
 framework. Trellis includes a promptfoo config at `tests/promptfoo.yaml`
-with 7 test cases covering all 6 skills plus a cross-skill artifact
-consistency check.
+with 18 test cases covering structural validation, adversarial judgment
+probes, and negative assertions across all testable skills.
 
 **Requirements:**
 
@@ -64,7 +64,7 @@ Code subscription auth — no API key needed.
 **Run:**
 
 ```bash
-# Run all 7 skill tests
+# Run all skill tests (structural + adversarial + negative)
 TRELLIS_LLM_TESTS=1 python3 tests/test-skills.py
 
 # Via npm (env var is set automatically)
@@ -144,9 +144,16 @@ may time out rather than hang indefinitely. The budget cap of $0.05 per test
 prevents runaway costs — actual cost per test is typically $0.005-$0.015
 on Sonnet.
 
-## Test cases
+## Test categories
 
-All 8 test cases mirror the promptfoo config in `tests/promptfoo.yaml`:
+Tests are organized into four categories, each testing a different
+dimension of skill quality.
+
+### Structural tests (`TestSkillOutput`)
+
+Validate that skills produce output with the correct sections, headings,
+and keywords. These are the baseline — if a skill doesn't produce the
+right structure, nothing else matters.
 
 | Test | Skill | What it checks |
 |------|-------|----------------|
@@ -159,16 +166,67 @@ All 8 test cases mirror the promptfoo config in `tests/promptfoo.yaml`:
 | `test_compliance_sections` | compliance | All 6 required sections + GDPR, FIPPA keywords |
 | `test_cross_skill_spec_refs_pitch` | spec | Pitch referenced in §1, no-gos preserved in §9 |
 
+### Adversarial tests (`TestAdversarialSkillOutput`)
+
+Probe LLM judgment quality with tricky inputs that expose common failure
+modes — solution-as-problem framing, contradictory constraints, vague
+criteria, and disproven hypotheses.
+
+| Test | Skill | What it checks |
+|------|-------|----------------|
+| `test_pitch_reframes_solution_as_problem` | pitch | Problem section describes user pain, not "add Redis" |
+| `test_spec_flags_contradictory_constraints` | spec | Output flags tension between 3-week appetite and 10M users |
+| `test_compliance_minimal_for_no_pii` | compliance | Recognizes no regulations apply to a static site with no PII |
+| `test_tasks_concretizes_vague_criteria` | tasks | Verify blocks contain measurable language, not "should be fast" |
+| `test_sketch_rejects_bad_hypothesis` | sketch | Verdict rejects SQLite at 10K writes/sec given 50/sec findings |
+
+### Negative assertions (`TestNegativeAssertions`)
+
+Assert that skills do NOT produce inappropriate content — hallucinated
+technologies, code blocks in prose documents, functional requirements
+in constraints sections, or feature-specific content in guidelines.
+
+| Test | Skill | What it checks |
+|------|-------|----------------|
+| `test_pitch_no_code_blocks` | pitch | No triple-backtick code blocks |
+| `test_spec_constraints_no_functional_requirements` | spec | §9 has no "endpoint", "shall return", etc. |
+| `test_plan_no_unlisted_technologies` | plan | No MongoDB/MySQL/DynamoDB/SQLite when PostgreSQL specified |
+| `test_compliance_no_gdpr_applies_for_no_pii` | compliance | No "GDPR applies" for a project with zero PII |
+| `test_guidelines_no_feature_specific_content` | guidelines | No "invitation"/"onboarding" when none were in input |
+
+### E2E implement smoke test (`TestImplementE2E`)
+
+End-to-end test that verifies the implement skill can create code from
+spec artifacts. Uses a minimal Node.js project (an `add` function) with
+a pre-filled state file to skip Phase 0/1 and go directly to Phase 2.
+
+| Test | Skill | What it checks |
+|------|-------|----------------|
+| `test_implement_creates_code_and_updates_state` | implement | Creates src/add.js, updates state file, tests pass |
+
+**Triple-gated:** requires `claude` on PATH + `TRELLIS_LLM_TESTS=1` +
+`TRELLIS_E2E_TESTS=1`. Run with:
+
+```bash
+npm run test:e2e
+# or
+TRELLIS_LLM_TESTS=1 TRELLIS_E2E_TESTS=1 python3 -m unittest \
+  tests.test-skills.TestImplementE2E
+```
+
+This test uses `--dangerously-skip-permissions` and a $2.00 budget cap.
+It runs in a temporary directory and cleans up after itself.
+
 ### Skills not covered
 
-Three skills are not testable with the pipe pattern:
+Two skills are not testable with the pipe pattern:
 
 - **clarify** — modifies spec.md in place rather than producing a new document
-- **implement** — multi-phase orchestration that spawns agents and writes code
 - **pipeline** — orchestrates sub-skills without invoking the model directly
 
-All three require filesystem access and tool use that `claude -p` without
-tools cannot provide.
+Both require filesystem access and tool use that `claude -p` without
+tools cannot provide. The implement skill is covered by the E2E smoke
+test above.
 
 ## Adding a new test case
 
@@ -210,6 +268,9 @@ Write the output now. Do not ask questions.""")
 |---------------------|-------------------|
 | `type: icontains` | `assert_icontains(self, output, value)` |
 | `type: contains` | `self.assertIn(value, output)` |
+| `type: not-icontains` | `assert_not_icontains(self, output, value)` |
+| `type: not-contains` | `self.assertNotIn(value, output)` |
+| `type: javascript` | `assert_any_icontains(self, output, values)` or custom logic |
 
 ## Non-determinism
 
