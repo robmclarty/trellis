@@ -12,24 +12,30 @@ context-fresh iteration for large implementations. Based on Geoffrey Huntley's
 Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context
 window to avoid context degradation.
 
-**How to use:** `/implement <feature> with ralph`
+**How to use:** `/implement <feature> with ralph [--stream|--tail]`
+
+**Output modes:**
+
+- *(default)* — Silent. Output goes to log files only. Between-iteration status (criteria counts) is shown.
+- `--stream` — Full Claude output visible in real-time via `tee`, also logged.
+- `--tail` — Silent during iteration, shows last 50 lines of log after each iteration completes.
 
 **How it works:** When `with ralph` is specified:
 
 1. Phase 0 and Phase 1 run interactively in the current session (config
    questions, pipeline assembly, criteria extraction)
-2. After `{specsDir}/.state/implement-state.md` is written, the skill launches
+2. After `{specsDir}/{feature}/implement-state.md` is written, the skill launches
    `scripts/ralph-loop.sh <feature-name>`
 3. Before each iteration, the loop script runs pre-flight scripts
    (`validate-prereqs.py`, `parse-implement-state.py`, `extract-criteria.py`)
-   and writes results to `{specsDir}/.state/implement-preflight.json` so Claude doesn't need
+   and writes results to `{specsDir}/{feature}/implement-preflight.json` so Claude doesn't need
    python3 access
 4. The loop script generates `.claude/settings.local.json` with scoped
    permissions derived from the oracle pipeline config — only the user's
    specific toolchain commands, file tools, and git reads are allowed
 5. Each iteration runs `claude -p` (without `--dangerously-skip-permissions`)
    with `/trellis:implement <feature-name>`
-6. Between iterations, it parses `{specsDir}/.state/implement-state.md` to check completion
+6. Between iterations, it parses `{specsDir}/{feature}/implement-state.md` to check completion
 7. Each iteration resumes from the next pending criterion via the state file
 8. The loop stops when: all criteria pass, max iterations reached (default 10),
    or 3 consecutive failures occur without progress
@@ -52,12 +58,14 @@ criteria).
 container with `--dangerously-skip-permissions`. Uses Docker as the security
 boundary instead of scoped permission allowlists.
 
-**How to use:** `/implement <feature> with ralphd`
+**How to use:** `/implement <feature> with ralphd [--stream|--tail]`
+
+**Output modes:** Same as Ralph — `--stream` and `--tail` flags are supported.
 
 **How it works:** When `with ralphd` is specified:
 
 1. Phase 0 and Phase 1 run interactively (same as Ralph)
-2. After `{specsDir}/.state/implement-state.md` is written, the skill launches
+2. After `{specsDir}/{feature}/implement-state.md` is written, the skill launches
    `scripts/ralphd-loop.sh <feature-name>`
 3. On first run, the script builds the `trellis-ralphd` Docker image from
    `scripts/Dockerfile.ralphd` (Node.js 22 + Claude Code + git + python3)

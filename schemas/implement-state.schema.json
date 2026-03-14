@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trellis.dev/schemas/implement-state.schema.json",
+  "title": "Trellis Implement State",
+  "description": "JSON interchange format for the parsed output of implement-state.md. Produced by scripts/parse-implement-state.py.",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "description": "Input source metadata.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["feature-folder", "sketch", "inline", "hybrid"],
+          "description": "How the implementation was invoked."
+        },
+        "feature": {
+          "type": ["string", "null"],
+          "description": "Feature folder name, or null if N/A."
+        },
+        "sketches": {
+          "type": ["string", "null"],
+          "description": "Comma-separated sketch slugs, or null if N/A."
+        },
+        "paths": {
+          "type": ["string", "null"],
+          "description": "Comma-separated artifact paths loaded."
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "description": "Git branch tracking.",
+      "properties": {
+        "original": {
+          "type": "string",
+          "description": "Branch before implementation started."
+        },
+        "working": {
+          "type": "string",
+          "description": "Current working branch."
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "User-provided toolchain configuration. Keys are lowercase with underscores. Boolean values for on/off toggles, strings for commands.",
+      "properties": {
+        "package_manager": { "type": "string" },
+        "type-check": { "type": ["string", "boolean"] },
+        "lint": { "type": ["string", "boolean"] },
+        "build": { "type": ["string", "boolean"] },
+        "test": { "type": ["string", "boolean"] },
+        "ralph_mode": { "type": ["string", "boolean"] },
+        "promptfoo": { "type": ["string", "boolean"] }
+      },
+      "additionalProperties": true
+    },
+    "pipeline": {
+      "type": "array",
+      "description": "Oracle pipeline stages in execution order.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Stage name (e.g., typecheck, lint, build, test, judge)."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this stage is active."
+          },
+          "command": {
+            "type": ["string", "null"],
+            "description": "Shell command to execute, or null for sub-agent stages."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["enabled", "pending"],
+            "description": "Whether the checkbox is checked."
+          }
+        },
+        "required": ["name", "enabled", "status"]
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "description": "Acceptance criteria with completion status.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Criterion identifier (e.g., AC-1, AC-2)."
+          },
+          "taskRef": {
+            "type": ["string", "null"],
+            "description": "Reference to the task (e.g., task 1.1), or null."
+          },
+          "summary": {
+            "type": "string",
+            "description": "One-line description of the criterion."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["done", "pending"],
+            "description": "Completion status."
+          },
+          "iteration": {
+            "type": ["integer", "null"],
+            "description": "Which iteration completed this criterion, or null if pending."
+          }
+        },
+        "required": ["id", "summary", "status"]
+      }
+    },
+    "pendingCount": {
+      "type": "integer",
+      "description": "Number of criteria with status 'pending'."
+    },
+    "doneCount": {
+      "type": "integer",
+      "description": "Number of criteria with status 'done'."
+    },
+    "nextPendingId": {
+      "type": ["string", "null"],
+      "description": "ID of the next pending criterion, or null if all done."
+    },
+    "iteration": {
+      "type": "integer",
+      "description": "Number of completed iterations (count of '### Iteration N' headers)."
+    }
+  },
+  "required": ["config", "pipeline", "criteria", "pendingCount", "doneCount", "iteration"]
+}

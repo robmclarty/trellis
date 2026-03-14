@@ -1,4 +1,4 @@
-# The `{specsDir}/.state/implement-state.md` file
+# The `{specsDir}/{feature}/implement-state.md` file
 
 This is the canonical record of the implementation session. It serves as
 persistent memory across context resets.
@@ -55,3 +55,20 @@ persistent memory across context resets.
 - Result: pass, both tasks completed
 - Oracle output: typecheck clean, lint had 2 auto-fixed issues, build clean
 ```
+
+## JSON interchange format
+
+Third-party tools can consume the state file as structured JSON by running:
+
+```bash
+python3 scripts/parse-implement-state.py {specsDir}/{feature}/implement-state.md
+```
+
+The output conforms to `schemas/implement-state.schema.json`. Key fields:
+
+- `criteria[]` — Array of `{ id, taskRef, summary, status, iteration }`
+- `pendingCount` / `doneCount` — Quick completion check
+- `nextPendingId` — The next criterion to work on
+- `pipeline[]` — Oracle stages with commands and enabled state
+- `config` — User-provided toolchain configuration
+- `iteration` — Number of completed iterations

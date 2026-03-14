@@ -22,23 +22,29 @@ iterative oracle-driven feedback loops. The input artifacts are the source of tr
 
 **Do this FIRST, before any pre-flight scripts or file reads.**
 
-Parse the user's invocation for the `with <modifier>` suffix:
+Parse the user's invocation for the `with <modifier>` suffix and optional flags:
 
 - **`with ralph`** → Set `ralphMode = "ralph"`. Ralph is a **bundled loop script** for context-fresh iteration. It is NOT a person, collaborator, or external tool. See `references/external-integrations.md` for details.
 - **`with ralphd`** → Set `ralphMode = "ralphd"`. Docker-sandboxed variant of Ralph. Same concept, different execution model.
 - **No modifier** → Set `ralphMode = "off"`. All phases run in the current session.
 
+Also parse optional output mode flags (only meaningful when `ralphMode` is not `"off"`):
+
+- **`--stream`** → Set `ralphOutputFlag = "--stream"`. Full Claude output visible in real-time during each iteration.
+- **`--tail`** → Set `ralphOutputFlag = "--tail"`. Show last 50 lines of each iteration's log after it completes.
+- **Neither** → Set `ralphOutputFlag = ""`. Silent mode (default) — output goes to log files only.
+
 **IMPORTANT:** If the user wrote `with ralph` or `with ralphd`, you MUST recognize it as an execution mode modifier. Never ask "what is ralph?" or treat it as an unknown term.
 
 ## Pre-flight
 
-**If `{specsDir}/.state/implement-preflight.json` exists** (Ralph resumption — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context. Also skip Phase 0 and Phase 1 — go directly to Phase 2.
+**If `{specsDir}/{feature}/implement-preflight.json` exists** (Ralph resumption — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context. Also skip Phase 0 and Phase 1 — go directly to Phase 2.
 
 **Otherwise** (fresh start or interactive mode), run these scripts:
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
-If `{specsDir}/.state/implement-state.md` exists, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/parse-implement-state.py` to get structured state data for resumption.
+If `{specsDir}/{feature}/implement-state.md` exists, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/parse-implement-state.py` to get structured state data for resumption.
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract-criteria.py <specs-dir>/<feature-name>/tasks.md <specs-dir>/<feature-name>/spec.md` to get structured acceptance criteria.
 
@@ -77,7 +83,7 @@ The optional `with <modifier>` suffix activates special execution modes:
 
 - **`with ralph`** — After Phase 0 and Phase 1 complete interactively, hand off
   Phase 2 to `scripts/ralph-loop.sh` for context-fresh iterations. Each iteration
-  runs in a new Claude Code context, using `{specsDir}/.state/implement-state.md` as filesystem
+  runs in a new Claude Code context, using `{specsDir}/{feature}/implement-state.md` as filesystem
   memory. Use for large implementations (10+ acceptance criteria, many files).
 - **`with ralphd`** — Same as `with ralph`, but each iteration runs inside a
   Docker container with `--dangerously-skip-permissions`. Docker is the security
@@ -129,9 +135,9 @@ Read `references/phase-zero-analysis.md` for the detailed process of building th
 
 ## Phase 1 — Oracle pipeline assembly
 
-**MANDATORY — DO NOT SKIP.** Phase 2 cannot start without a configured pipeline written to `{specsDir}/.state/implement-state.md`. You MUST assemble the pipeline and write the state file before proceeding. Do NOT write any implementation code until this file exists.
+**MANDATORY — DO NOT SKIP.** Phase 2 cannot start without a configured pipeline written to `{specsDir}/{feature}/implement-state.md`. You MUST assemble the pipeline and write the state file before proceeding. Do NOT write any implementation code until this file exists.
 
-**Gate check:** If `{specsDir}/.state/implement-state.md` does not exist after this phase, you have a bug. Stop and fix it.
+**Gate check:** If `{specsDir}/{feature}/implement-state.md` does not exist after this phase, you have a bug. Stop and fix it.
 
 Build the oracle pipeline from the user's configuration answers. The pipeline is
 an ordered list of check stages, cheapest/fastest first:
@@ -146,7 +152,7 @@ an ordered list of check stages, cheapest/fastest first:
 | 6. Custom checks | Spec-specific validation | Any command | Spec defines checks |
 | 7. Judge | Intent alignment | Sub-agent review | Always the final gate |
 
-Write the assembled pipeline to `{specsDir}/.state/implement-state.md`.
+Write the assembled pipeline to `{specsDir}/{feature}/implement-state.md`.
 
 The pipeline is not fixed. If the user's project needs stages not listed here
 (e.g., a migration check, an MCP manifest validation, a Docker build), add them.
@@ -154,26 +160,26 @@ The user's tooling answers are the authority.
 
 ## Ralph/Ralphd handoff gate (between Phase 1 and Phase 2)
 
-**Check this IMMEDIATELY after writing `{specsDir}/.state/implement-state.md` in Phase 1.**
+**Check this IMMEDIATELY after writing `{specsDir}/{feature}/implement-state.md` in Phase 1.**
 
 If `ralphMode` (from Step 0) is `"ralph"`:
 
 1. Inform the user that Ralph mode is handing off to the loop script.
-2. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name>` via the Bash tool.
+2. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name> 10 ${ralphOutputFlag}` via the Bash tool. (If `ralphOutputFlag` is empty, omit it — the script defaults to silent mode.)
 3. **STOP HERE.** The current interactive session ends. The loop script takes over. Do NOT proceed to Phase 2 in this session.
 
 If `ralphMode` is `"ralphd"`:
 
 1. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --check-auth` via Bash. If it exits non-zero, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --login` so the user can complete OAuth.
 2. Inform the user that Ralphd mode is handing off to the Docker loop script.
-3. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh <feature-name>` via the Bash tool.
+3. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh <feature-name> 10 ${ralphOutputFlag}` via the Bash tool. (If `ralphOutputFlag` is empty, omit it.)
 4. **STOP HERE.** The current interactive session ends.
 
 If `ralphMode` is `"off"`: Proceed to Phase 2 below.
 
 ## Phase 2 — Implement and iterate
 
-**Entry guard:** Before entering the iteration loop, verify that `{specsDir}/.state/implement-state.md` exists and contains a `## Config` section and an `## Oracle Pipeline` section. If it does not, you skipped Phase 0 or Phase 1 — go back and complete them. Do not proceed without the state file.
+**Entry guard:** Before entering the iteration loop, verify that `{specsDir}/{feature}/implement-state.md` exists and contains a `## Config` section and an `## Oracle Pipeline` section. If it does not, you skipped Phase 0 or Phase 1 — go back and complete them. Do not proceed without the state file.
 
 This is the core loop. The iteration strategy depends on the input type:
 
@@ -229,7 +235,7 @@ Implement the planned change. Follow this priority for guidance:
 4. `guidelines.md` for project-wide conventions
 5. Existing code in the project for style consistency
 
-If multiple sources conflict, flag the conflict in `{specsDir}/.state/implement-state.md` and
+If multiple sources conflict, flag the conflict in `{specsDir}/{feature}/implement-state.md` and
 follow the most specific source (tasks > plan > spec > guidelines).
 
 ### Step 3: Run the oracle pipeline
@@ -264,7 +270,7 @@ pause and report to the user. Include:
 ### Step 4: Update state
 
 After the pipeline passes for this iteration's scope, update
-`{specsDir}/.state/implement-state.md`:
+`{specsDir}/{feature}/implement-state.md`:
 
 - Mark completed criteria as `done`
 - Record which iteration completed them
@@ -282,12 +288,12 @@ criteria, stop and report what's done, what's remaining, and why you stalled.
 ### Ralph/Ralphd resumption (context-fresh iterations)
 
 When this skill is invoked inside a Ralph or Ralphd loop iteration (detected by
-`{specsDir}/.state/implement-preflight.json` existing — see Pre-flight section):
+`{specsDir}/{feature}/implement-preflight.json` existing — see Pre-flight section):
 
 - Pre-flight data is already loaded from the JSON file (no python3 calls)
 - Phase 0 and Phase 1 were already completed in the original interactive session
 - Pick up from the next pending criterion in the state file
-- Complete ONE iteration (one task or small batch), update `{specsDir}/.state/implement-state.md`, and exit
+- Complete ONE iteration (one task or small batch), update `{specsDir}/{feature}/implement-state.md`, and exit
 - The loop script handles the next iteration in a fresh context
 
 The initial handoff from Phase 1 to the loop script is handled by the
@@ -302,7 +308,7 @@ Spawn a sub-agent with the judge prompt from `references/judge-agent.md`.
 The judge receives:
 
 - The original spec (full text) or sketch content
-- The acceptance criteria checklist from `{specsDir}/.state/implement-state.md`
+- The acceptance criteria checklist from `{specsDir}/{feature}/implement-state.md`
 - A summary of all files created or modified (`git diff --stat`, `find`, or
   `ls -la` on the relevant directories)
 - The key implementation decisions made
@@ -325,7 +331,7 @@ If the judge says PARTIAL or FAIL, extract the specific failures, fix them,
 re-run the oracle pipeline, and re-submit to the judge. Limit: 2 judge
 re-submissions. After that, report to the user with the judge's feedback.
 
-See `references/implement-state-format.md` for the canonical `{specsDir}/.state/implement-state.md` structure.
+See `references/implement-state-format.md` for the canonical `{specsDir}/{feature}/implement-state.md` structure.
 
 See `references/git-usage.md` for git usage rules during implementation.
 
@@ -338,7 +344,7 @@ See `references/error-recovery.md` for context reset recovery procedure.
 When implementation is complete (or when stopping due to limits), report:
 
 1. **What was built**: Files created/modified, brief summary of architecture
-2. **Criteria status**: The final checklist from `{specsDir}/.state/implement-state.md`
+2. **Criteria status**: The final checklist from `{specsDir}/{feature}/implement-state.md`
 3. **Iterations used**: How many loops it took
 4. **Decisions made**: Any unknowns you resolved and how
 5. **Branch status**: Which branch you're on, whether the user should review

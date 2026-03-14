@@ -132,7 +132,7 @@ are opt-in: the user enables them during Phase 0 configuration.
 
 The Ralph pattern addresses context rot by restarting the agent with a fresh
 context window on each iteration. The implement skill supports this through
-the `{specsDir}/.state/implement-state.md` file, which serves as filesystem-based memory.
+the `{specsDir}/{feature}/implement-state.md` file, which serves as filesystem-based memory.
 
 **How it works when enabled:**
 
@@ -141,16 +141,16 @@ and Phase 1 complete interactively, the skill launches the bundled loop script
 (`scripts/ralph-loop.sh`), which manages the iteration lifecycle:
 
 1. Before each iteration, the loop script runs pre-flight scripts and writes
-   `{specsDir}/.state/implement-preflight.json` — Claude reads this instead of running python3
+   `{specsDir}/{feature}/implement-preflight.json` — Claude reads this instead of running python3
 2. The loop script generates `.claude/settings.local.json` with scoped
    permissions derived from the oracle pipeline config
 3. Each iteration runs `claude -p` (no `--dangerously-skip-permissions`) with
    `/trellis:implement <feature-name>`
-4. The implement skill writes all progress to `{specsDir}/.state/implement-state.md` before
+4. The implement skill writes all progress to `{specsDir}/{feature}/implement-state.md` before
    completing each iteration
-5. The loop script parses `{specsDir}/.state/implement-state.md` between iterations to check
+5. The loop script parses `{specsDir}/{feature}/implement-state.md` between iterations to check
    completion
-6. On restart, the skill reads `{specsDir}/.state/implement-preflight.json`, finds pending
+6. On restart, the skill reads `{specsDir}/{feature}/implement-preflight.json`, finds pending
    criteria, and resumes
 
 **When to use it:** Large implementations with 10+ acceptance criteria or work

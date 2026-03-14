@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # ralph-loop.sh — Context-fresh iteration loop for the Trellis implement skill.
 #
-# Usage: ralph-loop.sh <feature-name> [max-iterations]
+# Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail]
 #
 # Wraps `claude -p` in a loop, restarting with a fresh context on each
-# iteration. Progress is tracked via {specsDir}/.state/implement-state.md
+# iteration. Progress is tracked via {specsDir}/{feature}/implement-state.md
 # and parsed by parse-implement-state.py between iterations.
+#
+# Output modes:
+#   (default)  Silent — output goes to log file only, status shown between iterations
+#   --stream   Full Claude output visible in real-time via tee (also logged)
+#   --tail     Silent during iteration, show last 50 lines of log after completion
 #
 # Security: Runs without --dangerously-skip-permissions. Instead, generates
 # a scoped .claude/settings.local.json that allowlists only the tools and
@@ -15,10 +20,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations]}"
+FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail]}"
 MAX_ITERATIONS="${2:-10}"
 LOG_DIR="logs/ralph-${FEATURE}"
 SETTINGS_FILE=".claude/settings.local.json"
+
+# Parse optional output mode flags
+OUTPUT_MODE="silent"
+shift 2 2>/dev/null || shift $# 2>/dev/null || true
+for arg in "$@"; do
+  case "$arg" in
+    --stream) OUTPUT_MODE="stream" ;;
+    --tail)   OUTPUT_MODE="tail" ;;
+  esac
+done
 
 # Resolve specs dir from trellis.json (default: .specs)
 SPECS_DIR=$(python3 -c "
@@ -30,8 +45,8 @@ except Exception:
     print('.specs')
 " 2>/dev/null || echo ".specs")
 
-STATE_FILE="${SPECS_DIR}/.state/implement-state.md"
-PREFLIGHT_FILE="${SPECS_DIR}/.state/implement-preflight.json"
+STATE_FILE="${SPECS_DIR}/${FEATURE}/implement-state.md"
+PREFLIGHT_FILE="${SPECS_DIR}/${FEATURE}/implement-preflight.json"
 
 # Colors
 RED='\033[0;31m'
@@ -42,7 +57,21 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 mkdir -p "$LOG_DIR"
-mkdir -p "${SPECS_DIR}/.state"
+
+# Migrate legacy state file from .state/ to feature directory
+LEGACY_STATE="${SPECS_DIR}/.state/implement-state.md"
+if [[ -f "$LEGACY_STATE" ]] && [[ ! -f "$STATE_FILE" ]]; then
+  # Check if the legacy file's Feature field matches this feature
+  if grep -q "^- Feature: ${FEATURE}$" "$LEGACY_STATE" 2>/dev/null; then
+    echo -e "${YELLOW}Migrating legacy state file to ${STATE_FILE}${RESET}"
+    mv "$LEGACY_STATE" "$STATE_FILE"
+    # Also migrate preflight if present
+    LEGACY_PREFLIGHT="${SPECS_DIR}/.state/implement-preflight.json"
+    if [[ -f "$LEGACY_PREFLIGHT" ]]; then
+      mv "$LEGACY_PREFLIGHT" "$PREFLIGHT_FILE"
+    fi
+  fi
+fi
 
 # --- Helpers ---
 
@@ -201,13 +230,31 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
   echo -e "${CYAN}Running iteration ${i}...${RESET}"
 
   # Run claude in headless mode with scoped permissions (no --dangerously-skip-permissions)
-  if echo "/trellis:implement ${FEATURE}" | claude -p > "$log_file" 2>&1; then
-    echo -e "${GREEN}Iteration ${i} completed${RESET}"
-    consecutive_failures=0
-  else
-    echo -e "${RED}Iteration ${i} exited with error${RESET}"
-    consecutive_failures=$((consecutive_failures + 1))
-  fi
+  case "$OUTPUT_MODE" in
+    stream)
+      if echo "/trellis:implement ${FEATURE}" | claude -p 2>&1 | tee "$log_file"; then
+        echo -e "${GREEN}Iteration ${i} completed${RESET}"
+        consecutive_failures=0
+      else
+        echo -e "${RED}Iteration ${i} exited with error${RESET}"
+        consecutive_failures=$((consecutive_failures + 1))
+      fi
+      ;;
+    *)
+      if echo "/trellis:implement ${FEATURE}" | claude -p > "$log_file" 2>&1; then
+        echo -e "${GREEN}Iteration ${i} completed${RESET}"
+        consecutive_failures=0
+      else
+        echo -e "${RED}Iteration ${i} exited with error${RESET}"
+        consecutive_failures=$((consecutive_failures + 1))
+      fi
+      if [[ "$OUTPUT_MODE" == "tail" ]]; then
+        echo -e "${CYAN}--- Last 50 lines of iteration ${i} ---${RESET}"
+        tail -50 "$log_file"
+        echo -e "${CYAN}--- End iteration ${i} ---${RESET}"
+      fi
+      ;;
+  esac
 
   # Check state after iteration
   if [[ ! -f "$STATE_FILE" ]]; then

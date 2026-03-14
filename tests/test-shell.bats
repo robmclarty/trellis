@@ -110,19 +110,19 @@ except:
 # --- ralph-loop.sh exit when no state file ---
 
 @test "ralph-loop.sh exits 1 when no state file exists" {
-  mkdir -p .specs/.state
+  mkdir -p .specs/test-feature
   run bash "$SCRIPT_DIR/ralph-loop.sh" test-feature
   [ "$status" -eq 1 ]
-  [[ "$output" == *"No .specs/.state/implement-state.md found"* ]]
+  [[ "$output" == *"No .specs/test-feature/implement-state.md found"* ]]
 }
 
 # --- generate_permissions creates correct structure ---
 
 @test "generate_permissions produces valid settings JSON" {
-  mkdir -p .specs/.state .claude
+  mkdir -p .specs/test-feature .claude
 
   # Create a minimal state file
-  cat > .specs/.state/implement-state.md <<'STATE'
+  cat > .specs/test-feature/implement-state.md <<'STATE'
 ## Oracle Pipeline
 - [x] build: `npm run build`
 - [x] lint: `npm run lint`
@@ -137,7 +137,7 @@ STATE
   # Instead, we directly test the generate_permissions output by calling the Python
   # snippet that it runs
   SETTINGS_FILE=".claude/settings.local.json"
-  STATE_FILE=".specs/.state/implement-state.md"
+  STATE_FILE=".specs/test-feature/implement-state.md"
   state_json=$(python3 "$SCRIPT_DIR/parse-implement-state.py" "$STATE_FILE" 2>/dev/null || echo '{}')
 
   python3 -c "
@@ -192,9 +192,9 @@ print('OK')
 # --- run_preflight writes JSON ---
 
 @test "preflight assembles valid JSON from state and prereqs" {
-  mkdir -p .specs/.state .specs/test-feature
+  mkdir -p .specs/test-feature
 
-  cat > .specs/.state/implement-state.md <<'STATE'
+  cat > .specs/test-feature/implement-state.md <<'STATE'
 ## Acceptance Criteria
 - [ ] AC-1 (task 1.1): Test criterion (pending)
 STATE
@@ -203,11 +203,11 @@ STATE
 # Guidelines
 GUIDE
 
-  PREFLIGHT_FILE=".specs/.state/implement-preflight.json"
+  PREFLIGHT_FILE=".specs/test-feature/implement-preflight.json"
   SPECS_DIR=".specs"
   FEATURE="test-feature"
 
-  state_json=$(python3 "$SCRIPT_DIR/parse-implement-state.py" "$SPECS_DIR/.state/implement-state.md" 2>/dev/null || echo '{}')
+  state_json=$(python3 "$SCRIPT_DIR/parse-implement-state.py" "$SPECS_DIR/$FEATURE/implement-state.md" 2>/dev/null || echo '{}')
   prereqs_json=$(python3 "$SCRIPT_DIR/validate-prereqs.py" implement "$FEATURE" 2>/dev/null || echo '{"valid":false,"missing":["unknown"]}')
 
   python3 -c "
@@ -262,9 +262,9 @@ print('OK')
 # --- parse-implement-state.py integration ---
 
 @test "parse-implement-state.py returns valid JSON for state file" {
-  mkdir -p .specs/.state
+  mkdir -p .specs/test-feature
 
-  cat > .specs/.state/implement-state.md <<'STATE'
+  cat > .specs/test-feature/implement-state.md <<'STATE'
 ## Config
 - Lint: `npm run lint`
 - Test: off
@@ -282,7 +282,7 @@ print('OK')
 Did setup.
 STATE
 
-  run python3 "$SCRIPT_DIR/parse-implement-state.py" .specs/.state/implement-state.md
+  run python3 "$SCRIPT_DIR/parse-implement-state.py" .specs/test-feature/implement-state.md
   [ "$status" -eq 0 ]
 
   # Validate the JSON output
@@ -304,10 +304,10 @@ print('OK')
 # --- cleanup removes preflight file ---
 
 @test "cleanup removes preflight JSON file" {
-  mkdir -p .specs/.state
-  echo '{}' > .specs/.state/implement-preflight.json
-  [ -f .specs/.state/implement-preflight.json ]
+  mkdir -p .specs/test-feature
+  echo '{}' > .specs/test-feature/implement-preflight.json
+  [ -f .specs/test-feature/implement-preflight.json ]
 
-  rm -f .specs/.state/implement-preflight.json
-  [ ! -f .specs/.state/implement-preflight.json ]
+  rm -f .specs/test-feature/implement-preflight.json
+  [ ! -f .specs/test-feature/implement-preflight.json ]
 }

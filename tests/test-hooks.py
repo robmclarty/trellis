@@ -151,9 +151,9 @@ class TestCheckImplement(unittest.TestCase):
         self.assertEqual(out, "")
 
     def test_warns_on_pending_criteria(self):
-        state_dir = os.path.join(self.tmp, ".specs", ".state")
-        os.makedirs(state_dir, exist_ok=True)
-        state = os.path.join(state_dir, "implement-state.md")
+        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
@@ -166,9 +166,9 @@ class TestCheckImplement(unittest.TestCase):
         self.assertIn("2 pending", out)
 
     def test_silent_when_all_done(self):
-        state_dir = os.path.join(self.tmp, ".specs", ".state")
-        os.makedirs(state_dir, exist_ok=True)
-        state = os.path.join(state_dir, "implement-state.md")
+        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
@@ -186,9 +186,9 @@ class TestCheckImplement(unittest.TestCase):
         self.assertEqual(out, "")
 
     def test_truncation_with_many_pending(self):
-        state_dir = os.path.join(self.tmp, ".specs", ".state")
-        os.makedirs(state_dir, exist_ok=True)
-        state = os.path.join(state_dir, "implement-state.md")
+        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             for i in range(1, 8):
@@ -203,7 +203,21 @@ class TestCheckImplement(unittest.TestCase):
     def test_custom_specs_dir(self):
         with open(os.path.join(self.tmp, "trellis.json"), "w") as f:
             json.dump({"specsDir": "design"}, f)
-        state_dir = os.path.join(self.tmp, "design", ".state")
+        feat_dir = os.path.join(self.tmp, "design", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
+        with open(state, "w") as f:
+            f.write("## Acceptance Criteria\n")
+            f.write("- [ ] AC-1 (task 1.1): Pending (pending)\n")
+        rc, out = run_hook("check-implement.py", {
+            "tool_input": {"command": "git commit -m test"}
+        }, cwd=self.tmp)
+        self.assertEqual(rc, 0)
+        self.assertIn("1 pending", out)
+
+    def test_legacy_state_path_still_detected(self):
+        """Legacy .state/ path is still picked up for backward compatibility."""
+        state_dir = os.path.join(self.tmp, ".specs", ".state")
         os.makedirs(state_dir, exist_ok=True)
         state = os.path.join(state_dir, "implement-state.md")
         with open(state, "w") as f:
@@ -306,7 +320,9 @@ class TestSyncImplement(unittest.TestCase):
         self.assertEqual(out, "")
 
     def test_reports_progress(self):
-        state = os.path.join(self.tmp, ".implement-state.md")
+        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
@@ -319,7 +335,9 @@ class TestSyncImplement(unittest.TestCase):
         self.assertIn("AC-2", out)
 
     def test_all_criteria_done(self):
-        state = os.path.join(self.tmp, ".implement-state.md")
+        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
@@ -331,7 +349,9 @@ class TestSyncImplement(unittest.TestCase):
         self.assertIn("2/2 criteria done", out)
 
     def test_empty_state_file_silent(self):
-        state = os.path.join(self.tmp, ".implement-state.md")
+        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("")
         rc, out = run_hook("sync-implement.py", {
@@ -347,14 +367,12 @@ class TestSyncImplement(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(out, "")
 
-    def test_production_path_not_matched(self):
-        # The hook checks endswith(".implement-state.md") but the production
-        # path .specs/.state/implement-state.md ends with "/implement-state.md",
-        # not ".implement-state.md". This documents current behavior — the hook
-        # only triggers for files literally named .implement-state.md.
-        state_dir = os.path.join(self.tmp, ".specs", ".state")
-        os.makedirs(state_dir, exist_ok=True)
-        state = os.path.join(state_dir, "implement-state.md")
+    def test_feature_path_matched(self):
+        # The hook now checks os.path.basename(file_path) == "implement-state.md"
+        # which correctly matches both feature-specific and legacy paths.
+        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
+        os.makedirs(feat_dir, exist_ok=True)
+        state = os.path.join(feat_dir, "implement-state.md")
         with open(state, "w") as f:
             f.write("## Acceptance Criteria\n")
             f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
@@ -363,9 +381,7 @@ class TestSyncImplement(unittest.TestCase):
             "tool_input": {"file_path": state}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
-        # Path ends with "/implement-state.md", not ".implement-state.md"
-        # so the hook silently exits — this may be a bug
-        self.assertEqual(out, "")
+        self.assertIn("1/2 criteria done", out)
 
 
 class TestSessionStart(unittest.TestCase):

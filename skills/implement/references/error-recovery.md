@@ -2,7 +2,7 @@
 
 If a context reset occurs mid-implementation:
 
-1. Read `{specsDir}/.state/implement-state.md`
+1. Read `{specsDir}/{feature}/implement-state.md`
 2. Read the artifacts from the recorded paths
 3. Check which criteria are done vs. pending
 4. Verify the working branch matches expectations

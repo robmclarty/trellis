@@ -23,7 +23,7 @@ def main():
     if not file_path:
         sys.exit(0)
 
-    if not file_path.endswith(".implement-state.md"):
+    if not os.path.basename(file_path) == "implement-state.md":
         sys.exit(0)
 
     script = os.path.join(PLUGIN_ROOT, "scripts", "parse-implement-state.py")

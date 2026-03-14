@@ -34,39 +34,50 @@ def main():
         sys.exit(0)
 
     specs_dir = resolve_specs_dir()
-    state_file = os.path.join(specs_dir, ".state", "implement-state.md")
-    if not os.path.isfile(state_file):
-        sys.exit(0)
-
     script = os.path.join(PLUGIN_ROOT, "scripts", "parse-implement-state.py")
-    result = subprocess.run(
-        [sys.executable, script, state_file],
-        capture_output=True,
-        text=True,
-    )
 
-    if result.returncode != 0:
+    # Find all implement-state.md files across feature directories
+    import glob
+
+    state_files = glob.glob(os.path.join(specs_dir, "*", "implement-state.md"))
+
+    # Also check legacy location for backward compatibility
+    legacy_state = os.path.join(specs_dir, ".state", "implement-state.md")
+    if os.path.isfile(legacy_state):
+        state_files.append(legacy_state)
+
+    if not state_files:
         sys.exit(0)
 
-    try:
-        data = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        sys.exit(0)
+    for state_file in state_files:
+        result = subprocess.run(
+            [sys.executable, script, state_file],
+            capture_output=True,
+            text=True,
+        )
 
-    pending = data.get("pendingCount", 0)
-    if pending > 0:
-        print(f"\u26a0 {state_file} has {pending} pending acceptance criteria.")
-        print("  Consider completing all criteria before committing.")
+        if result.returncode != 0:
+            continue
 
-        criteria = data.get("criteria", [])
-        pending_items = [c for c in criteria if c.get("status") == "pending"]
-        for item in pending_items[:5]:
-            summary = item.get("summary", "")
-            crit_id = item.get("id", "")
-            print(f"  - [ ] {crit_id}: {summary}")
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            continue
 
-        if pending > 5:
-            print(f"  ... and {pending - 5} more")
+        pending = data.get("pendingCount", 0)
+        if pending > 0:
+            print(f"\u26a0 {state_file} has {pending} pending acceptance criteria.")
+            print("  Consider completing all criteria before committing.")
+
+            criteria = data.get("criteria", [])
+            pending_items = [c for c in criteria if c.get("status") == "pending"]
+            for item in pending_items[:5]:
+                summary = item.get("summary", "")
+                crit_id = item.get("id", "")
+                print(f"  - [ ] {crit_id}: {summary}")
+
+            if pending > 5:
+                print(f"  ... and {pending - 5} more")
 
     sys.exit(0)
 
