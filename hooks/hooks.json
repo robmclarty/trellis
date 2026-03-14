@@ -1,11 +1,12 @@
 {
+  "_comment": "Workaround for Claude Code bug #24529: ${CLAUDE_PLUGIN_ROOT} not set. Tries $CLAUDE_PLUGIN_ROOT, $TRELLIS_PLUGIN_ROOT, then installed_plugins.json. Revert to python3 ${CLAUDE_PLUGIN_ROOT}/hooks/<script>.py when fixed.",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.py"
+            "command": "R=${TRELLIS_PLUGIN_ROOT:-$(python3 -c \"import json as j,os;print(next((e['installPath'] for v in j.load(open(os.path.expanduser('~/.claude/plugins/installed_plugins.json'))).get('plugins',{}).values() for e in(v if isinstance(v,list)else[v]) if 'hooks' in os.listdir(e.get('installPath',''))),''))\" 2>/dev/null)}; [ -n \"$R\" ] && python3 \"$R/hooks/session-start.py\" || true"
           }
         ]
       }
@@ -16,15 +17,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/validate-structure.py"
+            "command": "R=${TRELLIS_PLUGIN_ROOT:-$(python3 -c \"import json as j,os;print(next((e['installPath'] for v in j.load(open(os.path.expanduser('~/.claude/plugins/installed_plugins.json'))).get('plugins',{}).values() for e in(v if isinstance(v,list)else[v]) if 'hooks' in os.listdir(e.get('installPath',''))),''))\" 2>/dev/null)}; [ -n \"$R\" ] && python3 \"$R/hooks/validate-structure.py\" || true"
           },
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/count-markers.py"
+            "command": "R=${TRELLIS_PLUGIN_ROOT:-$(python3 -c \"import json as j,os;print(next((e['installPath'] for v in j.load(open(os.path.expanduser('~/.claude/plugins/installed_plugins.json'))).get('plugins',{}).values() for e in(v if isinstance(v,list)else[v]) if 'hooks' in os.listdir(e.get('installPath',''))),''))\" 2>/dev/null)}; [ -n \"$R\" ] && python3 \"$R/hooks/count-markers.py\" || true"
           },
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/sync-implement.py"
+            "command": "R=${TRELLIS_PLUGIN_ROOT:-$(python3 -c \"import json as j,os;print(next((e['installPath'] for v in j.load(open(os.path.expanduser('~/.claude/plugins/installed_plugins.json'))).get('plugins',{}).values() for e in(v if isinstance(v,list)else[v]) if 'hooks' in os.listdir(e.get('installPath',''))),''))\" 2>/dev/null)}; [ -n \"$R\" ] && python3 \"$R/hooks/sync-implement.py\" || true"
           }
         ]
       }
@@ -35,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/check-implement.py"
+            "command": "R=${TRELLIS_PLUGIN_ROOT:-$(python3 -c \"import json as j,os;print(next((e['installPath'] for v in j.load(open(os.path.expanduser('~/.claude/plugins/installed_plugins.json'))).get('plugins',{}).values() for e in(v if isinstance(v,list)else[v]) if 'hooks' in os.listdir(e.get('installPath',''))),''))\" 2>/dev/null)}; [ -n \"$R\" ] && python3 \"$R/hooks/check-implement.py\" || true"
           }
         ]
       }
