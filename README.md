@@ -87,6 +87,8 @@ All artifacts live under a specs directory in your project (`.specs/` by default
     compliance.md
     plan.md
     tasks.md
+    implement-state.md      # created during /implement, tracks progress
+    implement-preflight.json # ephemeral, used by Ralph iterations
 ```
 
 See `examples/` for a complete sample `.specs/` directory showing what finished pipeline output looks like.
@@ -109,23 +111,31 @@ The `implement` skill can optionally integrate with external tools:
 
 ### Ralph
 
-A bundled loop script (`scripts/ralph-loop.sh`) that provides context-fresh iteration for large implementations. Based on Geoffrey Huntley's Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context window, using `{specsDir}/.state/implement-state.md` as filesystem memory between iterations.
+A bundled loop script (`scripts/ralph-loop.sh`) that provides context-fresh iteration for large implementations. Based on Geoffrey Huntley's Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context window, using `{specsDir}/{feature}/implement-state.md` as filesystem memory between iterations. Each feature has its own state file, stored alongside its other artifacts.
 
 **When to use:** Large implementations with 10+ acceptance criteria or many files where context degradation becomes a concern.
 
-**Invocation:** `/trellis:implement <feature-name> with ralph`
+**Invocation:** `/trellis:implement <feature-name> with ralph [--stream|--tail]`
 
 Phase 0 and Phase 1 run interactively (config questions, pipeline assembly), then the loop script takes over. Each iteration runs with scoped permissions — only the specific toolchain commands configured during setup are allowed. The loop stops when all criteria pass, max iterations are reached (default 10), or 3 consecutive failures occur.
 
+**Output modes:**
+
+| Flag | Behavior |
+|------|----------|
+| *(default)* | Silent — output goes to log files only. Between-iteration status (criteria counts) is shown. |
+| `--stream` | Full Claude output visible in real-time via `tee`, also logged to file. |
+| `--tail` | Silent during iteration, shows last 50 lines of log after each iteration completes. |
+
 ### Ralphd (Docker-sandboxed Ralph)
 
-A variant of Ralph that runs each iteration inside a Docker container with `--dangerously-skip-permissions`. Docker is the security boundary — no scoped permission allowlists needed.
+A variant of Ralph that runs each iteration inside a Docker container with `--dangerously-skip-permissions`. Docker is the security boundary — no scoped permission allowlists needed. Supports the same `--stream` and `--tail` output modes as Ralph.
 
 **When to use:** Same scenarios as Ralph, plus when scoped permissions are too restrictive or when you want full command access inside a sandboxed environment.
 
 **Requirements:** `docker` installed and running. Supports both API key (`ANTHROPIC_API_KEY` env var) and OAuth/subscription auth (one-time `scripts/ralphd-loop.sh --login`).
 
-**Invocation:** `/trellis:implement <feature-name> with ralphd`
+**Invocation:** `/trellis:implement <feature-name> with ralphd [--stream|--tail]`
 
 ### Promptfoo
 
