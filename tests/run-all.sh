@@ -33,6 +33,20 @@ else
   echo ""
 fi
 
+echo "=== Shell tests ==="
+if command -v bats &>/dev/null; then
+  if bats tests/test-shell.bats; then
+    echo ""
+  else
+    FAILED=1
+    echo ""
+  fi
+else
+  echo "  (skipped — bats not installed)"
+  echo "  Install: brew install bats-core"
+  echo ""
+fi
+
 echo "=== Promptfoo tests ==="
 if command -v promptfoo &>/dev/null; then
   if promptfoo eval -c tests/promptfoo.yaml; then

@@ -1,6 +1,6 @@
 {
   "name": "trellis",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "description": "A Claude Code plugin that bundles composable skills for spec-driven development. Take a feature from problem framing through implementation using structured, repeatable phases.",
   "homepage": "https://github.com/robmclarty/trellis#readme",
   "repository": {
@@ -13,8 +13,13 @@
     "url": "https://robmclarty.com"
   },
   "scripts": {
-    "postinstall": "command -v ruff >/dev/null || echo '⚠ ruff not found — install with: brew install ruff'; command -v shellcheck >/dev/null || echo '⚠ shellcheck not found — install with: brew install shellcheck'",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "command -v ruff >/dev/null || echo '⚠ ruff not found — install with: brew install ruff'; command -v shellcheck >/dev/null || echo '⚠ shellcheck not found — install with: brew install shellcheck'; command -v bats >/dev/null || echo '⚠ bats not found — install with: brew install bats-core'",
+    "test": "bash tests/run-all.sh",
+    "test:scripts": "python3 tests/test-scripts.py",
+    "test:hooks": "python3 tests/test-hooks.py",
+    "test:shell": "bats tests/test-shell.bats",
+    "test:snapshots": "bash tests/test-snapshots.sh",
+    "test:llm": "promptfoo eval -c tests/promptfoo.yaml",
     "typecheck": "",
     "lint": "npm run lint:json && npm run lint:md && npm run lint:py && npm run lint:sh",
     "lint:fix": "npm run lint:md:fix && npm run lint:py:fix",

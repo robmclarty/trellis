@@ -1,6 +1,6 @@
 {
   "name": "trellis",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "description": "A spec-driven development toolkit that takes features from problem framing through implementation using structured, composable skills.",
   "license": "MIT",
   "author": {
