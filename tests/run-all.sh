@@ -61,6 +61,19 @@ else
   echo ""
 fi
 
+echo "=== Skill tests (claude -p) ==="
+if command -v claude &>/dev/null && [ "${TRELLIS_LLM_TESTS:-}" = "1" ]; then
+  if python3 tests/test-skills.py; then
+    echo ""
+  else
+    FAILED=1
+    echo ""
+  fi
+else
+  echo "  (skipped — requires claude CLI and TRELLIS_LLM_TESTS=1)"
+  echo ""
+fi
+
 if [ "$FAILED" -eq 0 ]; then
   echo "All test suites passed."
 else

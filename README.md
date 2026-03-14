@@ -148,6 +148,27 @@ Trellis includes optional hooks for document validation and workflow enforcement
 | `check-implement-state` | PreToolUse (git commit) | Warns if acceptance criteria are incomplete |
 | `session-start` | SessionStart | Shows pipeline status for features in `.specs/` |
 
+## Testing
+
+Trellis includes test suites for scripts, hooks, shell integration, artifact
+snapshots, and skill output validation. Run all suites with:
+
+```bash
+npm test
+```
+
+Skill output tests validate that each skill prompt produces structurally
+correct output (required sections, headings, keywords). Two approaches are
+available depending on your auth setup:
+
+- **Promptfoo** (`npm run test:llm`) — requires `ANTHROPIC_API_KEY`, runs in
+  parallel with a web UI for results
+- **Claude -p harness** (`npm run test:skills`) — works with Claude Code
+  subscription auth, no API key needed
+
+See [docs/skill-testing.md](docs/skill-testing.md) for details, design
+rationale, and instructions for adding new test cases.
+
 ## Examples
 
 ### Manual step-by-step
