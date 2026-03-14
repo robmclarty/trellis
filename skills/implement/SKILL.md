@@ -18,11 +18,23 @@ iterative oracle-driven feedback loops. The input artifacts are the source of tr
 
 **Recommended effort: high.** Multi-phase coordination with oracle-driven feedback loops and error recovery.
 
+## Step 0 — Parse invocation modifiers
+
+**Do this FIRST, before any pre-flight scripts or file reads.**
+
+Parse the user's invocation for the `with <modifier>` suffix:
+
+- **`with ralph`** → Set `ralphMode = "ralph"`. Ralph is a **bundled loop script** for context-fresh iteration. It is NOT a person, collaborator, or external tool. See `references/external-integrations.md` for details.
+- **`with ralphd`** → Set `ralphMode = "ralphd"`. Docker-sandboxed variant of Ralph. Same concept, different execution model.
+- **No modifier** → Set `ralphMode = "off"`. All phases run in the current session.
+
+**IMPORTANT:** If the user wrote `with ralph` or `with ralphd`, you MUST recognize it as an execution mode modifier. Never ask "what is ralph?" or treat it as an unknown term.
+
 ## Pre-flight
 
-**If `{specsDir}/.state/implement-preflight.json` exists** (Ralph mode — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context.
+**If `{specsDir}/.state/implement-preflight.json` exists** (Ralph resumption — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context. Also skip Phase 0 and Phase 1 — go directly to Phase 2.
 
-**Otherwise** (interactive mode), run these scripts:
+**Otherwise** (fresh start or interactive mode), run these scripts:
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
@@ -105,7 +117,9 @@ Determine what the user provided:
 
 ### Step 2: Ask configuration questions
 
-**This step is mandatory.** The oracle pipeline cannot be assembled without the user's tooling answers. If pre-flight scripts failed or returned incomplete data, this step still runs. Do not skip it. Do not infer commands from the project structure — ask the user.
+**MANDATORY — DO NOT SKIP.** The oracle pipeline cannot be assembled without the user's tooling answers. You MUST ask these questions and wait for the user's answers before proceeding to Step 3.
+
+**STOP here and ask the user.** Do not infer commands from the project structure. Do not guess. Do not proceed to Phase 1 or write any code until you have received explicit answers.
 
 Read `references/config-questions.md` for the full list of configuration questions to ask.
 
@@ -115,7 +129,9 @@ Read `references/phase-zero-analysis.md` for the detailed process of building th
 
 ## Phase 1 — Oracle pipeline assembly
 
-**This phase is mandatory.** Phase 2 cannot start without a configured pipeline written to `{specsDir}/.state/implement-state.md`. If you reach this phase, you must assemble the pipeline and write the state file before proceeding. Skipping this phase means no oracle feedback loop and no judge — the implementation will lack quality gates.
+**MANDATORY — DO NOT SKIP.** Phase 2 cannot start without a configured pipeline written to `{specsDir}/.state/implement-state.md`. You MUST assemble the pipeline and write the state file before proceeding. Do NOT write any implementation code until this file exists.
+
+**Gate check:** If `{specsDir}/.state/implement-state.md` does not exist after this phase, you have a bug. Stop and fix it.
 
 Build the oracle pipeline from the user's configuration answers. The pipeline is
 an ordered list of check stages, cheapest/fastest first:
@@ -135,6 +151,25 @@ Write the assembled pipeline to `{specsDir}/.state/implement-state.md`.
 The pipeline is not fixed. If the user's project needs stages not listed here
 (e.g., a migration check, an MCP manifest validation, a Docker build), add them.
 The user's tooling answers are the authority.
+
+## Ralph/Ralphd handoff gate (between Phase 1 and Phase 2)
+
+**Check this IMMEDIATELY after writing `{specsDir}/.state/implement-state.md` in Phase 1.**
+
+If `ralphMode` (from Step 0) is `"ralph"`:
+
+1. Inform the user that Ralph mode is handing off to the loop script.
+2. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name>` via the Bash tool.
+3. **STOP HERE.** The current interactive session ends. The loop script takes over. Do NOT proceed to Phase 2 in this session.
+
+If `ralphMode` is `"ralphd"`:
+
+1. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --check-auth` via Bash. If it exits non-zero, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --login` so the user can complete OAuth.
+2. Inform the user that Ralphd mode is handing off to the Docker loop script.
+3. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh <feature-name>` via the Bash tool.
+4. **STOP HERE.** The current interactive session ends.
+
+If `ralphMode` is `"off"`: Proceed to Phase 2 below.
 
 ## Phase 2 — Implement and iterate
 
@@ -244,77 +279,21 @@ If criteria remain, return to Step 1 for the next iteration.
 **Global iteration limit: 10.** If you hit 10 iterations without completing all
 criteria, stop and report what's done, what's remaining, and why you stalled.
 
-### Ralph mode (when `with ralph` is active)
+### Ralph/Ralphd resumption (context-fresh iterations)
 
-When `with ralph` is specified in the invocation, Phase 2 is handed off to the
-bundled loop script instead of running all iterations in the current context.
+When this skill is invoked inside a Ralph or Ralphd loop iteration (detected by
+`{specsDir}/.state/implement-preflight.json` existing — see Pre-flight section):
 
-After Phase 0 and Phase 1 are complete (`{specsDir}/.state/implement-state.md` is written with
-config, pipeline, and criteria):
+- Pre-flight data is already loaded from the JSON file (no python3 calls)
+- Phase 0 and Phase 1 were already completed in the original interactive session
+- Pick up from the next pending criterion in the state file
+- Complete ONE iteration (one task or small batch), update `{specsDir}/.state/implement-state.md`, and exit
+- The loop script handles the next iteration in a fresh context
 
-1. Inform the user that Ralph mode is handing off to the loop script.
-2. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name>` via
-   the Bash tool.
-3. The current interactive session ends here — the loop script takes over.
-
-The loop script generates `.claude/settings.local.json` with scoped permissions
-from the oracle pipeline config and runs `claude -p` (without
-`--dangerously-skip-permissions`) in each iteration. Before each iteration, it
-runs pre-flight scripts and writes `{specsDir}/.state/implement-preflight.json` so Claude doesn't
-need python3 access.
-
-On resumption (when `{specsDir}/.state/implement-state.md` already exists), the implement skill:
-
-- Reads `{specsDir}/.state/implement-preflight.json` for pre-flight data (no python3 calls)
-- Skips Phase 0 and Phase 1 entirely
-- Goes straight to Phase 2, picking up from the next pending criterion
-- Completes one iteration (one task or small batch), updates state, and exits
-
-The `{specsDir}/.state/implement-state.md` file is the handoff mechanism between iterations.
-The loop script checks completion status between iterations using
-`parse-implement-state.py` and stops when all criteria pass, max iterations
-are reached (default 10), or 3 consecutive failures occur without progress.
-
-### Ralphd mode (when `with ralphd` is active)
-
-Same flow as Ralph mode, but each `claude -p` iteration runs inside a Docker
-container instead of directly on the host. This replaces the scoped-permissions
-model with Docker-level isolation — `--dangerously-skip-permissions` is safe
-because the container's filesystem access is limited to the bind-mounted project
-directory.
-
-After Phase 0 and Phase 1 are complete:
-
-1. **Pre-launch auth check.** Run
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --check-auth` via the Bash
-   tool. If it exits non-zero, auth is missing — run
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh --login` to trigger the
-   interactive OAuth flow (the user completes it in their browser). This only
-   happens once; subsequent runs reuse the stored session.
-2. Inform the user that Ralphd mode is handing off to the Docker loop script.
-3. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralphd-loop.sh <feature-name>` via
-   the Bash tool.
-4. The current interactive session ends here — the loop script takes over.
-
-The loop script builds the `trellis-ralphd` Docker image on first run (from
-`scripts/Dockerfile.ralphd`), then for each iteration:
-
-- Runs pre-flight scripts on the host (same as Ralph)
-- Launches `docker run --rm -v $(pwd):/workspace` with a named auth volume
-  (`trellis-ralphd-auth`) mounted at `/home/claude/.claude`
-- Claude runs with `--dangerously-skip-permissions` inside the container
-- No `.claude/settings.local.json` is generated (Docker is the sandbox)
-
-**Authentication:** Supports two modes:
-
-- **API key:** Export `ANTHROPIC_API_KEY` — passed into the container as an env var
-- **OAuth/subscription:** Run `ralphd-loop.sh --login` once to authenticate
-  interactively. The OAuth session is stored in the `trellis-ralphd-auth` Docker
-  volume and reused across all subsequent iterations.
-
-Resumption behavior is identical to Ralph mode — the implement skill reads
-`{specsDir}/.state/implement-preflight.json`, skips Phases 0-1, and picks up from the
-next pending criterion.
+The initial handoff from Phase 1 to the loop script is handled by the
+"Ralph/Ralphd handoff gate" section above Phase 2. See
+`references/external-integrations.md` for full details on how the loop scripts
+work.
 
 ## Phase 3 — Judge review (final gate)
 

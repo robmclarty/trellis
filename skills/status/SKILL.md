@@ -1,13 +1,13 @@
 ---
-name: status
+name: trellis:status
 description: Show pipeline status for all features. Use when checking progress across the spec pipeline.
-allowed-tools: Bash(git:*), Read
-user-invocable: true
+allowed-tools: Bash(python3:*), Read
 ---
 
 ## When to use
 
-Trigger on: "show status", "pipeline status", "what's the state of specs", "trellis status", or any request to see an overview of feature progress.
+- "show status", "pipeline status", "what's the state of specs", "trellis status"
+- Any request to see an overview of feature progress
 
 ## Pre-flight
 
