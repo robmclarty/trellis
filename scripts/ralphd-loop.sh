@@ -74,6 +74,60 @@ ensure_auth_volume() {
   fi
 }
 
+# Clean stale files from the auth volume that compete with bind mounts.
+# Previous container runs leave behind plugins/, settings.json, and projects/
+# inside the volume. Although bind mounts should override them, stale files
+# can cause intermittent plugin resolution failures if Claude Code reads the
+# volume's copy before the overlay takes effect or if auto-update logic
+# collides with the read-only bind mount.
+clean_auth_volume() {
+  echo -e "${CYAN}Cleaning stale config from auth volume...${RESET}"
+  docker run --rm \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    --entrypoint sh \
+    "$IMAGE_NAME" \
+    -c '
+      rm -rf /home/claude/.claude/plugins
+      rm -f  /home/claude/.claude/settings.json
+      rm -rf /home/claude/.claude/projects
+      rm -rf /home/claude/.claude/session-env
+      rm -rf /home/claude/.claude/shell-snapshots
+      rm -rf /home/claude/.claude/cache
+      rm -rf /home/claude/.claude/backups
+      rm -f  /home/claude/.claude/mcp-needs-auth-cache.json
+    ' 2>/dev/null || true
+}
+
+# Generate a container-specific settings.json that keeps enabledPlugins but
+# strips autoUpdate and extraKnownMarketplaces. This prevents Claude Code
+# inside the container from trying to update plugins against the read-only
+# bind mount, which can poison the plugin cache on failure.
+CONTAINER_SETTINGS=""
+generate_container_settings() {
+  local host_settings="${HOME}/.claude/settings.json"
+  if [[ ! -f "$host_settings" ]]; then
+    return
+  fi
+
+  CONTAINER_SETTINGS=$(mktemp "${TMPDIR:-/tmp}/ralphd-settings.XXXXXX")
+  python3 -c "
+import json, sys
+
+with open(sys.argv[1]) as f:
+    settings = json.load(f)
+
+# Strip fields that trigger write operations inside the container
+settings.pop('extraKnownMarketplaces', None)
+
+# Ensure autoUpdates is off at the top level too
+settings['autoUpdates'] = False
+
+with open(sys.argv[2], 'w') as f:
+    json.dump(settings, f, indent=2)
+    f.write('\n')
+" "$host_settings" "$CONTAINER_SETTINGS"
+}
+
 # Build docker run arguments as a string.
 # Bash 3.2 compatible — no readarray, no local -a with +=.
 build_docker_run_args() {
@@ -92,7 +146,11 @@ build_docker_run_args() {
       # Also mount at the host-absolute path so installed_plugins.json paths resolve
       args="$args -v ${host_claude_dir}/plugins:${host_claude_dir}/plugins:ro"
     fi
-    if [[ -f "${host_claude_dir}/settings.json" ]]; then
+    # Use the container-specific settings (no autoUpdate) if available,
+    # otherwise fall back to the host's settings.json
+    if [[ -n "$CONTAINER_SETTINGS" ]] && [[ -f "$CONTAINER_SETTINGS" ]]; then
+      args="$args -v ${CONTAINER_SETTINGS}:/home/claude/.claude/settings.json:ro"
+    elif [[ -f "${host_claude_dir}/settings.json" ]]; then
       args="$args -v ${host_claude_dir}/settings.json:/home/claude/.claude/settings.json:ro"
     fi
   fi
@@ -253,6 +311,13 @@ check_auth() {
 
 check_auth
 
+# --- Container environment setup ---
+# Clean stale files from the auth volume, generate container-safe settings,
+# and verify that the skill is resolvable before entering the iteration loop.
+
+clean_auth_volume
+generate_container_settings
+
 # --- Helpers ---
 
 parse_state() {
@@ -314,9 +379,61 @@ print(json.dumps([
   echo -e "${CYAN}Pre-flight written to ${PREFLIGHT_FILE}${RESET}"
 }
 
+# Verify that the trellis:implement skill is resolvable inside the container.
+# Runs a trivial /trellis:status invocation (lightweight, no side effects) and
+# checks for "Unknown skill" in the output. Returns 0 if the skill is found.
+verify_skill() {
+  local run_args
+  run_args=$(build_docker_run_args)
+
+  echo -e "${CYAN}Verifying skill resolution inside container...${RESET}"
+
+  # shellcheck disable=SC2086  # intentional word splitting of run_args
+  local output
+  output=$(echo "/trellis:status" | docker run --rm -i \
+    $run_args \
+    "$IMAGE_NAME" \
+    -p --dangerously-skip-permissions 2>&1 | head -5)
+
+  if echo "$output" | grep -qi "unknown skill"; then
+    echo -e "${RED}Skill resolution failed inside container.${RESET}"
+    echo -e "${RED}Output: ${output}${RESET}"
+    echo -e "${YELLOW}Attempting auth volume deep clean and retry...${RESET}"
+
+    # Aggressive clean — wipe everything except credentials
+    docker run --rm \
+      -v "${AUTH_VOLUME}:/home/claude/.claude" \
+      --entrypoint sh \
+      "$IMAGE_NAME" \
+      -c '
+        cd /home/claude/.claude
+        for f in *; do
+          case "$f" in .credentials.json) ;; *) rm -rf "$f" ;; esac
+        done
+      ' 2>/dev/null || true
+
+    # Retry
+    # shellcheck disable=SC2086
+    output=$(echo "/trellis:status" | docker run --rm -i \
+      $run_args \
+      "$IMAGE_NAME" \
+      -p --dangerously-skip-permissions 2>&1 | head -5)
+
+    if echo "$output" | grep -qi "unknown skill"; then
+      echo -e "${RED}${BOLD}Skill still not found after deep clean. Aborting.${RESET}"
+      echo -e "${RED}Check that the trellis plugin is installed: claude /install robmclarty/trellis${RESET}"
+      return 1
+    fi
+  fi
+
+  echo -e "${GREEN}Skill resolution verified.${RESET}"
+  return 0
+}
+
 # shellcheck disable=SC2329  # invoked indirectly via trap
 cleanup() {
   rm -f "$PREFLIGHT_FILE"
+  rm -f "$CONTAINER_SETTINGS"
   echo -e "${YELLOW}Cleaned up ${PREFLIGHT_FILE}${RESET}"
 }
 trap cleanup EXIT
@@ -327,6 +444,9 @@ if [[ ! -f "$STATE_FILE" ]]; then
   echo -e "${RED}No ${STATE_FILE} found. Run /implement ${FEATURE} with ralphd interactively first.${RESET}"
   exit 1
 fi
+
+# Verify skill resolution before entering the loop
+verify_skill || exit 1
 
 consecutive_failures=0
 
