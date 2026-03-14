@@ -1,5 +1,5 @@
 ---
-name: clarify
+name: trellis:clarify
 description: Use when user wants to Reviews a spec for ambiguities across six structured categories and resolves them in place. Use after writing or revising a spec, or for a fresh completeness review.
 context: fork
 agent: general-purpose

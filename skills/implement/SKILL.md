@@ -1,5 +1,5 @@
 ---
-name: implement
+name: trellis:implement
 description: Executes implementation from spec-driven artifacts or freeform instructions through iterative oracle-driven feedback loops. Use when all spec artifacts are ready and implementation should begin.
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Task
 ---

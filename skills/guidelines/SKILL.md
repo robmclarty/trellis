@@ -1,5 +1,5 @@
 ---
-name: guidelines
+name: trellis:guidelines
 description: Creates or updates .specs/guidelines.md with project-wide stack, conventions, and principles. Use when starting a project or when a fundamental technology decision has changed.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*), Task
 ---

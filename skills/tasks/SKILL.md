@@ -1,5 +1,5 @@
 ---
-name: tasks
+name: trellis:tasks
 description: Use when user wants to Creates an ordered task breakdown at .specs/{feature}/tasks.md that decomposes a plan into discrete, verifiable units of work organized in phases.
 allowed-tools: Read, Glob, Grep, Task
 ---

@@ -1,5 +1,5 @@
 ---
-name: pipeline
+name: trellis:pipeline
 description: Orchestrates the full spec-driven pipeline (pitch → spec → clarify → compliance → plan → tasks) in one session. Use when starting a new feature from scratch.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep
