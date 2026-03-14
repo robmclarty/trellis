@@ -1,6 +1,6 @@
 {
   "name": "trellis",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "A Claude Code plugin that bundles composable skills for spec-driven development. Take a feature from problem framing through implementation using structured, repeatable phases.",
   "homepage": "https://github.com/robmclarty/trellis#readme",
   "repository": {
