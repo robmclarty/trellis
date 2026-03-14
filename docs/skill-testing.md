@@ -146,7 +146,7 @@ on Sonnet.
 
 ## Test cases
 
-All 7 test cases mirror the promptfoo config in `tests/promptfoo.yaml`:
+All 8 test cases mirror the promptfoo config in `tests/promptfoo.yaml`:
 
 | Test | Skill | What it checks |
 |------|-------|----------------|
@@ -156,7 +156,19 @@ All 7 test cases mirror the promptfoo config in `tests/promptfoo.yaml`:
 | `test_plan_sections` | plan | Section numbers (§1-§6), File Structure |
 | `test_tasks_sections` | tasks | Phase headings, Do/Verify blocks, checkboxes |
 | `test_sketch_sections` | sketch | Hypothesis, Method, Findings, Verdict |
+| `test_compliance_sections` | compliance | All 6 required sections + GDPR, FIPPA keywords |
 | `test_cross_skill_spec_refs_pitch` | spec | Pitch referenced in §1, no-gos preserved in §9 |
+
+### Skills not covered
+
+Three skills are not testable with the pipe pattern:
+
+- **clarify** — modifies spec.md in place rather than producing a new document
+- **implement** — multi-phase orchestration that spawns agents and writes code
+- **pipeline** — orchestrates sub-skills without invoking the model directly
+
+All three require filesystem access and tool use that `claude -p` without
+tools cannot provide.
 
 ## Adding a new test case
 

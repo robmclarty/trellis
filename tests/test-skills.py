@@ -195,6 +195,34 @@ Write the sketch document now. Do not ask questions.""")
             assert_icontains(self, output, section)
         assert_icontains(self, output, "Viable")
 
+    def test_compliance_sections(self):
+        output = run_skill("compliance", """\
+Guidelines exist at .specs/guidelines.md.
+Spec exists at .specs/user-invitations/spec.md.
+
+The spec says:
+- §4 Data Model: invitations table with columns: id, email (PII),
+  token (secret), status, created_at, expires_at. Users table with
+  name, email, password_hash.
+- §9 Constraints: Deployed in Canada (ca-central-1). Serves users
+  in the EU and Canada. Must comply with GDPR and FIPPA.
+
+The guidelines say:
+- Infrastructure: AWS ca-central-1, Docker on Fly.io
+- No third-party analytics or tracking
+
+Write the compliance review now. Do not ask questions.""")
+
+        for section in [
+            "Applicable Regulations", "Data Classification",
+            "Requirement Mapping", "Data Flow Concerns",
+            "Recommended Spec Changes", "Residual Risks",
+        ]:
+            assert_icontains(self, output, section)
+        assert_icontains(self, output, "GDPR")
+        assert_icontains(self, output, "FIPPA")
+        assert_icontains(self, output, "email")
+
     def test_cross_skill_spec_refs_pitch(self):
         output = run_skill("spec", """\
 Guidelines exist at .specs/guidelines.md.

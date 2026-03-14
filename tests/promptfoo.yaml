@@ -220,6 +220,48 @@ tests:
         value: "Viable"
 
   # ============================================================
+  # Compliance skill
+  # ============================================================
+  - description: "compliance: produces all required sections"
+    vars:
+      skill_instructions: file://skills/compliance/SKILL.md
+      user_input: |
+        Guidelines exist at .specs/guidelines.md.
+        Spec exists at .specs/user-invitations/spec.md.
+
+        The spec says:
+        - §4 Data Model: invitations table with columns: id, email (PII),
+          token (secret), status, created_at, expires_at. Users table with
+          name, email, password_hash.
+        - §9 Constraints: Deployed in Canada (ca-central-1). Serves users
+          in the EU and Canada. Must comply with GDPR and FIPPA.
+
+        The guidelines say:
+        - Infrastructure: AWS ca-central-1, Docker on Fly.io
+        - No third-party analytics or tracking
+
+        Write the compliance review now. Do not ask questions.
+    assert:
+      - type: icontains
+        value: "Applicable Regulations"
+      - type: icontains
+        value: "Data Classification"
+      - type: icontains
+        value: "Requirement Mapping"
+      - type: icontains
+        value: "Data Flow Concerns"
+      - type: icontains
+        value: "Recommended Spec Changes"
+      - type: icontains
+        value: "Residual Risks"
+      - type: icontains
+        value: "GDPR"
+      - type: icontains
+        value: "FIPPA"
+      - type: icontains
+        value: "email"
+
+  # ============================================================
   # Cross-skill: pipeline artifact consistency
   # ============================================================
   - description: "spec references pitch context correctly"
