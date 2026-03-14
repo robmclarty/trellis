@@ -105,6 +105,8 @@ Determine what the user provided:
 
 ### Step 2: Ask configuration questions
 
+**This step is mandatory.** The oracle pipeline cannot be assembled without the user's tooling answers. If pre-flight scripts failed or returned incomplete data, this step still runs. Do not skip it. Do not infer commands from the project structure — ask the user.
+
 Read `references/config-questions.md` for the full list of configuration questions to ask.
 
 ### Steps 3–5: Analyze inputs, branch management, and summary
@@ -112,6 +114,8 @@ Read `references/config-questions.md` for the full list of configuration questio
 Read `references/phase-zero-analysis.md` for the detailed process of building the acceptance criteria checklist, managing branches for sketch implementations, and presenting the summary for user confirmation.
 
 ## Phase 1 — Oracle pipeline assembly
+
+**This phase is mandatory.** Phase 2 cannot start without a configured pipeline written to `{specsDir}/.state/implement-state.md`. If you reach this phase, you must assemble the pipeline and write the state file before proceeding. Skipping this phase means no oracle feedback loop and no judge — the implementation will lack quality gates.
 
 Build the oracle pipeline from the user's configuration answers. The pipeline is
 an ordered list of check stages, cheapest/fastest first:
@@ -133,6 +137,8 @@ The pipeline is not fixed. If the user's project needs stages not listed here
 The user's tooling answers are the authority.
 
 ## Phase 2 — Implement and iterate
+
+**Entry guard:** Before entering the iteration loop, verify that `{specsDir}/.state/implement-state.md` exists and contains a `## Config` section and an `## Oracle Pipeline` section. If it does not, you skipped Phase 0 or Phase 1 — go back and complete them. Do not proceed without the state file.
 
 This is the core loop. The iteration strategy depends on the input type:
 
