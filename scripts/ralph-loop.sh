@@ -82,25 +82,33 @@ run_preflight() {
     criteria_json=$(python3 "${SCRIPT_DIR}/extract-criteria.py" "$tasks_path" "$spec_path" 2>/dev/null || echo '{}')
   fi
 
-  # Assemble preflight JSON
+  # Assemble preflight JSON via stdin to avoid bash/python string escaping issues.
+  # Each JSON blob is passed as an element of a JSON array through a pipe.
   python3 -c "
 import json, sys
 
-state = json.loads('''${state_json}''')
-prereqs = json.loads('''${prereqs_json}''')
-criteria = json.loads('''${criteria_json}''')
+parts = json.load(sys.stdin)
 
 preflight = {
-    'specsDir': '${SPECS_DIR}',
-    'prereqs': prereqs,
-    'state': state,
-    'criteria': criteria,
+    'specsDir': parts[0],
+    'prereqs': parts[1],
+    'state': parts[2],
+    'criteria': parts[3],
 }
 
-with open('${PREFLIGHT_FILE}', 'w') as f:
+with open(parts[4], 'w') as f:
     json.dump(preflight, f, indent=2)
     f.write('\n')
-" 2>/dev/null
+" <<< "$(python3 -c "
+import json, sys
+print(json.dumps([
+    sys.argv[1],
+    json.loads(sys.argv[2]),
+    json.loads(sys.argv[3]),
+    json.loads(sys.argv[4]),
+    sys.argv[5],
+]))
+" "$SPECS_DIR" "$prereqs_json" "$state_json" "$criteria_json" "$PREFLIGHT_FILE")"
 
   echo -e "${CYAN}Pre-flight written to ${PREFLIGHT_FILE}${RESET}"
 }
@@ -114,36 +122,21 @@ generate_permissions() {
   python3 -c "
 import json, sys
 
-state = json.loads('''${state_json}''')
+state = json.load(sys.stdin)
 pipeline = state.get('pipeline', [])
 
-# Start with file tools and agent (always needed)
 allowed = [
-    'Read',
-    'Write',
-    'Edit',
-    'Glob',
-    'Grep',
-    'Agent',
-    'Bash(mkdir *)',
-    'Bash(cp *)',
-    'Bash(mv *)',
-    'Bash(ls *)',
-    'Bash(cat *)',
-    'Bash(git branch *)',
-    'Bash(git checkout *)',
-    'Bash(git diff *)',
-    'Bash(git status)',
-    'Bash(git log *)',
+    'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Agent',
+    'Bash(mkdir *)', 'Bash(cp *)', 'Bash(mv *)', 'Bash(ls *)', 'Bash(cat *)',
+    'Bash(git branch *)', 'Bash(git checkout *)', 'Bash(git diff *)',
+    'Bash(git status)', 'Bash(git log *)',
 ]
 
-# Add oracle pipeline commands
 for stage in pipeline:
     cmd = stage.get('command')
     if cmd:
         allowed.append('Bash(' + cmd + ')')
 
-# Add package manager commands (extract from config if available)
 config = state.get('config', {})
 pkg_mgr = config.get('package_manager', '')
 if pkg_mgr:
@@ -156,14 +149,14 @@ settings = {
     }
 }
 
-with open('${SETTINGS_FILE}', 'w') as f:
+with open(sys.argv[1], 'w') as f:
     json.dump(settings, f, indent=2)
     f.write('\n')
 
 print('Allowed tools:', len(allowed))
 for tool in allowed:
     print('  ' + tool)
-" 2>/dev/null
+" "$SETTINGS_FILE" <<< "$state_json"
 
   echo -e "${CYAN}Permissions written to ${SETTINGS_FILE}${RESET}"
 }

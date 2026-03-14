@@ -69,26 +69,44 @@ ensure_auth_volume() {
   fi
 }
 
-# Common docker run args (used by both login and iteration)
-docker_run_base() {
-  local -a args=(
-    -v "$(pwd):/workspace"
-    -v "${AUTH_VOLUME}:/home/claude/.claude"
-  )
+# Build docker run arguments as a string.
+# Bash 3.2 compatible — no readarray, no local -a with +=.
+build_docker_run_args() {
+  local args="-v $(pwd):/workspace -v ${AUTH_VOLUME}:/home/claude/.claude"
 
-  # Pass API key if available (takes precedence over OAuth)
-  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-    args+=(-e "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}")
+  # Mount host's Claude config into the container so it can find installed
+  # plugins and settings. Plugin paths in installed_plugins.json are absolute
+  # (e.g., /Users/alice/.claude/plugins/cache/...), so we mount the host's
+  # ~/.claude at BOTH the container home AND the original host-absolute path.
+  # This ensures path references resolve correctly regardless of the host user.
+  local host_claude_dir="${HOME}/.claude"
+  if [[ -d "${host_claude_dir}" ]]; then
+    # Overlay plugin files onto the auth volume
+    if [[ -d "${host_claude_dir}/plugins" ]]; then
+      args="$args -v ${host_claude_dir}/plugins:/home/claude/.claude/plugins:ro"
+      # Also mount at the host-absolute path so installed_plugins.json paths resolve
+      args="$args -v ${host_claude_dir}/plugins:${host_claude_dir}/plugins:ro"
+    fi
+    if [[ -f "${host_claude_dir}/settings.json" ]]; then
+      args="$args -v ${host_claude_dir}/settings.json:/home/claude/.claude/settings.json:ro"
+    fi
+  fi
+  if [[ -f "${HOME}/.claude.json" ]]; then
+    args="$args -v ${HOME}/.claude.json:/home/claude/.claude.json"
   fi
 
-  # Pass through optional backend env vars
-  for var in CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX; do
-    if [[ -n "${!var:-}" ]]; then
-      args+=(-e "${var}=${!var}")
-    fi
-  done
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    args="$args -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}"
+  fi
 
-  printf '%s\n' "${args[@]}"
+  if [[ -n "${CLAUDE_CODE_USE_BEDROCK:-}" ]]; then
+    args="$args -e CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK}"
+  fi
+  if [[ -n "${CLAUDE_CODE_USE_VERTEX:-}" ]]; then
+    args="$args -e CLAUDE_CODE_USE_VERTEX=${CLAUDE_CODE_USE_VERTEX}"
+  fi
+
+  echo "$args"
 }
 
 # --- Check-auth subcommand (non-interactive probe) ---
@@ -236,24 +254,33 @@ run_preflight() {
     criteria_json=$(python3 "${SCRIPT_DIR}/extract-criteria.py" "$tasks_path" "$spec_path" 2>/dev/null || echo '{}')
   fi
 
+  # Assemble preflight JSON via stdin to avoid bash/python string escaping issues.
+  # Each JSON blob is passed as an element of a JSON array through a pipe.
   python3 -c "
 import json, sys
 
-state = json.loads('''${state_json}''')
-prereqs = json.loads('''${prereqs_json}''')
-criteria = json.loads('''${criteria_json}''')
+parts = json.load(sys.stdin)
 
 preflight = {
-    'specsDir': '${SPECS_DIR}',
-    'prereqs': prereqs,
-    'state': state,
-    'criteria': criteria,
+    'specsDir': parts[0],
+    'prereqs': parts[1],
+    'state': parts[2],
+    'criteria': parts[3],
 }
 
-with open('${PREFLIGHT_FILE}', 'w') as f:
+with open(parts[4], 'w') as f:
     json.dump(preflight, f, indent=2)
     f.write('\n')
-" 2>/dev/null
+" <<< "$(python3 -c "
+import json, sys
+print(json.dumps([
+    sys.argv[1],
+    json.loads(sys.argv[2]),
+    json.loads(sys.argv[3]),
+    json.loads(sys.argv[4]),
+    sys.argv[5],
+]))
+" "$SPECS_DIR" "$prereqs_json" "$state_json" "$criteria_json" "$PREFLIGHT_FILE")"
 
   echo -e "${CYAN}Pre-flight written to ${PREFLIGHT_FILE}${RESET}"
 }
@@ -289,8 +316,8 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
   log_file="${LOG_DIR}/iteration-${i}.log"
   echo -e "${CYAN}Running iteration ${i} in Docker container...${RESET}"
 
-  # Build docker run arguments
-  readarray -t run_args < <(docker_run_base)
+  # Build docker run arguments (bash 3.2 compatible — no arrays)
+  run_args=$(build_docker_run_args)
 
   # Run Claude inside Docker with --dangerously-skip-permissions.
   # The container is the security boundary:
@@ -299,8 +326,9 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
   #   - Ephemeral container (--rm) — destroyed after each iteration
   #   - No network restrictions (Claude needs API access)
   #   - No host filesystem access beyond the mounts
+  # shellcheck disable=SC2086  # intentional word splitting of run_args
   if echo "/trellis:implement ${FEATURE}" | docker run --rm -i \
-    "${run_args[@]}" \
+    $run_args \
     "$IMAGE_NAME" \
     -p --dangerously-skip-permissions > "$log_file" 2>&1; then
     echo -e "${GREEN}Iteration ${i} completed${RESET}"
