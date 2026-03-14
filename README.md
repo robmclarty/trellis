@@ -87,7 +87,7 @@ All artifacts live under a specs directory in your project (`.specs/` by default
     compliance.md
     plan.md
     tasks.md
-    implement-state.md      # created during /implement, tracks progress
+    implement-state.md      # created during /trellis:implement, tracks progress
     implement-preflight.json # ephemeral, used by Ralph iterations
 ```
 

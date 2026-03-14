@@ -60,7 +60,7 @@ how they integrate with the implement skill.
 ## Invocation
 
 ```text
-/implement <input> [with <modifier>]
+/trellis:implement <input> [with <modifier>]
 ```
 
 `<input>` is one of the following (or a combination):
