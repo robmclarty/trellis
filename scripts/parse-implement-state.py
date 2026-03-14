@@ -3,7 +3,7 @@
 
 Usage: parse-implement-state.py [path-to-implement-state.md]
 
-Defaults to .specs/.state/implement-state.md in the current directory.
+Defaults to reading from the path provided as the first argument.
 Outputs JSON with config, criteria, counts, and iteration info.
 """
 
@@ -158,7 +158,10 @@ def count_iterations(text):
 
 
 def main():
-    filepath = sys.argv[1] if len(sys.argv) > 1 else ".specs/.state/implement-state.md"
+    if len(sys.argv) < 2:
+        print("Usage: parse-implement-state.py <path-to-implement-state.md>", file=sys.stderr)
+        sys.exit(1)
+    filepath = sys.argv[1]
     result = parse_state_file(filepath)
 
     if result is None:

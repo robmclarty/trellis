@@ -52,7 +52,7 @@ Be terse. Do not praise the implementation. Focus only on gaps and risks.
 The implement skill passes you a message with these sections:
 
 - **Source Artifacts** — The relevant spec content, tasks, or sketch
-- **Acceptance Criteria Checklist** — The checklist from `{specsDir}/.state/implement-state.md`
+- **Acceptance Criteria Checklist** — The checklist from `{specsDir}/{feature}/implement-state.md`
 - **Changes Made** — Summary of files created/modified
 - **Key Decisions** — Assumptions and tradeoffs made
 - **Specific Questions** (optional) — Anything the implementor wants evaluated

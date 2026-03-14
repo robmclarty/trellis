@@ -36,11 +36,27 @@ Also parse optional output mode flags (only meaningful when `ralphMode` is not `
 
 **IMPORTANT:** If the user wrote `with ralph` or `with ralphd`, you MUST recognize it as an execution mode modifier. Never ask "what is ralph?" or treat it as an unknown term.
 
-## Pre-flight
+## Pre-flight — MANDATORY FIRST ACTION
 
-**If `{specsDir}/{feature}/implement-preflight.json` exists** (Ralph resumption — the loop script writes this before each iteration), read it directly. It contains `specsDir`, `prereqs`, `state`, and `criteria`. Skip the python3 calls below — they've already been run outside your context. Also skip Phase 0 and Phase 1 — go directly to Phase 2.
+**STOP. Before doing anything else — before reading spec files, before asking questions, before Phase 0 — you MUST perform this check.**
 
-**Otherwise** (fresh start or interactive mode), run these scripts:
+1. Read `trellis.json` to get `specsDir` (default: `.specs`)
+2. Use the Read tool to check if `{specsDir}/{feature}/implement-preflight.json` exists
+
+**If the preflight JSON EXISTS → Ralph/Ralphd resumption. Do this:**
+
+The loop script already ran Phase 0 and Phase 1 in a prior session. The preflight JSON contains everything: `specsDir`, `prereqs`, `state` (config, pipeline, criteria, branch), and `criteria`.
+
+1. Read the preflight JSON
+2. Extract all fields — config, pipeline, criteria are already populated
+3. **DO NOT ask any configuration questions — the answers are in `state.config`**
+4. **DO NOT run Phase 0 or Phase 1 — they are already complete**
+5. **Go directly to Phase 2** — pick up from `state.nextPendingId`
+6. Complete ONE iteration (one task or small batch)
+7. Update `{specsDir}/{feature}/implement-state.md` with progress
+8. Exit
+
+**If the preflight JSON DOES NOT exist → fresh start or interactive mode. Do this:**
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 

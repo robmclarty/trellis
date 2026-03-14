@@ -548,9 +548,7 @@ console.log('All tests passed');
 
         # .specs directory structure
         specs_dir = os.path.join(tmpdir, ".specs", "smoke-test")
-        state_dir = os.path.join(tmpdir, ".specs", ".state")
         os.makedirs(specs_dir)
-        os.makedirs(state_dir)
 
         # guidelines.md
         with open(os.path.join(tmpdir, ".specs", "guidelines.md"), "w") as f:
@@ -638,7 +636,7 @@ src/
 """)
 
         # implement-state.md (pre-filled to skip Phase 0/1)
-        with open(os.path.join(state_dir, "implement-state.md"), "w") as f:
+        with open(os.path.join(specs_dir, "implement-state.md"), "w") as f:
             f.write("""\
 # Implementation State
 
@@ -685,7 +683,7 @@ src/
 
         prompt = skill_instructions + "\n\n---\n\n" + """\
 Implement the smoke-test feature. The state file already exists at
-.specs/.state/implement-state.md with config and oracle pipeline filled.
+.specs/smoke-test/implement-state.md with config and oracle pipeline filled.
 Skip Phase 0 and Phase 1 — go directly to Phase 2 (iterate).
 
 The project is in the current directory. Create src/add.js so that

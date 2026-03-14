@@ -1,3 +1,5 @@
 .DS_Store
 node_modules/
 .specs/.state/
+.specs/*/implement-state.md
+.specs/*/implement-preflight.json
