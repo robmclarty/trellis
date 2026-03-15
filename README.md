@@ -88,7 +88,7 @@ All artifacts live under a specs directory in your project (`.specs/` by default
     tasks.json              # created by /trellis:prep, tracks execution state
 ```
 
-See `docs/examples/` for walkthroughs showing what the pipeline looks like in practice.
+See `examples/` for walkthroughs showing what the pipeline looks like in practice.
 
 ### Custom specs directory
 

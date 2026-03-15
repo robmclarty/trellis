@@ -11,6 +11,7 @@ Stack: Python 3.12, FastAPI, SQLAlchemy async, PostgreSQL 16, Pydantic, pytest
 Architecture: layered — routes → services → models
 Conventions: snake_case, 88-char line length, Google-style docstrings
 Testing: pytest with real database via testcontainers, no mocks
+Check command: cd api && ruff check . && mypy . && pytest
 Infrastructure: Docker on Fly.io, GitHub Actions CI
 ```
 
@@ -57,44 +58,33 @@ Reads the pitch and guidelines, then generates `.specs/team-kudos/spec.md` with 
 
 Review the spec. This is the most important human checkpoint — everything downstream flows from it.
 
-**5. Clarify ambiguities**
-
-```text
-> /trellis:clarify team-kudos
-```
-
-Scans the spec for implicit gaps across six categories (data ownership, permissions, privacy, UX intent, integration, edge cases). Resolves what it can from context, moves unresolvable items to §10 with reasoning.
-
-**6. Compliance review (if needed)**
-
-```text
-> /trellis:compliance team-kudos
-```
-
-Skip this for team kudos (no PII, no regulated data). For features handling personal data, health data, or student data, this step evaluates the spec against applicable regulations and produces `.specs/team-kudos/compliance.md`.
-
-**7. Create the plan**
+**5. Create the plan**
 
 ```text
 > /trellis:plan team-kudos
 ```
 
-Translates the spec into technical decisions: architecture, technology choices specific to this feature, data access patterns, interface implementation details, file structure, error handling, and testing strategy. Produces `.specs/team-kudos/plan.md`.
+Before generating the plan, this skill automatically runs two pre-steps:
+
+- **Clarify** — scans the spec for implicit gaps across six categories (data ownership, permissions, privacy, UX intent, integration, edge cases). Resolves what it can from context, moves unresolvable items to §10 with reasoning.
+- **Compliance** — evaluates the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). For team kudos this would find no regulated data, but still produces `.specs/team-kudos/compliance.md` documenting that assessment.
+
+Then it translates the spec into technical decisions: architecture, technology choices specific to this feature, data access patterns, interface implementation details, file structure, error handling, and testing strategy. Produces `.specs/team-kudos/plan.md`.
 
 Review the plan. This is your last chance to adjust implementation details before they get decomposed into tasks.
 
-**8. Break into tasks**
-
-```text
-> /trellis:prep team-kudos
-```
-
-Decomposes the plan into phased, ordered, verifiable work items. Each task has a "do" field (what to build) and a "verify" field (how to confirm it's done). Produces `.specs/team-kudos/tasks.json`.
-
-**9. Implement**
+**6. Implement**
 
 ```text
 > /trellis:implement team-kudos
 ```
 
-Reads tasks.json, plan, spec, and guidelines. For each task: optionally writes tests (TDD), implements code, runs the check command, marks done or blocked. Judge review runs at the end for spec intent alignment.
+Since `tasks.json` doesn't exist yet, the implement skill automatically runs **prep** first — decomposing the plan into phased, ordered, verifiable work items. Each task has a "do" field (what to build) and a "verify" field (how to confirm it's done). Produces `.specs/team-kudos/tasks.json`.
+
+Then for each task: optionally writes tests (TDD), implements code, runs the check command, marks done or blocked. Judge review runs at the end for spec intent alignment.
+
+For large implementations, you can use Ralph mode to run each task in a fresh Docker container:
+
+```text
+> /trellis:implement team-kudos with ralph
+```

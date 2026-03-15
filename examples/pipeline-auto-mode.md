@@ -15,7 +15,7 @@ Technical constraints: Must integrate with existing user model. Cursor-based
   pagination for the feed (validated in sketch).
 ```
 
-The pipeline runs pitch → spec → clarify → compliance (skipped) → plan → prep without pausing. When it finishes, it presents:
+The pipeline runs four stages — pitch → spec → plan → implement — with clarify and compliance folded into the plan stage, and prep folded into implement. When it finishes, it presents:
 
 - A summary of all generated artifacts
 - A list of every `[AUTO]` decision it made, grouped by artifact
