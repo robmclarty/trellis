@@ -153,7 +153,8 @@ with open(sys.argv[2], 'w') as f:
 # Build docker run arguments as a string.
 # Bash 3.2 compatible — no readarray, no local -a with +=.
 build_docker_run_args() {
-  local args="-v $(pwd):/workspace -v ${AUTH_VOLUME}:/home/claude/.claude"
+  local args
+  args="-v $(pwd):/workspace -v ${AUTH_VOLUME}:/home/claude/.claude"
 
   # Mount host's Claude config into the container so it can find installed
   # plugins and settings. Plugin paths in installed_plugins.json are absolute
@@ -459,7 +460,7 @@ print(task['title'])
   if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
     # --- Check passed: mark done ---
     echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check.${RESET}"
-    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" done --iteration "$i" > /dev/null
+    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
     git add -A && git commit -m "ralph: task ${TASK_ID} done — ${TASK_TITLE}" 2>/dev/null || true
     echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
     echo ""
@@ -478,7 +479,7 @@ print(task['title'])
   # Re-run check after retry
   if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
     echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check (after retry).${RESET}"
-    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" done --iteration "$i" > /dev/null
+    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
     git add -A && git commit -m "ralph: task ${TASK_ID} done (retry) — ${TASK_TITLE}" 2>/dev/null || true
   else
     echo -e "${RED}${BOLD}✗ Task ${TASK_ID} still failing after retry. Marking blocked.${RESET}"
