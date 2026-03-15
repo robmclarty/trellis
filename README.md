@@ -19,15 +19,9 @@ A Claude Code plugin that bundles composable skills for spec-driven development.
 
 ## Cognitive sovereignty
 
-There is a growing trend among AI users: at some point, people stop choosing and start following whatever the LLM suggests. The tool that was supposed to augment human thinking quietly replaces it. Trellis is designed to resist this.
+Trellis is designed to resist a common failure mode in AI-assisted work: the human stops choosing and starts following whatever the LLM suggests. The pipeline moves deliberately from vague to specific, producing human-readable artifacts at each stage that you can audit, edit, and reshape before anything downstream consumes it. The LLM drafts; you decide. Your role shifts from writing every line to conducting the entire effort — but the decisions that matter are still yours.
 
-The pipeline moves deliberately from vague to specific, from high-level framing to concrete implementation details. At each stage — pitch, spec, clarify, compliance, plan, prep — you produce a human-readable artifact that you can audit, edit, and reshape before anything downstream consumes it. The LLM drafts; you decide.
-
-This matters because the artifacts are written in plain language, not code. You don't need to trace execution paths or parse diffs to understand what's being proposed. A pitch is a paragraph about a problem. A spec is a structured description of behavior. You can read them, disagree with them, and rewrite them — either by editing the markdown directly or by vibing with the LLM to refine its output. Every question Trellis asks during guidelines setup, every answer you give during a pipeline run, every small tweak you make to a spec section — these are the control surfaces that keep human intention in the driver's seat.
-
-Your role shifts, but it doesn't shrink. You are no longer the one writing every line of code — you are the one conducting the entire effort. Like a construction foreman who doesn't lay every brick but ensures the building matches the blueprint, or a conductor who doesn't play every instrument but shapes the performance, your job is to orchestrate the whole symphony, not just play one of its measures. The work is still yours. The vision is still yours. The decisions that matter are still yours.
-
-Trellis makes this practical by giving you meaningful checkpoints where your input actually changes the outcome. Skip them and the LLM will fill in the blanks with its best guess (every autonomous decision is tagged `[AUTO]` so you can find them). Engage with them and you steer generation toward your intent at every level of detail. The choice is always yours — and that's the point.
+Read more: [Cognitive Sovereignty](docs/cognitive-sovereignty.md)
 
 ## Install
 
@@ -57,7 +51,7 @@ These skills run in sequence. Each builds on the output of the previous one.
 - `/trellis:clarify`
   Review the spec for ambiguities across six categories and resolve them in place.
 - `/trellis:compliance`
-  Evaluate the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). Produces `.specs/<feature>/compliance.md`.
+  Evaluate the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). Produces `.specs/<feature>/compliance.md`. See [docs/compliance.md](docs/compliance.md).
 - `/trellis:plan`
   Translate the spec into concrete architecture, technology, and code decisions. Produces `.specs/<feature>/plan.md`.
 - `/trellis:prep`
@@ -68,7 +62,7 @@ These skills run in sequence. Each builds on the output of the previous one.
 - `/trellis:pipeline`
   Orchestrate the full pipeline from pitch through prep in one session. Supports interactive and automatic modes.
 - `/trellis:implement`
-  Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet.
+  Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet. See [docs/implementation-loop.md](docs/implementation-loop.md).
 - `/trellis:status`
   Show pipeline status for all features — which artifacts exist and what's ready for the next step.
 
