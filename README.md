@@ -1,5 +1,20 @@
 # Trellis
 
+```
+     sketch          pitch           spec            plan            tasks
+ :.............:  :.............:  :.............:  :.............:  :.............:
+ :       *   . :  : .   *   .   :  :       O     :  : O o O O O O :  : = = = = = = :
+ :    .        :  :   .  o   *  :  :   o   O     :  : O O O o O O :  : = = = = = = :
+ :    ()       :  : *   .o   o .:  :   o   O o   :  :             :  : = = = = = = :
+ :          -  :  : o  .o  O  * :  :   o O O O o :  : O O O O O O :  : = = = = = = :
+ :  o        . :  : o   O  O  o :  : o . O O . O :  : O O o O O O :  : = = = = = = :
+ : *   .     o :  : o  o.  .  O :  : O O O O O O :  :             :  : = = = = = = :
+ :   o     .   :  : .  oO  O  O :  : O O . O . O :  : O O O o O O :  : = = = = = = :
+ :  -.*  o     :  : O  .O  O  . :  : O O O . O O :  : O O O O O O :  : = = = = = = :
+ :.............:  :.............:  :.............:  :.............:  :.............:
+    explore          frame          define           decide           build
+```
+
 A Claude Code plugin that bundles composable skills for spec-driven development. Take a feature from problem framing through implementation using structured, repeatable phases.
 
 ## Cognitive sovereignty
