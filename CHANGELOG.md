@@ -2,6 +2,10 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.18
+
+- Rename `--max-iterations` flag to `--limit` in Ralph loop for clarity
+
 ## 0.7.17
 
 - Fix Docker platform mismatch that blocked all Ralph tasks on macOS hosts
