@@ -2,6 +2,14 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.17
+
+- Fix Docker platform mismatch that blocked all Ralph tasks on macOS hosts
+- Add anonymous volume overlays for dependency dirs (node_modules, vendor, .venv, target) to isolate container installs from host
+- Add `host_dep_sync()` to reinstall host dependencies when manifest files (package.json, requirements.txt) change
+- Harden builder, retry, and test-writer prompts to prohibit running install commands inside Docker
+- Add preflight warning when package.json exists but node_modules is missing
+
 ## 0.7.16
 
 - Add real-time progress visibility to Ralph loop via `status.json` and combined `output.log`
