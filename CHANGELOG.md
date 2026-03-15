@@ -2,6 +2,10 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.11
+
+- Fix prep skill skipping user questions when auto-invoked from build during run pipeline
+
 ## 0.7.10
 
 - Fix run skill auto-detecting feature names instead of asking the user when no argument is provided
