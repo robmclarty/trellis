@@ -2,6 +2,10 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.10
+
+- Fix run skill auto-detecting feature names instead of asking the user when no argument is provided
+
 ## 0.7.9
 
 - Add feature name conflict detection to run skill — resolve name before intake and offer resume/fresh/rename when a feature already exists
