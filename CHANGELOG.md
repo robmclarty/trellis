@@ -2,6 +2,15 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.7
+
+- Add compliance skill documentation explaining privacy checks and /plan integration
+- Add cognitive sovereignty essay on human decision-making in AI-assisted development
+- Replace README ASCII art with chaos-to-order mosaic visualizing the pipeline progression
+- Move examples to root directory and update for current API
+- Fix README discrepancies: skill count, agent list, hook details, workflow steps
+- Extract README examples into standalone docs
+
 ## 0.7.6
 
 - Rename plugincheck scripts to lint:plugin for consistency
