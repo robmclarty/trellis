@@ -1,6 +1,6 @@
 ---
 name: trellis:prep
-description: Prepare implementation by decomposing a plan into an ordered task breakdown at .specs/{feature}/tasks.json. Creates discrete, verifiable units of work organized in phases.
+description: Prepare implementation by decomposing a plan into an ordered task breakdown at .specs/{feature}/tasks.json. Use when a plan is ready and you need discrete, verifiable units of work organized in phases.
 allowed-tools: Read, Glob, Grep, Task
 ---
 

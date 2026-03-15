@@ -1,6 +1,6 @@
 ---
 name: trellis:pipeline
-description: Orchestrates the spec-driven pipeline (pitch → spec → plan → implement) with review gates between stages. Resumes from the last completed stage.
+description: Orchestrates the spec-driven pipeline (pitch → spec → plan → implement) with review gates between stages. Use when running the full feature pipeline or resuming from the last completed stage.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
