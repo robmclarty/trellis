@@ -1,21 +1,32 @@
-# Pipeline control: loop limits and resumption
+# Pipeline control: resumption and stage overrides
 
-## Loop limits
+## Resumption
 
-| Loop | Max iterations | On exceed (interactive) | On exceed (auto) |
-|------|---------------|------------------------|-------------------|
-| Clarify → Spec | 3 | Pause, present issues to user | Move to §10 as `[AUTO]`, continue |
-| Compliance → Spec | 2 | Pause, present issues to user | Document as residual risks, continue |
-| User review → any stage | No limit | User is always in control | N/A (no pauses) |
+The pipeline is resumable across sessions. Each stage writes its artifact to disk, so the pipeline detects which artifacts exist and resumes from the next incomplete stage:
 
-## Interruption and resumption
+- No `pitch.md` → resume at Stage 1 (Pitch)
+- `pitch.md` exists, no `spec.md` → resume at Stage 2 (Spec)
+- `spec.md` exists, no `plan.md` → resume at Stage 3 (Plan)
+- `plan.md` exists → resume at Stage 4 (Implement)
 
-If the user stops the pipeline mid-run (or the conversation ends), the pipeline is resumable. Because each stage writes its artifact to disk, the pipeline can detect which artifacts exist and resume from the next incomplete stage:
+When resuming, tell the user where you're picking up and confirm they want to continue from that point.
 
-- `pitch.md` exists but not `spec.md` → resume at Stage 2
-- `spec.md` exists but has `[? ...]` markers → resume at Stage 3 (clarify)
-- `spec.md` is clean, no `compliance.md` and compliance is needed → resume at Stage 5
-- `compliance.md` exists but not `plan.md` → resume at Stage 6
-- `plan.md` exists but not `tasks.json` → resume at Stage 7
+## Stage overrides
 
-When resuming, tell the user where you're picking up and confirm they want to continue from that point. If the original run was in auto mode, ask if they want to continue in auto mode or switch to interactive.
+The user can force the pipeline to restart at a specific stage:
+
+- `/pipeline pitch` — Restart at pitch regardless of existing artifacts
+- `/pipeline spec` — Restart at spec
+- `/pipeline plan` — Restart at plan
+
+Overrides do not delete downstream artifacts. The stage's generation will overwrite its own artifact; downstream artifacts remain until their stages re-run.
+
+## Review gates
+
+Each document stage (pitch, spec, plan) presents a consistent gate after generation:
+
+- **approve** — Continue to next stage
+- **edit** — Pipeline ends; user edits the file and re-invokes later
+- **redo** — Regenerate the document (max 3 redos per stage)
+
+Stage 4 (implement) uses a simpler yes/no confirmation since it's a write-heavy operation.

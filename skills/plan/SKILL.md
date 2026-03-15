@@ -21,6 +21,27 @@ Create a technical implementation plan at `.specs/<feature-name>/plan.md`.
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py plan <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
+## Pre-steps: Clarify and Compliance
+
+Before generating the plan, ensure the spec is ready. These steps run automatically — the user does not need to invoke them separately.
+
+### Step A: Clarify
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract-markers.py <specsDir>/<feature-name>/spec.md` to check for unresolved `[? ...]` markers.
+
+- **If zero markers:** Skip clarify — the spec is already clean.
+- **If markers exist:** Run the `/clarify` skill against the spec. Since clarify runs in a forked context (isolated, no user interaction), it resolves what it can and moves user-judgment items to §10 (Open Questions). Re-check markers after each pass. **Loop limit: 3 passes.** After 3, move any remaining markers to §10 and continue.
+
+### Step B: Compliance (conditional)
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` and check the `complianceNeeded` and `complianceCompleted` fields.
+
+- **If `complianceNeeded` is false:** Skip compliance.
+- **If `complianceCompleted` is true** (compliance.md already exists): Skip compliance.
+- **Otherwise:** Run the `/compliance` skill. Since compliance runs in a forked context, ensure any user-provided regulation context is embedded in the spec's §9 (Constraints) before invoking. If compliance recommends spec changes, apply them, re-run clarify on modified sections, then re-run compliance. **Loop limit: 2.** After 2 loops, document remaining gaps as residual risks in compliance.md and continue.
+
+After pre-steps complete, proceed to plan generation below.
+
 ## What to ask the user
 
 If the user runs `/plan` without additional context, check if the prerequisites exist. Then ask:

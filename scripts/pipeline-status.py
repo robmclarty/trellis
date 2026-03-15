@@ -26,14 +26,13 @@ def resolve_specs_dir():
         return ".specs"
 
 
-STAGE_ORDER = ["pitch", "spec", "clarify", "compliance", "plan", "prep"]
+STAGE_ORDER = ["pitch", "spec", "plan", "implement-ready"]
 
 ARTIFACT_MAP = {
     "pitch": "pitch.md",
     "spec": "spec.md",
-    "compliance": "compliance.md",
     "plan": "plan.md",
-    "prep": "tasks.json",
+    "implement-ready": "tasks.json",
 }
 
 MARKER_RE = re.compile(r"\[\?\s*\w+:")
@@ -76,29 +75,17 @@ def analyze_feature(feature_dir, feature_name):
         if os.path.isfile(path):
             completed.append(stage)
 
-    # Clarify is complete if spec exists and has no markers
+    # Advisory fields — used by the plan skill to decide pre-steps
     spec_clean = check_spec_clean(spec_path) if "spec" in completed else True
-    if "spec" in completed and spec_clean and "clarify" not in completed:
-        completed.append("clarify")
+    compliance_needed = check_compliance_needed(spec_path) if "spec" in completed else False
+    compliance_completed = os.path.isfile(os.path.join(feature_dir, "compliance.md"))
 
-    # Determine next stage
+    # Determine next stage — simple linear walk
     next_stage = None
     for stage in STAGE_ORDER:
-        if stage == "clarify":
-            if "spec" in completed and not spec_clean:
-                next_stage = "clarify"
-                break
-            continue
-        if stage == "compliance":
-            if stage not in completed and check_compliance_needed(spec_path):
-                next_stage = "compliance"
-                break
-            continue
         if stage not in completed:
             next_stage = stage
             break
-
-    compliance_needed = check_compliance_needed(spec_path) if "spec" in completed else False
 
     return {
         "name": feature_name,
@@ -106,6 +93,7 @@ def analyze_feature(feature_dir, feature_name):
         "nextStage": next_stage,
         "specClean": spec_clean,
         "complianceNeeded": compliance_needed,
+        "complianceCompleted": compliance_completed,
     }
 
 

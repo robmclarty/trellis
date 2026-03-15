@@ -362,7 +362,7 @@ class TestPipelineStatus(unittest.TestCase):
         self.assertEqual(len(data["features"]), 1)
         self.assertEqual(data["features"][0]["name"], "alpha")
 
-    def test_clarify_auto_complete(self):
+    def test_spec_clean_advisory_field(self):
         specs = os.path.join(self.tmp, ".specs")
         feat = os.path.join(specs, "clean-feature")
         os.makedirs(feat)
@@ -370,7 +370,9 @@ class TestPipelineStatus(unittest.TestCase):
             f.write("# Clean spec\nNo markers at all.\n")
         rc, data, _ = run_script("pipeline-status.py", cwd=self.tmp)
         feature = data["features"][0]
-        self.assertIn("clarify", feature["completedStages"])
+        self.assertTrue(feature["specClean"])
+        # clarify is no longer a standalone stage
+        self.assertNotIn("clarify", feature["completedStages"])
 
     def test_next_stage_determination(self):
         specs = os.path.join(self.tmp, ".specs")
@@ -381,6 +383,31 @@ class TestPipelineStatus(unittest.TestCase):
         rc, data, _ = run_script("pipeline-status.py", cwd=self.tmp)
         feature = data["features"][0]
         self.assertEqual(feature["nextStage"], "spec")
+
+    def test_next_stage_after_spec_is_plan(self):
+        specs = os.path.join(self.tmp, ".specs")
+        feat = os.path.join(specs, "mid-feature")
+        os.makedirs(feat)
+        with open(os.path.join(feat, "pitch.md"), "w") as f:
+            f.write("# Pitch")
+        with open(os.path.join(feat, "spec.md"), "w") as f:
+            f.write("# Spec\nClean spec.\n")
+        rc, data, _ = run_script("pipeline-status.py", cwd=self.tmp)
+        feature = data["features"][0]
+        self.assertEqual(feature["nextStage"], "plan")
+
+    def test_compliance_completed_field(self):
+        specs = os.path.join(self.tmp, ".specs")
+        feat = os.path.join(specs, "compliant-feature")
+        os.makedirs(feat)
+        with open(os.path.join(feat, "spec.md"), "w") as f:
+            f.write("# Spec\nStores PII.\n")
+        with open(os.path.join(feat, "compliance.md"), "w") as f:
+            f.write("# Compliance\nReviewed.\n")
+        rc, data, _ = run_script("pipeline-status.py", cwd=self.tmp)
+        feature = data["features"][0]
+        self.assertTrue(feature["complianceCompleted"])
+        self.assertTrue(feature["complianceNeeded"])
 
     def test_state_dir_listed_as_feature(self):
         specs = os.path.join(self.tmp, ".specs")
