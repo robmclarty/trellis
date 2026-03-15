@@ -106,6 +106,10 @@ ensure_auth_volume() {
 # Previous container runs leave behind plugins/, settings.json, and projects/
 # inside the volume. Stale files can cause plugin resolution failures if
 # Claude Code reads the volume's copy before the overlay takes effect.
+#
+# IMPORTANT: Only remove files that are bind-mounted fresh from the host.
+# Do NOT remove directories that may contain OAuth tokens stored by
+# `claude login` inside Docker (e.g., statsig/, .credentials, etc.).
 clean_auth_volume() {
   echo -e "${CYAN}Cleaning stale config from auth volume...${RESET}"
   docker run --rm \
@@ -116,9 +120,7 @@ clean_auth_volume() {
       rm -rf /home/claude/.claude/plugins
       rm -f  /home/claude/.claude/settings.json
       rm -rf /home/claude/.claude/projects
-      rm -rf /home/claude/.claude/session-env
       rm -rf /home/claude/.claude/shell-snapshots
-      rm -rf /home/claude/.claude/cache
       rm -rf /home/claude/.claude/backups
       rm -f  /home/claude/.claude/mcp-needs-auth-cache.json
     ' 2>/dev/null || true
@@ -311,12 +313,16 @@ check_auth() {
 
   echo -e "${CYAN}Checking authentication in Docker volume...${RESET}"
 
-  # Use exit code instead of grepping output — the old grep for
-  # "error|unauthorized|login|authenticate" produced false positives
-  # because normal OAuth startup messages contain those words.
+  # Use the same Docker args as actual task runs so the environment matches.
+  # A bare invocation (auth volume only) can fail due to missing plugins or
+  # settings, producing false auth failures.
+  local run_args
+  run_args=$(build_docker_run_args)
+
   local auth_output
+  # shellcheck disable=SC2086  # intentional word splitting of run_args
   auth_output=$(echo "say ok" | docker run --rm -i \
-    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    $run_args \
     "$IMAGE_NAME" \
     -p --dangerously-skip-permissions 2>&1) && true
   local auth_exit=$?
@@ -335,9 +341,11 @@ check_auth() {
   echo -e "${GREEN}OAuth session verified in ${AUTH_VOLUME} volume.${RESET}"
 }
 
-check_auth
-clean_auth_volume
+# Order matters: generate settings and clean stale files BEFORE auth check,
+# so check_auth runs with the same environment as actual task runs.
 generate_container_settings
+clean_auth_volume
+check_auth
 
 # --- Helpers ---
 
