@@ -26,13 +26,7 @@ This skill operates in two modes depending on whether `.specs/guidelines.md` alr
 
 ### Create mode (no existing guidelines)
 
-If `.specs/guidelines.md` does not exist, this is a fresh project.
-
-#### Step 0: Initialize Trellis
-
-Run the `/trellis:init` skill to ensure `trellis.json` and the specs directory exist. Use the configured `specsDir` for all subsequent steps.
-
-#### Step 1: Ask the user
+If `.specs/guidelines.md` does not exist, this is a fresh project. Ask the user:
 
 1. What is the tech stack? (language, runtime, framework, core libraries)
 2. What architectural style do they prefer? (functional, OOP, procedural, hybrid)

@@ -1,6 +1,6 @@
 ---
 name: trellis:init
-description: Initialize a project for Trellis by creating trellis.json and the specs directory. Use when setting up Trellis for the first time.
+description: Initialize a project for Trellis by creating trellis.json, the specs directory, and guidelines. Use when setting up Trellis for the first time.
 allowed-tools: Read, Write, Bash(mkdir:*)
 ---
 
@@ -10,11 +10,10 @@ allowed-tools: Read, Write, Bash(mkdir:*)
 
 - "initialize trellis", "set up trellis", "init"
 - First time using Trellis in a project
-- Called automatically by `/trellis:guidelines` in create mode
 
-Initialize a project for Trellis by creating `trellis.json` and the specs directory.
+Initialize a project for Trellis by creating `trellis.json` and the specs directory, then run `/trellis:guidelines` to establish project guidelines.
 
-**Recommended effort: minimal.** Single question, two file operations.
+**Recommended effort: minimal.** Single question, two file operations, then hand off to guidelines.
 
 ## Behavior
 
@@ -43,3 +42,7 @@ Read `specsDir` from it. Confirm to the user: "Trellis is already initialized â€
 Create the specs directory if it doesn't exist.
 
 Do not re-ask or overwrite.
+
+## Next step
+
+After `trellis.json` and the specs directory are in place, run the `/trellis:guidelines` skill to create or update project guidelines.
