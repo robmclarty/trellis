@@ -303,6 +303,16 @@ for arg in "$@"; do
 done
 
 LOG_DIR="logs/ralph-${FEATURE}"
+COMBINED_LOG="${LOG_DIR}/output.log"
+STATUS_FILE="${LOG_DIR}/status.json"
+START_TIME=0
+CURRENT_TASK_ID=""
+CURRENT_TASK_TITLE=""
+TASK_INDEX=0
+DONE_COUNT=0
+PENDING_COUNT=0
+BLOCKED_COUNT=0
+TOTAL_COUNT=0
 
 # Resolve specs dir from trellis.json (default: .specs)
 SPECS_DIR=$(python3 -c "
@@ -395,6 +405,90 @@ check_auth
 
 # --- Helpers ---
 
+# Refresh task count variables from tasks.json.
+refresh_counts() {
+  eval "$(python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+tasks = data['tasks']
+print(f'DONE_COUNT={sum(1 for t in tasks if t[\"status\"]==\"done\")}')
+print(f'PENDING_COUNT={sum(1 for t in tasks if t[\"status\"]==\"pending\")}')
+print(f'BLOCKED_COUNT={sum(1 for t in tasks if t[\"status\"]==\"blocked\")}')
+print(f'TOTAL_COUNT={len(tasks)}')
+")"
+}
+
+# Compute the 1-based index of the current task among all tasks.
+compute_task_index() {
+  TASK_INDEX=$(CI_TASKS_JSON="$TASKS_JSON" CI_TASK_ID="$CURRENT_TASK_ID" python3 -c "
+import json, os
+with open(os.environ['CI_TASKS_JSON']) as f:
+    data = json.load(f)
+tid = os.environ['CI_TASK_ID']
+for i, t in enumerate(data['tasks'], 1):
+    if t['id'] == tid:
+        print(i)
+        break
+else:
+    print(0)
+")
+}
+
+# Atomically write status.json for monitoring.
+# Arguments: $1=phase (starting|tests|impl|check|retry|judge|complete|crashed)
+# Uses environment variables to pass values safely to Python (avoids shell
+# injection from task titles containing quotes or special characters).
+write_status() {
+  local phase="$1"
+  local finished="${2:-False}"
+  local exit_code="${3:-None}"
+  local tmp_status="${LOG_DIR}/.status.json.tmp"
+  WS_FEATURE="$FEATURE" \
+  WS_START_TIME="$START_TIME" \
+  WS_TASK_ID="$CURRENT_TASK_ID" \
+  WS_TASK_TITLE="$CURRENT_TASK_TITLE" \
+  WS_PHASE="$phase" \
+  WS_TASK_INDEX="$TASK_INDEX" \
+  WS_DONE="$DONE_COUNT" \
+  WS_PENDING="$PENDING_COUNT" \
+  WS_BLOCKED="$BLOCKED_COUNT" \
+  WS_TOTAL="$TOTAL_COUNT" \
+  WS_FINISHED="$finished" \
+  WS_EXIT_CODE="$exit_code" \
+  WS_TMP="$tmp_status" \
+  python3 -c "
+import json, time, os
+e = os.environ
+start = int(e['WS_START_TIME'])
+exit_code = e['WS_EXIT_CODE']
+data = {
+    'feature': e['WS_FEATURE'],
+    'startTime': start,
+    'elapsed': int(time.time()) - start,
+    'currentTaskId': e['WS_TASK_ID'],
+    'currentTaskTitle': e['WS_TASK_TITLE'],
+    'currentPhase': e['WS_PHASE'],
+    'taskIndex': int(e['WS_TASK_INDEX']),
+    'done': int(e['WS_DONE']),
+    'pending': int(e['WS_PENDING']),
+    'blocked': int(e['WS_BLOCKED']),
+    'total': int(e['WS_TOTAL']),
+    'finished': e['WS_FINISHED'] == 'True',
+    'exitCode': None if exit_code == 'None' else int(exit_code)
+}
+with open(e['WS_TMP'], 'w') as f:
+    json.dump(data, f, indent=2)
+    f.write('\n')
+" && mv "$tmp_status" "$STATUS_FILE"
+}
+
+# Write a phase marker to the combined output log.
+log_phase() {
+  local label="$1"
+  echo "═══ [$(date +%H:%M:%S)] ${label} ═══" >> "$COMBINED_LOG"
+}
+
 # Get the next pending task ID from tasks.json.
 # Returns empty string if no pending tasks remain.
 get_next_pending_task() {
@@ -438,13 +532,15 @@ run_in_docker() {
       echo "$prompt" | docker run --rm -i \
         $run_args \
         "$IMAGE_NAME" \
-        -p --dangerously-skip-permissions 2>&1 | tee "$log_file"
+        -p --dangerously-skip-permissions 2>&1 | tee "$log_file" | tee -a "$COMBINED_LOG"
       ;;
     *)
       echo "$prompt" | docker run --rm -i \
         $run_args \
         "$IMAGE_NAME" \
         -p --dangerously-skip-permissions > "$log_file" 2>&1
+      # Append to combined log for monitoring regardless of output mode
+      cat "$log_file" >> "$COMBINED_LOG"
       if [[ "$OUTPUT_MODE" == "tail" ]]; then
         echo -e "${CYAN}--- Last 50 lines of ${label} ---${RESET}"
         tail -50 "$log_file"
@@ -456,8 +552,13 @@ run_in_docker() {
 
 # shellcheck disable=SC2329  # invoked indirectly via trap
 cleanup() {
+  local exit_code=$?
   rm -f "$CONTAINER_SETTINGS"
   rm -f "$DOCKER_CLAUDE_JSON"
+  # Write crashed status if ralph exits abnormally and START_TIME was set
+  if [[ $exit_code -ne 0 ]] && [[ "$START_TIME" -ne 0 ]] && [[ -d "$LOG_DIR" ]]; then
+    write_status "crashed" "True" "$exit_code" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT
 
@@ -466,6 +567,12 @@ trap cleanup EXIT
 # which ran one full build skill invocation per iteration (processing
 # multiple criteria). Here, each task gets its own Docker invocations for
 # test-writing and implementation, with check running on the host between.
+
+START_TIME=$(date +%s)
+> "$COMBINED_LOG"
+
+refresh_counts
+write_status "starting"
 
 echo -e "${CYAN}${BOLD}Starting ralph loop for ${FEATURE}${RESET}"
 echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
@@ -480,6 +587,7 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
     break
   fi
 
+  CURRENT_TASK_ID="$TASK_ID"
   TASK_TITLE=$(python3 -c "
 import json
 with open('$TASKS_JSON') as f:
@@ -487,8 +595,12 @@ with open('$TASKS_JSON') as f:
 task = next(t for t in data['tasks'] if t['id'] == '$TASK_ID')
 print(task['title'])
 ")
+  CURRENT_TASK_TITLE="$TASK_TITLE"
+  compute_task_index
+  refresh_counts
 
   echo -e "${CYAN}${BOLD}═══ Task ${TASK_ID}: ${TASK_TITLE} (iteration ${i}/${MAX_ITERATIONS}) ═══${RESET}"
+  log_phase "Task ${TASK_ID}: ${TASK_TITLE} (${TASK_INDEX}/${TOTAL_COUNT})"
 
   # --- Step 1: Test writer (conditional) ---
   # Deterministic heuristic decides if this task warrants test-first development.
@@ -498,6 +610,8 @@ print(task['title'])
 
   if [[ "$NEEDS_TESTS" == "True" ]]; then
     echo -e "${CYAN}Writing tests for task ${TASK_ID}...${RESET}"
+    write_status "tests"
+    log_phase "Task ${TASK_ID}: test-writer"
     PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" test-writer "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
     run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-tests.log" "test-writer ${TASK_ID}"
     echo -e "${GREEN}Test-writer complete for ${TASK_ID}.${RESET}"
@@ -510,6 +624,8 @@ print(task['title'])
   # criteria, the plan, guidelines, and what's already been built.
 
   echo -e "${CYAN}Building task ${TASK_ID}...${RESET}"
+  write_status "impl"
+  log_phase "Task ${TASK_ID}: builder"
   PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
   run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-impl.log" "builder ${TASK_ID}"
 
@@ -520,12 +636,17 @@ print(task['title'])
 
   CHECK_OUTPUT_FILE="${LOG_DIR}/task-${TASK_ID}-check.log"
   echo -e "${CYAN}Running check: ${CHECK_CMD}${RESET}"
+  write_status "check"
+  log_phase "Task ${TASK_ID}: check"
 
   if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
     # --- Check passed: mark done ---
     echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check.${RESET}"
+    log_phase "Task ${TASK_ID}: PASSED"
     python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
     git add -A && git commit -m "ralph: task ${TASK_ID} done — ${TASK_TITLE}" 2>/dev/null || true
+    refresh_counts
+    write_status "check"
     echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
     echo ""
     continue
@@ -536,6 +657,8 @@ print(task['title'])
   # prompt is focused: fix ONLY the errors shown, don't refactor or add features.
 
   echo -e "${YELLOW}Check failed for ${TASK_ID}. Retrying...${RESET}"
+  write_status "retry"
+  log_phase "Task ${TASK_ID}: retry"
 
   PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder-retry "$FEATURE" --task-id "$TASK_ID" --check-output "$CHECK_OUTPUT_FILE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
   run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-retry.log" "retry ${TASK_ID}"
@@ -543,10 +666,12 @@ print(task['title'])
   # Re-run check after retry
   if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
     echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check (after retry).${RESET}"
+    log_phase "Task ${TASK_ID}: PASSED (retry)"
     python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
     git add -A && git commit -m "ralph: task ${TASK_ID} done (retry) — ${TASK_TITLE}" 2>/dev/null || true
   else
     echo -e "${RED}${BOLD}✗ Task ${TASK_ID} still failing after retry. Marking blocked.${RESET}"
+    log_phase "Task ${TASK_ID}: BLOCKED"
     if [[ "$OUTPUT_MODE" != "stream" ]]; then
       echo -e "${CYAN}--- Check output ---${RESET}"
       tail -20 "$CHECK_OUTPUT_FILE"
@@ -556,6 +681,8 @@ print(task['title'])
     git add -A && git commit -m "ralph: task ${TASK_ID} blocked — ${TASK_TITLE}" 2>/dev/null || true
   fi
 
+  refresh_counts
+  write_status "check"
   echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
   echo ""
 
@@ -591,6 +718,12 @@ fi
 
 if [[ "$JUDGE_ENABLED" == "True" ]]; then
   echo -e "${CYAN}${BOLD}═══ Judge Review ═══${RESET}"
+  CURRENT_TASK_ID=""
+  CURRENT_TASK_TITLE=""
+  TASK_INDEX=0
+  refresh_counts
+  write_status "judge"
+  log_phase "Judge Review"
   PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" judge "$FEATURE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
   run_in_docker "$PROMPT" "${LOG_DIR}/judge.log" "judge"
 
@@ -603,6 +736,9 @@ else
 fi
 
 # --- Final summary ---
+
+refresh_counts
+write_status "complete" "True" "0"
 
 echo ""
 echo -e "${CYAN}${BOLD}═══ Ralph loop complete ═══${RESET}"

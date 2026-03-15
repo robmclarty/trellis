@@ -47,8 +47,32 @@ Optional flags (only meaningful in ralph mode):
 If `ralphMode == "ralph"`:
 
 1. Verify the `check` field in tasks.json is non-empty. If empty, abort with: "Ralph mode requires a check command. Set it in guidelines.md or run `/trellis:build <feature>` interactively first."
-2. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name> [max-iterations] [flags]`
-3. **STOP HERE.** The loop script handles everything from here. It does NOT invoke this skill — it assembles prompts from templates and sends them to `claude -p` directly. See `references/external-integrations.md` for details.
+2. Launch ralph in the background:
+   ```
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name> [max-iterations] [flags]
+   ```
+   Use `run_in_background: true` on the Bash tool.
+
+3. **Enter monitoring loop.** Ralph writes progress to `logs/ralph-<feature>/status.json` and output to `logs/ralph-<feature>/output.log`. Poll every 60 seconds:
+
+   a. Read `logs/ralph-<feature>/status.json`. If the file does not exist yet, ralph is still starting up — wait and retry.
+   b. Display a compact progress block (no extra commentary):
+      ```
+      Ralph: <feature> | <Xm Ys> elapsed
+      Task <index>/<total> (<id>): <title> [<phase>]
+      Done: <N> | Blocked: <N> | Pending: <N>
+      ```
+   c. Read the last 10 lines of `logs/ralph-<feature>/output.log` using `tail -10` and display them in a fenced code block labeled "Recent output".
+   d. If `status.json` shows `"finished": true`, exit the monitoring loop.
+   e. If the background process is no longer running (check via TaskOutput) AND `status.json` does not show `"finished": true`, assume ralph crashed. Display the last 30 lines of `output.log` and report the failure.
+   f. Sleep 60 seconds between polls using the Bash tool.
+
+4. **Final summary.** When ralph finishes:
+   - Read final `status.json` for exit code and counts.
+   - Display done/blocked/pending totals.
+   - If any tasks are blocked, list them with IDs and titles from tasks.json.
+   - If the judge ran, mention the verdict is in `logs/ralph-<feature>/judge.log`.
+   - If `exitCode` is non-zero, show the last 30 lines of `output.log`.
 
 If `ralphMode == "off"`: Proceed to the execution loop below.
 

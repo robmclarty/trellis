@@ -65,6 +65,32 @@ def check_compliance_needed(spec_path):
         return False
 
 
+def check_ralph_status(feature_name):
+    """Check for an active or completed ralph run."""
+    status_path = os.path.join("logs", f"ralph-{feature_name}", "status.json")
+    if not os.path.isfile(status_path):
+        return None
+    try:
+        with open(status_path) as f:
+            data = json.load(f)
+        return {
+            "active": not data.get("finished", False),
+            "startTime": data.get("startTime", 0),
+            "elapsed": data.get("elapsed", 0),
+            "currentTaskId": data.get("currentTaskId", ""),
+            "currentPhase": data.get("currentPhase", ""),
+            "taskIndex": data.get("taskIndex", 0),
+            "done": data.get("done", 0),
+            "total": data.get("total", 0),
+            "blocked": data.get("blocked", 0),
+            "pending": data.get("pending", 0),
+            "finished": data.get("finished", False),
+            "exitCode": data.get("exitCode"),
+        }
+    except (json.JSONDecodeError, KeyError):
+        return None
+
+
 def analyze_feature(feature_dir, feature_name):
     """Analyze a single feature directory."""
     completed = []
@@ -87,6 +113,9 @@ def analyze_feature(feature_dir, feature_name):
             next_stage = stage
             break
 
+    # Check for ralph run status
+    ralph_status = check_ralph_status(feature_name)
+
     return {
         "name": feature_name,
         "completedStages": sorted(completed, key=lambda s: STAGE_ORDER.index(s) if s in STAGE_ORDER else 99),
@@ -94,6 +123,7 @@ def analyze_feature(feature_dir, feature_name):
         "specClean": spec_clean,
         "complianceNeeded": compliance_needed,
         "complianceCompleted": compliance_completed,
+        "ralphStatus": ralph_status,
     }
 
 
