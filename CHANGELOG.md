@@ -2,6 +2,13 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.8
+
+- Rename pipeline skill to run for shorter, more intuitive invocation (`/trellis:run`)
+- Rename implement skill to build to read naturally in the pipeline flow
+- Add init skill for project initialization; init now calls guidelines automatically
+- Flip init/guidelines relationship so init is the entry point
+
 ## 0.7.7
 
 - Add compliance skill documentation explaining privacy checks and /plan integration
