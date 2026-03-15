@@ -32,7 +32,7 @@ If the user runs `/prep` without additional context:
 1. Are there any ordering constraints beyond what the plan implies? (e.g., "I need the API working before the MCP layer so I can demo it")
 2. Should tasks be sized for a human developer or for an AI coding agent? (This affects granularity. Agent tasks can be smaller and more mechanical. Human tasks should be more self-contained.)
 
-If invoked automatically from `/trellis:build` (no user present), skip questions and use defaults (agent-sized tasks, plan-implied ordering).
+Always ask these questions, even when invoked automatically from `/trellis:build` — the user is present and should have the chance to provide input.
 
 ## Generation
 
