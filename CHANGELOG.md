@@ -2,6 +2,12 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.14
+
+- Always rebuild Ralph Docker image with daily cache bust to prevent stale Claude Code versions
+- Persist OAuth token (`~/.claude.json`) into auth volume during `--login` so it survives container exit
+- Mount Docker-persisted OAuth token during task runs instead of host's keychain-backed copy
+
 ## 0.7.13
 
 - Fix Ralph auth check using bare Docker invocation instead of full docker args, causing false auth failures
