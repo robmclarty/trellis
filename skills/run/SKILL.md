@@ -33,6 +33,8 @@ Determine the feature name. If provided as an argument (e.g., `/run my-feature` 
 
 > **What's the feature name?** (kebab-case, becomes the folder name under the specs directory)
 
+**Do NOT search for or auto-detect existing feature directories.** The feature name must come from the user's argument or by asking them directly. Do not scan the specs directory to find features — wait for the user to provide a name.
+
 Once the feature name is known, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` to check whether the feature directory already exists and which artifacts are present.
 
 ### New feature (no existing directory)
