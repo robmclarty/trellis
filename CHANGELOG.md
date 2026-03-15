@@ -2,6 +2,13 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.16
+
+- Add real-time progress visibility to Ralph loop via `status.json` and combined `output.log`
+- Build skill now polls ralph every 60s showing elapsed time, current task, and recent output
+- `/trellis:status` and session startup display active ralph progress inline
+- Use environment variables in `write_status()` to prevent shell injection from task titles
+
 ## 0.7.15
 
 - Fix Docker volume ownership mismatch that silently broke Ralph auth persistence
