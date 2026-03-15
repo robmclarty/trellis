@@ -14,12 +14,14 @@ Sub-agents do NOT share context with each other or with the main agent's convers
 The test-writer runs for each task where the `verify` field describes behavioral expectations. Use the `should-write-tests.py` script for deterministic classification, or evaluate manually:
 
 **Spawn for:**
+
 - Behavioral criteria: "rejects invalid input", "returns error when..."
 - Edge cases: boundaries, limits, empty inputs, concurrent access
 - Stateful logic: state transitions, expiration, deactivation
 - Permission logic: different behavior by role
 
 **Skip for:**
+
 - Structural criteria: "file exists", "scaffold created", "config set"
 - Compilation checks: "compiles clean", "no type errors"
 - Schema matching: "schema matches spec exactly"

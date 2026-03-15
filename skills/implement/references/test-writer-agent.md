@@ -43,6 +43,7 @@ In ralph mode, the loop script assembles this via `assemble-prompt.py test-write
 ## Isolation
 
 The test-writer runs in an isolated context. It does NOT see:
+
 - The main conversation history
 - Implementation code (it doesn't exist yet)
 - Prior test files

@@ -35,6 +35,7 @@ The single file serving as both task definition and execution state. Generated b
 ```
 
 Key fields:
+
 - **check** — The CLI command chain that must exit 0 for code to be correct. Comes from guidelines.md.
 - **status** — `pending`, `done`, or `blocked`. Updated in-place by `update-tasks.py`.
 - **judge** — Whether to run the judge agent at the end (default true).
@@ -56,6 +57,7 @@ The tests **must fail** initially. That's the point — they define the target. 
 ### Step 2: Implementation
 
 The implementor receives the full task context:
+
 - What to build (`do` field)
 - Acceptance criteria (`verify` field)
 - Architectural guidance (plan.md)
@@ -85,6 +87,7 @@ The `&&` chain provides stop-on-failure for free — if lint fails, tests don't 
 After all tasks complete (or all remaining are blocked), the judge agent runs once. It evaluates **intent alignment**: did you build what the spec asked for, not just what the tasks described?
 
 The judge receives:
+
 - The full spec
 - All tasks with their status
 - A git diff stat of changes made
@@ -96,6 +99,7 @@ The judge is default-on. Opt out with `--no-judge`.
 `/trellis:implement <feature>`
 
 The SKILL.md orchestrates within the user's conversation:
+
 1. Pre-flight: read tasks.json, validate prerequisites
 2. For each pending task: spawn test-writer agent → implement → run check → update tasks.json
 3. After all tasks: spawn judge agent
@@ -128,6 +132,7 @@ Each Docker invocation gets a fresh context window. The LLM receives a fully-bak
 ### Authentication
 
 Two modes, auto-detected:
+
 - **API key** — Set `ANTHROPIC_API_KEY` env var.
 - **OAuth/subscription** — Run `ralph-loop.sh --login` once. Credentials stored in a Docker volume and reused across tasks.
 

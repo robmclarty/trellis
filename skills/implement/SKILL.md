@@ -99,6 +99,7 @@ After each task, write the updated tasks.json to disk. This is the resume point 
 After all tasks are processed (unless `--no-judge` was passed):
 
 Spawn the judge agent with:
+
 - `spec.md` — the full specification
 - `tasks.json` — showing which tasks are done, blocked, or pending
 - `git diff --stat` — summary of all changes made
