@@ -1,5 +1,5 @@
 You are implementing a single task in a software project. Write the code described below.
-Do NOT run check commands, update state files, or make git commits. Just write the code and exit.
+Do NOT run check commands, install dependencies (no npm install, pip install, cargo build, etc.), update state files, or make git commits. Just write the code and exit.
 
 ## Your Task
 {{task_id}}: {{task_title}}

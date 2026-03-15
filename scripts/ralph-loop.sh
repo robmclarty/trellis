@@ -177,6 +177,19 @@ build_docker_run_args() {
   local args
   args="-v $(pwd):/workspace -v ${AUTH_VOLUME}:/home/claude/.claude"
 
+  # Overlay dependency directories with anonymous volumes to prevent
+  # platform-specific binaries from contaminating the host filesystem.
+  # The builder runs on Linux; the check command runs on the host (macOS).
+  # Without this, `npm install` inside Docker writes Linux binaries into
+  # the bind-mounted node_modules, breaking the host-side check.
+  local project_dir
+  project_dir="$(pwd)"
+  for dep_dir in node_modules vendor .venv target; do
+    if [[ -d "${project_dir}/${dep_dir}" ]]; then
+      args="$args -v /workspace/${dep_dir}"
+    fi
+  done
+
   # Mount host's Claude config into the container so it can find installed
   # plugins and settings. Plugin paths in installed_plugins.json are absolute
   # (e.g., /Users/alice/.claude/plugins/cache/...), so we mount the host's
@@ -349,6 +362,11 @@ if [[ -z "$CHECK_CMD" ]]; then
   exit 1
 fi
 
+# Warn if dependency directories are missing — the check command will likely fail.
+if [[ -f "package.json" ]] && [[ ! -d "node_modules" ]]; then
+  echo -e "${YELLOW}Warning: package.json found but node_modules/ missing. Run 'npm install' first.${RESET}"
+fi
+
 echo -e "${CYAN}Feature:  ${BOLD}${FEATURE}${RESET}"
 echo -e "${CYAN}Check:    ${CHECK_CMD}${RESET}"
 echo -e "${CYAN}Max iter: ${MAX_ITERATIONS}${RESET}"
@@ -433,6 +451,23 @@ for i, t in enumerate(data['tasks'], 1):
 else:
     print(0)
 ")
+}
+
+# Reinstall host dependencies if the builder modified manifest files.
+# The anonymous volume overlay means Docker's npm install didn't affect the
+# host, so we must sync here when new dependencies were added.
+host_dep_sync() {
+  local changed_files
+  changed_files=$(git diff --name-only HEAD 2>/dev/null || echo "")
+
+  if echo "$changed_files" | grep -q '^package\.json$'; then
+    echo -e "${CYAN}package.json changed — running npm install on host...${RESET}"
+    npm install --no-audit --no-fund 2>&1 | tail -5
+  fi
+  if echo "$changed_files" | grep -q '^requirements\.txt$\|^pyproject\.toml$'; then
+    echo -e "${CYAN}Python deps changed — running pip install on host...${RESET}"
+    pip install -r requirements.txt 2>&1 | tail -5 || true
+  fi
 }
 
 # Atomically write status.json for monitoring.
@@ -638,6 +673,7 @@ print(task['title'])
   echo -e "${CYAN}Running check: ${CHECK_CMD}${RESET}"
   write_status "check"
   log_phase "Task ${TASK_ID}: check"
+  host_dep_sync
 
   if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
     # --- Check passed: mark done ---
@@ -664,6 +700,7 @@ print(task['title'])
   run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-retry.log" "retry ${TASK_ID}"
 
   # Re-run check after retry
+  host_dep_sync
   if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
     echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check (after retry).${RESET}"
     log_phase "Task ${TASK_ID}: PASSED (retry)"

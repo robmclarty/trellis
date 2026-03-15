@@ -18,3 +18,4 @@ Do not refactor, add features, or make unrelated changes. Fix the errors and exi
 {{plan}}
 
 Read the error output carefully. Identify the specific files and lines that need fixing. Make the minimum changes necessary to make the check command pass.
+Do NOT install dependencies (no npm install, pip install, cargo build, etc.) or make git commits.

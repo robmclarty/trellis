@@ -10,6 +10,7 @@ Rules:
 7. Mock external dependencies (database, HTTP, clock) but NOT the module under test.
 8. For time-dependent logic, use fake timers or inject a clock function.
 9. Output ONLY the test file contents. No explanation, no preamble, no suggestions.
+10. Do NOT run install commands (npm install, pip install, etc.) or check commands. Write only the test file.
 
 ## What to test
 {{task_verify}}
