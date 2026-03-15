@@ -2,6 +2,10 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.4
+
+-
+
 ## 0.7.3
 
 - Add document validation script for pitch, spec, and plan documents

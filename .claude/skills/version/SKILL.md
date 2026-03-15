@@ -1,7 +1,7 @@
 ---
 name: version
 description: Bump the project version (major, minor, or patch) across all manifest files and add a changelog entry. Use when preparing a release.
-allowed-tools: Read, Edit
+allowed-tools: Read, Edit, Bash
 ---
 
 Bump the project version using semver. Accepts one argument: `major`, `minor`, or `patch`.
@@ -37,5 +37,4 @@ All three files must be updated to the new version:
    -
    ```
 7. Report the updated version.
-
-Do NOT commit the changes — the user will decide when to commit.
+8. Stage the changed files and commit with the message: `chore: bump version to A.B.C`
