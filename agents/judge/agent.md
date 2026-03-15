@@ -49,13 +49,11 @@ Be terse. Do not praise the implementation. Focus only on gaps and risks.
 
 ## Input format
 
-The implement skill passes you a message with these sections:
+The implement skill (or ralph loop script via `templates/judge.txt`) passes you a message with these sections:
 
-- **Source Artifacts** — The relevant spec content, tasks, or sketch
-- **Acceptance Criteria Checklist** — The checklist from `{specsDir}/{feature}/implement-state.md`
-- **Changes Made** — Summary of files created/modified
-- **Key Decisions** — Assumptions and tradeoffs made
-- **Specific Questions** (optional) — Anything the implementor wants evaluated
+- **Specification** — The spec.md content
+- **Tasks and Status** — The task list from tasks.json showing which tasks are done, blocked, or pending, with their verify criteria
+- **Changes Made** — Summary of files created/modified (typically `git diff --stat`)
 
 ## Interpreting your output
 

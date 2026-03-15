@@ -1,0 +1,21 @@
+You are implementing a single task in a software project. Write the code described below.
+Do NOT run check commands, update state files, or make git commits. Just write the code and exit.
+
+## Your Task
+{{task_id}}: {{task_title}}
+
+{{task_do}}
+
+## Acceptance Criteria
+{{task_verify}}
+
+## Technical Guidance (from plan)
+{{plan}}
+
+## Project Conventions
+{{guidelines}}
+
+## What's already built
+{{completed_tasks}}
+
+Write the code. Follow the plan's file structure and patterns. Be precise and minimal — implement exactly what the task describes, nothing more.

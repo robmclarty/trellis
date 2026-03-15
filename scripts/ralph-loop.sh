@@ -1,39 +1,260 @@
 #!/usr/bin/env bash
-# ralph-loop.sh — Context-fresh iteration loop for the Trellis implement skill.
+# ralph-loop.sh — Script-driven Docker implementation loop for Trellis.
 #
-# Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail]
+# Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail|--no-judge]
+#        ralph-loop.sh --login
+#        ralph-loop.sh --check-auth
 #
-# Wraps `claude -p` in a loop, restarting with a fresh context on each
-# iteration. Progress is tracked via {specsDir}/{feature}/implement-state.md
-# and parsed by parse-implement-state.py between iterations.
+# Runs each task in a fresh Claude Code context inside a Docker container.
+# The loop script does ALL orchestration — it assembles prompts from templates
+# and sends them to `claude -p` directly. The implement skill is NOT invoked
+# inside Docker. The LLM does only creative work: writing tests, writing code,
+# fixing errors, judging alignment.
+#
+# Per-task loop:
+#   1. Read tasks.json for next pending task (deterministic)
+#   2. Run should-write-tests.py (deterministic heuristic)
+#   3. If tests needed: assemble-prompt.py test-writer → claude -p in Docker
+#   4. assemble-prompt.py implementor → claude -p in Docker
+#   5. Run check command on HOST (uses host toolchain)
+#   6. Pass → update-tasks.py done / Fail → retry once → still fail → blocked
+#   7. Git commit progress
+#   8. Repeat until all done or all remaining blocked
+#
+# After all tasks: optionally run judge for spec intent alignment review.
 #
 # Output modes:
-#   (default)  Silent — output goes to log file only, status shown between iterations
+#   (default)  Silent — output goes to log file only, status shown between tasks
 #   --stream   Full Claude output visible in real-time via tee (also logged)
-#   --tail     Silent during iteration, show last 50 lines of log after completion
+#   --tail     Silent during task, show last 50 lines of log after completion
 #
-# Security: Runs without --dangerously-skip-permissions. Instead, generates
-# a scoped .claude/settings.local.json that allowlists only the tools and
-# commands needed for implementation. Pre-flight scripts run in the loop
-# (outside Claude's context) so Claude needs no python3 access.
+# Auth: Supports both API key (ANTHROPIC_API_KEY env var) and OAuth/subscription
+# (stored in a named Docker volume). Run `ralph-loop.sh --login` once to
+# authenticate — the OAuth session persists across tasks.
+#
+# Security: Each LLM invocation runs inside a Docker container with
+# --dangerously-skip-permissions. Docker is the security boundary — the
+# container can only access the bind-mounted project directory and the auth
+# volume. The check command runs on the HOST (not in Docker) using the host's
+# toolchain, which matches what the user configured.
+#
+# Requires: docker, python3
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail]}"
-MAX_ITERATIONS="${2:-10}"
-LOG_DIR="logs/ralph-${FEATURE}"
-SETTINGS_FILE=".claude/settings.local.json"
+IMAGE_NAME="trellis-ralph"
+DOCKERFILE="${SCRIPT_DIR}/Dockerfile.ralph"
+AUTH_VOLUME="trellis-ralph-auth"
 
-# Parse optional output mode flags
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# --- Preflight: Docker ---
+
+if ! command -v docker &>/dev/null; then
+  echo -e "${RED}docker is not installed or not in PATH. Aborting.${RESET}"
+  exit 1
+fi
+
+if ! docker info &>/dev/null 2>&1; then
+  echo -e "${RED}Docker daemon is not running. Start Docker and retry.${RESET}"
+  exit 1
+fi
+
+# Build the image if it doesn't exist.
+# We rebuild on every run rather than caching aggressively because the
+# Dockerfile is small (node + claude-code) and a stale image with an old
+# Claude Code version causes hard-to-debug failures.
+build_image() {
+  if [[ ! -f "$DOCKERFILE" ]]; then
+    # Fall back to legacy Dockerfile name during migration
+    if [[ -f "${SCRIPT_DIR}/Dockerfile.ralphd" ]]; then
+      DOCKERFILE="${SCRIPT_DIR}/Dockerfile.ralphd"
+    else
+      echo -e "${RED}Dockerfile not found at ${DOCKERFILE}. Aborting.${RESET}"
+      exit 1
+    fi
+  fi
+  if ! docker image inspect "$IMAGE_NAME" &>/dev/null 2>&1; then
+    echo -e "${CYAN}Building Docker image ${IMAGE_NAME}...${RESET}"
+    docker build -t "$IMAGE_NAME" -f "$DOCKERFILE" "${SCRIPT_DIR}/.." || {
+      echo -e "${RED}Docker build failed. Aborting.${RESET}"
+      exit 1
+    }
+    echo -e "${GREEN}Image ${IMAGE_NAME} built successfully.${RESET}"
+  else
+    echo -e "${CYAN}Docker image ${IMAGE_NAME} already exists.${RESET}"
+  fi
+}
+
+# Ensure the named auth volume exists.
+# OAuth credentials persist here across tasks — one login, many runs.
+ensure_auth_volume() {
+  if ! docker volume inspect "$AUTH_VOLUME" &>/dev/null 2>&1; then
+    docker volume create "$AUTH_VOLUME" >/dev/null
+    echo -e "${CYAN}Created auth volume ${AUTH_VOLUME}.${RESET}"
+  fi
+}
+
+# Clean stale files from the auth volume that compete with bind mounts.
+# Previous container runs leave behind plugins/, settings.json, and projects/
+# inside the volume. Stale files can cause plugin resolution failures if
+# Claude Code reads the volume's copy before the overlay takes effect.
+clean_auth_volume() {
+  echo -e "${CYAN}Cleaning stale config from auth volume...${RESET}"
+  docker run --rm \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    --entrypoint sh \
+    "$IMAGE_NAME" \
+    -c '
+      rm -rf /home/claude/.claude/plugins
+      rm -f  /home/claude/.claude/settings.json
+      rm -rf /home/claude/.claude/projects
+      rm -rf /home/claude/.claude/session-env
+      rm -rf /home/claude/.claude/shell-snapshots
+      rm -rf /home/claude/.claude/cache
+      rm -rf /home/claude/.claude/backups
+      rm -f  /home/claude/.claude/mcp-needs-auth-cache.json
+    ' 2>/dev/null || true
+}
+
+# Generate a container-specific settings.json that keeps enabledPlugins but
+# strips autoUpdate. This prevents Claude Code inside the container from
+# trying to update plugins against the read-only bind mount.
+CONTAINER_SETTINGS=""
+generate_container_settings() {
+  local host_settings="${HOME}/.claude/settings.json"
+  if [[ ! -f "$host_settings" ]]; then
+    return
+  fi
+
+  CONTAINER_SETTINGS=$(mktemp "${TMPDIR:-/tmp}/ralph-settings.XXXXXX")
+  python3 -c "
+import json, sys
+
+with open(sys.argv[1]) as f:
+    settings = json.load(f)
+
+settings.pop('extraKnownMarketplaces', None)
+settings['autoUpdates'] = False
+
+with open(sys.argv[2], 'w') as f:
+    json.dump(settings, f, indent=2)
+    f.write('\n')
+" "$host_settings" "$CONTAINER_SETTINGS"
+}
+
+# Build docker run arguments as a string.
+# Bash 3.2 compatible — no readarray, no local -a with +=.
+build_docker_run_args() {
+  local args="-v $(pwd):/workspace -v ${AUTH_VOLUME}:/home/claude/.claude"
+
+  # Mount host's Claude config into the container so it can find installed
+  # plugins and settings. Plugin paths in installed_plugins.json are absolute
+  # (e.g., /Users/alice/.claude/plugins/cache/...), so we mount the host's
+  # ~/.claude at BOTH the container home AND the original host-absolute path.
+  local host_claude_dir="${HOME}/.claude"
+  if [[ -d "${host_claude_dir}" ]]; then
+    if [[ -d "${host_claude_dir}/plugins" ]]; then
+      args="$args -v ${host_claude_dir}/plugins:/home/claude/.claude/plugins:ro"
+      args="$args -v ${host_claude_dir}/plugins:${host_claude_dir}/plugins:ro"
+    fi
+    if [[ -n "$CONTAINER_SETTINGS" ]] && [[ -f "$CONTAINER_SETTINGS" ]]; then
+      args="$args -v ${CONTAINER_SETTINGS}:/home/claude/.claude/settings.json:ro"
+    elif [[ -f "${host_claude_dir}/settings.json" ]]; then
+      args="$args -v ${host_claude_dir}/settings.json:/home/claude/.claude/settings.json:ro"
+    fi
+  fi
+  if [[ -f "${HOME}/.claude.json" ]]; then
+    args="$args -v ${HOME}/.claude.json:/home/claude/.claude.json"
+  fi
+
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    args="$args -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}"
+  fi
+  if [[ -n "${CLAUDE_CODE_USE_BEDROCK:-}" ]]; then
+    args="$args -e CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK}"
+  fi
+  if [[ -n "${CLAUDE_CODE_USE_VERTEX:-}" ]]; then
+    args="$args -e CLAUDE_CODE_USE_VERTEX=${CLAUDE_CODE_USE_VERTEX}"
+  fi
+
+  echo "$args"
+}
+
+# --- Check-auth subcommand (non-interactive probe) ---
+
+if [[ "${1:-}" == "--check-auth" ]]; then
+  build_image
+  ensure_auth_volume
+
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo -e "${GREEN}ANTHROPIC_API_KEY is set.${RESET}"
+    exit 0
+  fi
+
+  if docker run --rm \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    "$IMAGE_NAME" \
+    --version &>/dev/null && \
+    docker run --rm \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    --entrypoint sh \
+    "$IMAGE_NAME" \
+    -c 'test -d /home/claude/.claude && find /home/claude/.claude -maxdepth 1 -type f | grep -q .' 2>/dev/null; then
+    echo -e "${GREEN}OAuth session found in ${AUTH_VOLUME} volume.${RESET}"
+    exit 0
+  fi
+
+  echo -e "${RED}No valid authentication found.${RESET}"
+  exit 1
+fi
+
+# --- Login subcommand ---
+
+if [[ "${1:-}" == "--login" ]]; then
+  build_image
+  ensure_auth_volume
+
+  echo -e "${CYAN}${BOLD}Opening interactive Claude login inside Docker...${RESET}"
+  echo -e "${YELLOW}Complete the OAuth flow in your browser. The session will be${RESET}"
+  echo -e "${YELLOW}stored in the ${AUTH_VOLUME} volume and reused for all tasks.${RESET}"
+  echo ""
+
+  docker run --rm -it \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    "$IMAGE_NAME" \
+    login
+
+  echo ""
+  echo -e "${GREEN}${BOLD}Login complete. You can now run: ralph-loop.sh <feature-name>${RESET}"
+  exit 0
+fi
+
+# --- Main loop mode ---
+
+FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail|--no-judge]  or  ralph-loop.sh --login}"
+MAX_ITERATIONS="${2:-10}"
+
+# Parse optional flags
 OUTPUT_MODE="silent"
+NO_JUDGE=false
 shift 2 2>/dev/null || shift $# 2>/dev/null || true
 for arg in "$@"; do
   case "$arg" in
-    --stream) OUTPUT_MODE="stream" ;;
-    --tail)   OUTPUT_MODE="tail" ;;
+    --stream)   OUTPUT_MODE="stream" ;;
+    --tail)     OUTPUT_MODE="tail" ;;
+    --no-judge) NO_JUDGE=true ;;
   esac
 done
+
+LOG_DIR="logs/ralph-${FEATURE}"
 
 # Resolve specs dir from trellis.json (default: .specs)
 SPECS_DIR=$(python3 -c "
@@ -45,253 +266,280 @@ except Exception:
     print('.specs')
 " 2>/dev/null || echo ".specs")
 
-STATE_FILE="${SPECS_DIR}/${FEATURE}/implement-state.md"
-PREFLIGHT_FILE="${SPECS_DIR}/${FEATURE}/implement-preflight.json"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-RESET='\033[0m'
+TASKS_JSON="${SPECS_DIR}/${FEATURE}/tasks.json"
 
 mkdir -p "$LOG_DIR"
 
-# Migrate legacy state file from .state/ to feature directory
-LEGACY_STATE="${SPECS_DIR}/.state/implement-state.md"
-if [[ -f "$LEGACY_STATE" ]] && [[ ! -f "$STATE_FILE" ]]; then
-  # Check if the legacy file's Feature field matches this feature
-  if grep -q "^- Feature: ${FEATURE}$" "$LEGACY_STATE" 2>/dev/null; then
-    echo -e "${YELLOW}Migrating legacy state file to ${STATE_FILE}${RESET}"
-    mv "$LEGACY_STATE" "$STATE_FILE"
-    # Also migrate preflight if present
-    LEGACY_PREFLIGHT="${SPECS_DIR}/.state/implement-preflight.json"
-    if [[ -f "$LEGACY_PREFLIGHT" ]]; then
-      mv "$LEGACY_PREFLIGHT" "$PREFLIGHT_FILE"
-    fi
-  fi
+# --- Validate prerequisites ---
+
+if [[ ! -f "$TASKS_JSON" ]]; then
+  echo -e "${RED}No ${TASKS_JSON} found. Run /trellis:tasks ${FEATURE} first.${RESET}"
+  exit 1
 fi
+
+# The check command must be non-empty for ralph mode — without it there's
+# no feedback signal to tell whether implementation succeeded.
+CHECK_CMD=$(python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    print(json.load(f).get('check', ''))
+" 2>/dev/null || echo "")
+
+if [[ -z "$CHECK_CMD" ]]; then
+  echo -e "${RED}tasks.json has no check command. Ralph mode requires a non-empty check field.${RESET}"
+  echo -e "${YELLOW}Add a check command to guidelines.md and re-run /trellis:tasks.${RESET}"
+  exit 1
+fi
+
+echo -e "${CYAN}Feature:  ${BOLD}${FEATURE}${RESET}"
+echo -e "${CYAN}Check:    ${CHECK_CMD}${RESET}"
+echo -e "${CYAN}Max iter: ${MAX_ITERATIONS}${RESET}"
+echo ""
+
+build_image
+ensure_auth_volume
+
+# --- Auth check ---
+
+check_auth() {
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo -e "${CYAN}Using ANTHROPIC_API_KEY for authentication.${RESET}"
+    return 0
+  fi
+
+  docker run --rm \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    "$IMAGE_NAME" \
+    --version 2>/dev/null || true
+
+  echo -e "${CYAN}Checking authentication in Docker volume...${RESET}"
+  if echo "say ok" | docker run --rm -i \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    "$IMAGE_NAME" \
+    -p --dangerously-skip-permissions 2>&1 | head -5 | grep -qi "error\|unauthorized\|login\|authenticate"; then
+    echo -e "${RED}No valid authentication found in Docker volume.${RESET}"
+    echo -e "${YELLOW}Run this first:  ${BOLD}ralph-loop.sh --login${RESET}"
+    exit 1
+  fi
+
+  echo -e "${GREEN}OAuth session found in ${AUTH_VOLUME} volume.${RESET}"
+}
+
+check_auth
+clean_auth_volume
+generate_container_settings
 
 # --- Helpers ---
 
-parse_state() {
-  # Parse state file into JSON, return via stdout
-  python3 "${SCRIPT_DIR}/parse-implement-state.py" "$STATE_FILE" 2>/dev/null || echo '{}'
-}
-
-json_field() {
-  # Extract a field from JSON on stdin. Usage: echo "$json" | json_field fieldName default
-  local field="$1" default="${2:-}"
+# Get the next pending task ID from tasks.json.
+# Returns empty string if no pending tasks remain.
+get_next_pending_task() {
   python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('$field', '$default'))
-" 2>/dev/null || echo "$default"
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+task = next((t for t in data['tasks'] if t['status'] == 'pending'), None)
+print(task['id'] if task else '')
+"
 }
 
-run_preflight() {
-  # Run pre-flight scripts and write results to the preflight JSON file.
-  # This runs OUTSIDE Claude's context — Claude reads the JSON file instead
-  # of invoking python3 itself.
-  local state_json
-
-  # Parse current state
-  state_json=$(parse_state)
-
-  # Validate prerequisites
-  local prereqs_json
-  prereqs_json=$(python3 "${SCRIPT_DIR}/validate-prereqs.py" implement "$FEATURE" 2>/dev/null || echo '{"valid":false,"missing":["unknown"]}')
-
-  # Extract criteria
-  local criteria_json='{}'
-  local tasks_path="${SPECS_DIR}/${FEATURE}/tasks.md"
-  local spec_path="${SPECS_DIR}/${FEATURE}/spec.md"
-  if [[ -f "$tasks_path" ]]; then
-    criteria_json=$(python3 "${SCRIPT_DIR}/extract-criteria.py" "$tasks_path" "$spec_path" 2>/dev/null || echo '{}')
-  fi
-
-  # Assemble preflight JSON via stdin to avoid bash/python string escaping issues.
-  # Each JSON blob is passed as an element of a JSON array through a pipe.
+# Get current task counts for status display.
+get_task_counts() {
   python3 -c "
-import json, sys
-
-parts = json.load(sys.stdin)
-
-preflight = {
-    'specsDir': parts[0],
-    'prereqs': parts[1],
-    'state': parts[2],
-    'criteria': parts[3],
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+tasks = data['tasks']
+done = sum(1 for t in tasks if t['status'] == 'done')
+pending = sum(1 for t in tasks if t['status'] == 'pending')
+blocked = sum(1 for t in tasks if t['status'] == 'blocked')
+total = len(tasks)
+print(f'{done} done, {pending} pending, {blocked} blocked (of {total})')
+"
 }
 
-with open(parts[4], 'w') as f:
-    json.dump(preflight, f, indent=2)
-    f.write('\n')
-" <<< "$(python3 -c "
-import json, sys
-print(json.dumps([
-    sys.argv[1],
-    json.loads(sys.argv[2]),
-    json.loads(sys.argv[3]),
-    json.loads(sys.argv[4]),
-    sys.argv[5],
-]))
-" "$SPECS_DIR" "$prereqs_json" "$state_json" "$criteria_json" "$PREFLIGHT_FILE")"
+# Run a prompt inside Docker and handle output modes.
+# Arguments: $1=prompt_string $2=log_file $3=label
+run_in_docker() {
+  local prompt="$1"
+  local log_file="$2"
+  local label="$3"
 
-  echo -e "${CYAN}Pre-flight written to ${PREFLIGHT_FILE}${RESET}"
-}
+  local run_args
+  run_args=$(build_docker_run_args)
 
-generate_permissions() {
-  # Generate .claude/settings.local.json with scoped permissions from the
-  # oracle pipeline commands stored in the implement state file.
-  local state_json
-  state_json=$(parse_state)
-
-  python3 -c "
-import json, sys
-
-state = json.load(sys.stdin)
-pipeline = state.get('pipeline', [])
-
-allowed = [
-    'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Agent',
-    'Bash(mkdir *)', 'Bash(cp *)', 'Bash(mv *)', 'Bash(ls *)', 'Bash(cat *)',
-    'Bash(git branch *)', 'Bash(git checkout *)', 'Bash(git diff *)',
-    'Bash(git status)', 'Bash(git log *)',
-]
-
-for stage in pipeline:
-    cmd = stage.get('command')
-    if cmd:
-        allowed.append('Bash(' + cmd + ')')
-
-config = state.get('config', {})
-pkg_mgr = config.get('package_manager', '')
-if pkg_mgr:
-    allowed.append('Bash(' + pkg_mgr + ' *)')
-
-settings = {
-    'permissions': {
-        'allow': allowed,
-        'deny': []
-    }
-}
-
-with open(sys.argv[1], 'w') as f:
-    json.dump(settings, f, indent=2)
-    f.write('\n')
-
-print('Allowed tools:', len(allowed))
-for tool in allowed:
-    print('  ' + tool)
-" "$SETTINGS_FILE" <<< "$state_json"
-
-  echo -e "${CYAN}Permissions written to ${SETTINGS_FILE}${RESET}"
+  # shellcheck disable=SC2086  # intentional word splitting of run_args
+  case "$OUTPUT_MODE" in
+    stream)
+      echo "$prompt" | docker run --rm -i \
+        $run_args \
+        "$IMAGE_NAME" \
+        -p --dangerously-skip-permissions 2>&1 | tee "$log_file"
+      ;;
+    *)
+      echo "$prompt" | docker run --rm -i \
+        $run_args \
+        "$IMAGE_NAME" \
+        -p --dangerously-skip-permissions > "$log_file" 2>&1
+      if [[ "$OUTPUT_MODE" == "tail" ]]; then
+        echo -e "${CYAN}--- Last 50 lines of ${label} ---${RESET}"
+        tail -50 "$log_file"
+        echo -e "${CYAN}--- End ${label} ---${RESET}"
+      fi
+      ;;
+  esac
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via trap
 cleanup() {
-  # Remove generated files on exit
-  rm -f "$PREFLIGHT_FILE"
-  echo -e "${YELLOW}Cleaned up ${PREFLIGHT_FILE}${RESET}"
-  # Note: we leave .claude/settings.local.json in place so the user can
-  # inspect/reuse it. They can delete it manually if desired.
+  rm -f "$CONTAINER_SETTINGS"
 }
 trap cleanup EXIT
 
-# --- Main loop ---
+# --- Main task loop ---
+# Each iteration processes one task. This is different from the old loop
+# which ran one full implement skill invocation per iteration (processing
+# multiple criteria). Here, each task gets its own Docker invocations for
+# test-writing and implementation, with check running on the host between.
 
-# Generate scoped permissions before starting iterations
-if [[ -f "$STATE_FILE" ]]; then
-  generate_permissions
-else
-  echo -e "${RED}No ${STATE_FILE} found. Run /implement ${FEATURE} with ralph interactively first.${RESET}"
-  exit 1
-fi
-
-consecutive_failures=0
+echo -e "${CYAN}${BOLD}Starting ralph loop for ${FEATURE}${RESET}"
+echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
+echo ""
 
 for ((i = 1; i <= MAX_ITERATIONS; i++)); do
-  echo -e "${CYAN}${BOLD}═══ Ralph iteration ${i}/${MAX_ITERATIONS} ═══${RESET}"
+  TASK_ID=$(get_next_pending_task)
 
-  # Show current criteria status before starting
-  if [[ -f "$STATE_FILE" ]]; then
-    state_json=$(parse_state)
-    done_count=$(echo "$state_json" | json_field doneCount "?")
-    pending_count=$(echo "$state_json" | json_field pendingCount "?")
-    echo -e "${YELLOW}Criteria: ${done_count} done, ${pending_count} pending${RESET}"
+  if [[ -z "$TASK_ID" ]]; then
+    echo -e "${GREEN}${BOLD}All tasks complete!${RESET}"
+    echo -e "${YELLOW}Final: $(get_task_counts)${RESET}"
+    break
   fi
 
-  # Run pre-flight for this iteration (outside Claude's context)
-  run_preflight
+  TASK_TITLE=$(python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+task = next(t for t in data['tasks'] if t['id'] == '$TASK_ID')
+print(task['title'])
+")
 
-  log_file="${LOG_DIR}/iteration-${i}.log"
-  echo -e "${CYAN}Running iteration ${i}...${RESET}"
+  echo -e "${CYAN}${BOLD}═══ Task ${TASK_ID}: ${TASK_TITLE} (iteration ${i}/${MAX_ITERATIONS}) ═══${RESET}"
 
-  # Run claude in headless mode with scoped permissions (no --dangerously-skip-permissions)
-  case "$OUTPUT_MODE" in
-    stream)
-      if echo "/trellis:implement ${FEATURE}" | claude -p 2>&1 | tee "$log_file"; then
-        echo -e "${GREEN}Iteration ${i} completed${RESET}"
-        consecutive_failures=0
-      else
-        echo -e "${RED}Iteration ${i} exited with error${RESET}"
-        consecutive_failures=$((consecutive_failures + 1))
-      fi
-      ;;
-    *)
-      if echo "/trellis:implement ${FEATURE}" | claude -p > "$log_file" 2>&1; then
-        echo -e "${GREEN}Iteration ${i} completed${RESET}"
-        consecutive_failures=0
-      else
-        echo -e "${RED}Iteration ${i} exited with error${RESET}"
-        consecutive_failures=$((consecutive_failures + 1))
-      fi
-      if [[ "$OUTPUT_MODE" == "tail" ]]; then
-        echo -e "${CYAN}--- Last 50 lines of iteration ${i} ---${RESET}"
-        tail -50 "$log_file"
-        echo -e "${CYAN}--- End iteration ${i} ---${RESET}"
-      fi
-      ;;
-  esac
+  # --- Step 1: Test writer (conditional) ---
+  # Deterministic heuristic decides if this task warrants test-first development.
+  # Structural tasks (scaffold, config) skip this; behavioral tasks get tests.
 
-  # Check state after iteration
-  if [[ ! -f "$STATE_FILE" ]]; then
-    echo -e "${RED}No ${STATE_FILE} found after iteration ${i}. Aborting.${RESET}"
-    exit 1
+  NEEDS_TESTS=$(python3 "${SCRIPT_DIR}/should-write-tests.py" "$TASKS_JSON" "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['shouldWrite'])")
+
+  if [[ "$NEEDS_TESTS" == "True" ]]; then
+    echo -e "${CYAN}Writing tests for task ${TASK_ID}...${RESET}"
+    PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" test-writer "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+    run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-tests.log" "test-writer ${TASK_ID}"
+    echo -e "${GREEN}Test-writer complete for ${TASK_ID}.${RESET}"
+  else
+    echo -e "${YELLOW}Skipping test-writer for ${TASK_ID} (structural task).${RESET}"
   fi
 
-  state_json=$(parse_state)
-  done_count=$(echo "$state_json" | json_field doneCount 0)
-  pending_count=$(echo "$state_json" | json_field pendingCount 1)
+  # --- Step 2: Implementation ---
+  # The implementor receives the full task context: what to build, acceptance
+  # criteria, the plan, guidelines, and what's already been built.
 
-  echo -e "${YELLOW}After iteration ${i}: ${done_count} done, ${pending_count} pending${RESET}"
+  echo -e "${CYAN}Implementing task ${TASK_ID}...${RESET}"
+  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" implementor "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+  run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-impl.log" "implementor ${TASK_ID}"
 
-  # Check completion
-  if [[ "$pending_count" == "0" ]]; then
-    echo -e "${GREEN}${BOLD}All acceptance criteria met after ${i} iteration(s).${RESET}"
-    # Push final changes
-    git add -A && git commit -m "ralph: iteration ${i} — all criteria complete for ${FEATURE}" 2>/dev/null || true
-    git push 2>/dev/null || true
-    exit 0
+  # --- Step 3: Check on host ---
+  # The check command runs on the HOST, not in Docker. This uses the host's
+  # toolchain (node, npm, cargo, etc.) which matches what the user configured.
+  # The check output is captured for potential retry.
+
+  CHECK_OUTPUT_FILE="${LOG_DIR}/task-${TASK_ID}-check.log"
+  echo -e "${CYAN}Running check: ${CHECK_CMD}${RESET}"
+
+  if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
+    # --- Check passed: mark done ---
+    echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check.${RESET}"
+    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" done --iteration "$i" > /dev/null
+    git add -A && git commit -m "ralph: task ${TASK_ID} done — ${TASK_TITLE}" 2>/dev/null || true
+    echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
+    echo ""
+    continue
   fi
 
-  # Check consecutive failures
-  if [[ "$consecutive_failures" -ge 3 ]]; then
-    echo -e "${RED}${BOLD}3 consecutive failures without progress. Aborting.${RESET}"
-    echo -e "${RED}Check ${LOG_DIR}/ for iteration logs.${RESET}"
-    exit 1
+  # --- Step 4: Retry once ---
+  # If check fails, assemble a retry prompt with the error output. The retry
+  # prompt is focused: fix ONLY the errors shown, don't refactor or add features.
+
+  echo -e "${YELLOW}Check failed for ${TASK_ID}. Retrying...${RESET}"
+
+  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" implementor-retry "$FEATURE" --task-id "$TASK_ID" --check-output "$CHECK_OUTPUT_FILE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+  run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-retry.log" "retry ${TASK_ID}"
+
+  # Re-run check after retry
+  if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
+    echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check (after retry).${RESET}"
+    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" done --iteration "$i" > /dev/null
+    git add -A && git commit -m "ralph: task ${TASK_ID} done (retry) — ${TASK_TITLE}" 2>/dev/null || true
+  else
+    echo -e "${RED}${BOLD}✗ Task ${TASK_ID} still failing after retry. Marking blocked.${RESET}"
+    if [[ "$OUTPUT_MODE" != "stream" ]]; then
+      echo -e "${CYAN}--- Check output ---${RESET}"
+      tail -20 "$CHECK_OUTPUT_FILE"
+      echo -e "${CYAN}--- End check output ---${RESET}"
+    fi
+    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" blocked --iteration "$i" > /dev/null
+    git add -A && git commit -m "ralph: task ${TASK_ID} blocked — ${TASK_TITLE}" 2>/dev/null || true
   fi
 
-  # Push progress after each successful iteration
-  git add -A && git commit -m "ralph: iteration ${i} progress for ${FEATURE}" 2>/dev/null || true
-  git push 2>/dev/null || true
+  echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
+  echo ""
 
-  # Brief pause for git sync
-  sleep 2
+  # Check if all remaining tasks are blocked (no point continuing)
+  REMAINING=$(python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+pending = sum(1 for t in data['tasks'] if t['status'] == 'pending')
+print(pending)
+")
+  if [[ "$REMAINING" == "0" ]]; then
+    echo -e "${YELLOW}${BOLD}No pending tasks remain.${RESET}"
+    break
+  fi
 done
 
-echo -e "${YELLOW}${BOLD}Reached max iterations (${MAX_ITERATIONS}). ${done_count} done, ${pending_count} pending.${RESET}"
-echo -e "${YELLOW}Check ${LOG_DIR}/ for iteration logs.${RESET}"
-exit 1
+# --- Judge review ---
+# The judge evaluates intent alignment: did you build what the spec asked for,
+# not just what the tasks described. It runs once at the end, not per-task.
+# Default is on; opt out with --no-judge.
+
+JUDGE_ENABLED=$(python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+print(data.get('judge', True))
+" 2>/dev/null || echo "True")
+
+if [[ "$NO_JUDGE" == "true" ]]; then
+  JUDGE_ENABLED="False"
+fi
+
+if [[ "$JUDGE_ENABLED" == "True" ]]; then
+  echo -e "${CYAN}${BOLD}═══ Judge Review ═══${RESET}"
+  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" judge "$FEATURE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+  run_in_docker "$PROMPT" "${LOG_DIR}/judge.log" "judge"
+
+  # Show judge output regardless of mode — it's the final verdict
+  echo -e "${CYAN}--- Judge verdict ---${RESET}"
+  cat "${LOG_DIR}/judge.log"
+  echo -e "${CYAN}--- End judge verdict ---${RESET}"
+else
+  echo -e "${YELLOW}Judge review skipped (--no-judge).${RESET}"
+fi
+
+# --- Final summary ---
+
+echo ""
+echo -e "${CYAN}${BOLD}═══ Ralph loop complete ═══${RESET}"
+echo -e "${YELLOW}Final: $(get_task_counts)${RESET}"
+echo -e "${CYAN}Logs:  ${LOG_DIR}/${RESET}"

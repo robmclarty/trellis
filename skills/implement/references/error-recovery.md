@@ -1,12 +1,11 @@
 # Error Recovery
 
-If a context reset occurs mid-implementation:
+If a context reset or interruption occurs mid-implementation:
 
-1. Read `{specsDir}/{feature}/implement-state.md`
-2. Read the artifacts from the recorded paths
-3. Check which criteria are done vs. pending
-4. Verify the working branch matches expectations
-5. Re-run the oracle pipeline to validate current state
-6. Resume from the next pending criterion
+1. Read `{specsDir}/{feature}/tasks.json`
+2. Find the first task with `status: "pending"`
+3. Resume from that task
 
-The filesystem is memory, not the conversation.
+tasks.json on disk IS the resume point. There is no separate state file. The conversation history is not needed — the task's `do` and `verify` fields plus the plan and guidelines contain all necessary context.
+
+In ralph mode, the loop script handles this automatically: it reads tasks.json at the start of each iteration and picks up from the first pending task.

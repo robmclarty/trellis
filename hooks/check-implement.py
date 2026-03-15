@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-"""PreToolUse hook for Bash(git commit) — checks implement state file.
+"""PreToolUse hook for Bash(git commit) — checks tasks.json status.
 
-Warns if acceptance criteria are incomplete before committing.
-Calls scripts/parse-implement-state.py for structured data.
+Warns if tasks are still pending before committing.
+Reads tasks.json directly (no external script dependency).
 Exit 0 (warn only).
 """
 
+import glob
 import json
 import os
-import subprocess
 import sys
-
-PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def resolve_specs_dir():
@@ -34,50 +32,36 @@ def main():
         sys.exit(0)
 
     specs_dir = resolve_specs_dir()
-    script = os.path.join(PLUGIN_ROOT, "scripts", "parse-implement-state.py")
 
-    # Find all implement-state.md files across feature directories
-    import glob
+    # Find all tasks.json files across feature directories
+    task_files = glob.glob(os.path.join(specs_dir, "*", "tasks.json"))
 
-    state_files = glob.glob(os.path.join(specs_dir, "*", "implement-state.md"))
-
-    # Also check legacy location for backward compatibility
-    legacy_state = os.path.join(specs_dir, ".state", "implement-state.md")
-    if os.path.isfile(legacy_state):
-        state_files.append(legacy_state)
-
-    if not state_files:
+    if not task_files:
         sys.exit(0)
 
-    for state_file in state_files:
-        result = subprocess.run(
-            [sys.executable, script, state_file],
-            capture_output=True,
-            text=True,
-        )
-
-        if result.returncode != 0:
-            continue
-
+    for task_file in task_files:
         try:
-            data = json.loads(result.stdout)
-        except json.JSONDecodeError:
+            with open(task_file) as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
             continue
 
-        pending = data.get("pendingCount", 0)
-        if pending > 0:
-            print(f"\u26a0 {state_file} has {pending} pending acceptance criteria.")
-            print("  Consider completing all criteria before committing.")
+        tasks = data.get("tasks", [])
+        pending = [t for t in tasks if t.get("status") == "pending"]
+        blocked = [t for t in tasks if t.get("status") == "blocked"]
 
-            criteria = data.get("criteria", [])
-            pending_items = [c for c in criteria if c.get("status") == "pending"]
-            for item in pending_items[:5]:
-                summary = item.get("summary", "")
-                crit_id = item.get("id", "")
-                print(f"  - [ ] {crit_id}: {summary}")
+        if pending:
+            print(f"\u26a0 {task_file} has {len(pending)} pending tasks.")
+            print("  Consider completing all tasks before committing.")
 
-            if pending > 5:
-                print(f"  ... and {pending - 5} more")
+            for t in pending[:5]:
+                print(f"  - [ ] {t.get('id', '?')}: {t.get('title', '')}")
+
+            if len(pending) > 5:
+                print(f"  ... and {len(pending) - 5} more")
+
+        if blocked:
+            print(f"\u26a0 {task_file} has {len(blocked)} blocked tasks.")
 
     sys.exit(0)
 

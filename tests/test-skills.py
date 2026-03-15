@@ -608,72 +608,33 @@ src/
 ```
 """)
 
-        # tasks.md
-        with open(os.path.join(specs_dir, "tasks.md"), "w") as f:
-            f.write("""\
-# Tasks: smoke-test
-
-## Phase 1: Foundation
-
-### Task 1.1: Create add module
-
-**Do:**
-- Create `src/add.js` with `module.exports = function add(a, b) { return a + b; }`
-
-**Verify:**
-- `node -e "require('./src/add')"` runs without error
-
-### Task 1.2: Verify tests pass
-
-**Do:**
-- Run `node test.js`
-
-**Verify:**
-- Exit code 0, output contains "All tests passed"
-
-- [ ] Task 1.1
-- [ ] Task 1.2
-""")
-
-        # implement-state.md (pre-filled to skip Phase 0/1)
-        with open(os.path.join(specs_dir, "implement-state.md"), "w") as f:
-            f.write("""\
-# Implementation State
-
-## Input
-- Type: feature-folder
-- Feature: smoke-test
-- Sketches: N/A
-- Paths: .specs/smoke-test/spec.md, .specs/smoke-test/plan.md, .specs/smoke-test/tasks.md
-
-## Branch
-- Original: main
-- Working: main
-
-## Config
-- Package manager: npm
-- Type-check: none
-- Lint: none
-- Build: none
-- Test: `node test.js`
-- Ralph mode: off
-- Promptfoo: off
-
-## Oracle Pipeline
-- [x] test: `node test.js`
-
-## Acceptance Criteria
-- [ ] AC-1 (task 1.1): add function exports correctly from src/add.js (pending)
-- [ ] AC-2 (task 1.2): add function returns correct sum (pending)
-
-## Constraints
-- JavaScript only, no external dependencies
-
-## Unknowns / Assumptions
-- None
-
-## Iteration Log
-""")
+        # tasks.json
+        with open(os.path.join(specs_dir, "tasks.json"), "w") as f:
+            json.dump({
+                "feature": "smoke-test",
+                "check": "node test.js",
+                "judge": False,
+                "tasks": [
+                    {
+                        "id": "1.1",
+                        "phase": 1,
+                        "title": "Create add module",
+                        "do": "Create `src/add.js` with `module.exports = function add(a, b) { return a + b; }`",
+                        "verify": "`node -e \"require('./src/add')\"` runs without error",
+                        "status": "pending",
+                        "iteration": None,
+                    },
+                    {
+                        "id": "1.2",
+                        "phase": 1,
+                        "title": "Verify tests pass",
+                        "do": "Run `node test.js`",
+                        "verify": "Exit code 0, output contains 'All tests passed'",
+                        "status": "pending",
+                        "iteration": None,
+                    },
+                ],
+            }, f, indent=2)
 
     def _run_implement(self, tmpdir):
         """Run the implement skill via claude -p."""
@@ -682,12 +643,11 @@ src/
             skill_instructions = f.read()
 
         prompt = skill_instructions + "\n\n---\n\n" + """\
-Implement the smoke-test feature. The state file already exists at
-.specs/smoke-test/implement-state.md with config and oracle pipeline filled.
-Skip Phase 0 and Phase 1 — go directly to Phase 2 (iterate).
+Implement the smoke-test feature. tasks.json already exists at
+.specs/smoke-test/tasks.json with all tasks pending.
 
 The project is in the current directory. Create src/add.js so that
-`node test.js` passes. Update the state file when done."""
+`node test.js` passes. Update tasks.json status when done."""
 
         result = subprocess.run(
             [
@@ -719,21 +679,18 @@ The project is in the current directory. Create src/add.js so that
         self.assertGreater(os.path.getsize(add_path), 0,
             "Expected src/add.js to be non-empty")
 
-        # State file still exists
-        state_path = os.path.join(
-            tmpdir, ".specs", ".state", "implement-state.md")
-        self.assertTrue(os.path.isfile(state_path),
-            "Expected implement-state.md to still exist")
+        # tasks.json still exists
+        tasks_path = os.path.join(tmpdir, ".specs", "smoke-test", "tasks.json")
+        self.assertTrue(os.path.isfile(tasks_path),
+            "Expected tasks.json to still exist")
 
-        with open(state_path) as f:
-            state = f.read()
-        self.assertIn("## Acceptance Criteria", state)
-        self.assertIn("## Oracle Pipeline", state)
+        with open(tasks_path) as f:
+            tasks_data = json.load(f)
 
-        # At least one AC marked done
-        ac_done = re.findall(r"\[x\]\s*AC-", state, re.IGNORECASE)
-        self.assertGreater(len(ac_done), 0,
-            "Expected at least one acceptance criterion marked [x]")
+        # At least one task marked done
+        done_tasks = [t for t in tasks_data["tasks"] if t["status"] == "done"]
+        self.assertGreater(len(done_tasks), 0,
+            "Expected at least one task marked done")
 
         # Optional: verify tests actually pass
         test_result = subprocess.run(

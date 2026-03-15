@@ -51,8 +51,9 @@ All references to `.specs/` in this skill (and all other Trellis skills) refer t
 1. What is the tech stack? (language, runtime, framework, core libraries)
 2. What architectural style do they prefer? (functional, OOP, procedural, hybrid)
 3. Any hard conventions? (naming, file layout, error handling patterns)
-4. What's the testing philosophy? (when to test, what to skip, coverage attitude)
+4. What's the testing philosophy? (when to test, what to skip, coverage attitude, framework, file location pattern, naming convention)
 5. Deployment and infrastructure constraints?
+6. What is the check command? This is the full CLI command chain that must pass for code to be considered correct — it runs after every implementation task. (e.g., `npm run lint && npm run typecheck && npm run build && npm run test`, or `ruff check . && mypy . && pytest`)
 
 If the user provides a description or the project already has code, infer what you can and confirm with them.
 

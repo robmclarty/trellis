@@ -52,21 +52,20 @@ Rules:
 
 ## Input format
 
-The implement skill passes you a message with these sections:
+The implement skill (or ralph loop script via `templates/test-writer.txt`) passes you a message with these sections:
 
-- **Spec Excerpt** — The relevant acceptance criteria and constraints
-- **Module Under Test** — File path and brief description of what it will do
-- **Project Context** — Test framework, conventions, utilities, file paths
-- **Existing Types** (if available) — Type definitions and schemas to reference
+- **What to test** — The task's verify criteria (what behavior to assert)
+- **Context for what will be built** — The task's do field (what code will exist)
+- **Test conventions** — Framework, file patterns, naming conventions from guidelines.md
+- **What's already built** — List of completed tasks (so you know what modules exist)
 
 ## Output
 
 Respond with the complete test file, ready to write to disk.
 
-## How the implement skill uses your output
+## How the tests are used
 
-1. Writes the test file to the appropriate path
-2. Enables the test stage in the oracle pipeline
-3. Scopes the test command to run only the new file during the current iteration
-4. The tests fail initially (expected). The implementor codes until they pass.
-5. After targeted tests pass, the full suite runs as a regression check.
+1. The test file is written to disk
+2. The tests FAIL initially (the implementation doesn't exist yet)
+3. The implementor writes code until the check command passes (which includes running these tests)
+4. This is the TDD loop: test-writer produces red, implementor produces green, check validates

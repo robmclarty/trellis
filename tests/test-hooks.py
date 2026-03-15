@@ -136,6 +136,12 @@ class TestCheckImplement(unittest.TestCase):
         import shutil
         shutil.rmtree(self.tmp)
 
+    def _write_tasks(self, feature, tasks):
+        feat_dir = os.path.join(self.tmp, ".specs", feature)
+        os.makedirs(feat_dir, exist_ok=True)
+        with open(os.path.join(feat_dir, "tasks.json"), "w") as f:
+            json.dump({"feature": feature, "check": "npm test", "tasks": tasks}, f)
+
     def test_ignores_non_commit_commands(self):
         rc, out = run_hook("check-implement.py", {
             "tool_input": {"command": "git status"}
@@ -143,22 +149,19 @@ class TestCheckImplement(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(out, "")
 
-    def test_silent_when_no_state_file(self):
+    def test_silent_when_no_tasks_json(self):
         rc, out = run_hook("check-implement.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
         self.assertEqual(out, "")
 
-    def test_warns_on_pending_criteria(self):
-        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
-            f.write("- [ ] AC-2 (task 1.2): Pending (pending)\n")
-            f.write("- [ ] AC-3 (task 2.1): Also pending (pending)\n")
+    def test_warns_on_pending_tasks(self):
+        self._write_tasks("my-feature", [
+            {"id": "1.1", "title": "Done task", "status": "done"},
+            {"id": "1.2", "title": "Pending task", "status": "pending"},
+            {"id": "2.1", "title": "Also pending", "status": "pending"},
+        ])
         rc, out = run_hook("check-implement.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
@@ -166,33 +169,18 @@ class TestCheckImplement(unittest.TestCase):
         self.assertIn("2 pending", out)
 
     def test_silent_when_all_done(self):
-        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
+        self._write_tasks("my-feature", [
+            {"id": "1.1", "title": "Done task", "status": "done"},
+        ])
         rc, out = run_hook("check-implement.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
         self.assertEqual(out, "")
 
-    def test_ignores_git_add(self):
-        rc, out = run_hook("check-implement.py", {
-            "tool_input": {"command": "git add ."}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertEqual(out, "")
-
     def test_truncation_with_many_pending(self):
-        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            for i in range(1, 8):
-                f.write(f"- [ ] AC-{i} (task 1.{i}): Criterion {i} (pending)\n")
+        tasks = [{"id": f"1.{i}", "title": f"Task {i}", "status": "pending"} for i in range(1, 8)]
+        self._write_tasks("my-feature", tasks)
         rc, out = run_hook("check-implement.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
@@ -205,24 +193,10 @@ class TestCheckImplement(unittest.TestCase):
             json.dump({"specsDir": "design"}, f)
         feat_dir = os.path.join(self.tmp, "design", "my-feature")
         os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            f.write("- [ ] AC-1 (task 1.1): Pending (pending)\n")
-        rc, out = run_hook("check-implement.py", {
-            "tool_input": {"command": "git commit -m test"}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertIn("1 pending", out)
-
-    def test_legacy_state_path_still_detected(self):
-        """Legacy .state/ path is still picked up for backward compatibility."""
-        state_dir = os.path.join(self.tmp, ".specs", ".state")
-        os.makedirs(state_dir, exist_ok=True)
-        state = os.path.join(state_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            f.write("- [ ] AC-1 (task 1.1): Pending (pending)\n")
+        with open(os.path.join(feat_dir, "tasks.json"), "w") as f:
+            json.dump({"feature": "my-feature", "check": "npm test", "tasks": [
+                {"id": "1.1", "title": "Pending", "status": "pending"},
+            ]}, f)
         rc, out = run_hook("check-implement.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
@@ -302,86 +276,6 @@ class TestCountMarkers(unittest.TestCase):
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
         self.assertIn("1 unresolved", out)
-
-
-class TestSyncImplement(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-
-    def tearDown(self):
-        import shutil
-        shutil.rmtree(self.tmp)
-
-    def test_ignores_non_state_files(self):
-        rc, out = run_hook("sync-implement.py", {
-            "tool_input": {"file_path": "/some/other/file.md"}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertEqual(out, "")
-
-    def test_reports_progress(self):
-        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
-            f.write("- [ ] AC-2 (task 1.2): Pending (pending)\n")
-        rc, out = run_hook("sync-implement.py", {
-            "tool_input": {"file_path": state}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertIn("1/2 criteria done", out)
-        self.assertIn("AC-2", out)
-
-    def test_all_criteria_done(self):
-        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
-            f.write("- [x] AC-2 (task 1.2): Also done (done, iteration 2)\n")
-        rc, out = run_hook("sync-implement.py", {
-            "tool_input": {"file_path": state}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertIn("2/2 criteria done", out)
-
-    def test_empty_state_file_silent(self):
-        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("")
-        rc, out = run_hook("sync-implement.py", {
-            "tool_input": {"file_path": state}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertEqual(out, "")
-
-    def test_non_implement_file_ignored(self):
-        rc, out = run_hook("sync-implement.py", {
-            "tool_input": {"file_path": os.path.join(self.tmp, ".specs/my-feature/spec.md")}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertEqual(out, "")
-
-    def test_feature_path_matched(self):
-        # The hook now checks os.path.basename(file_path) == "implement-state.md"
-        # which correctly matches both feature-specific and legacy paths.
-        feat_dir = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(feat_dir, exist_ok=True)
-        state = os.path.join(feat_dir, "implement-state.md")
-        with open(state, "w") as f:
-            f.write("## Acceptance Criteria\n")
-            f.write("- [x] AC-1 (task 1.1): Done (done, iteration 1)\n")
-            f.write("- [ ] AC-2 (task 1.2): Pending (pending)\n")
-        rc, out = run_hook("sync-implement.py", {
-            "tool_input": {"file_path": state}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertIn("1/2 criteria done", out)
 
 
 class TestSessionStart(unittest.TestCase):

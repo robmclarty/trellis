@@ -1,6 +1,6 @@
 ---
 name: trellis:tasks
-description: Use when user wants to Creates an ordered task breakdown at .specs/{feature}/tasks.md that decomposes a plan into discrete, verifiable units of work organized in phases.
+description: Use when user wants to Creates an ordered task breakdown at .specs/{feature}/tasks.json that decomposes a plan into discrete, verifiable units of work organized in phases.
 allowed-tools: Read, Glob, Grep, Task
 ---
 
@@ -12,9 +12,11 @@ allowed-tools: Read, Glob, Grep, Task
 - "what do I build first", "generate work items"
 - Any request to decompose a technical plan into actionable steps or prepare work items for execution
 
-Create an ordered task breakdown at `.specs/<feature-name>/tasks.md`.
+Create an ordered task breakdown at `.specs/<feature-name>/tasks.json`.
 
 **Recommended effort: medium.** Mechanical decomposition of the plan into ordered tasks.
+
+**Re-running this skill overwrites tasks.json**, resetting all task statuses to "pending". This is how you reset an implementation.
 
 ## Pre-flight
 
@@ -29,16 +31,17 @@ If the user runs `/tasks` without additional context:
 
 ## Generation
 
-After gathering all user input, spawn the `task-writer` agent. Pass it: the feature name, specs directory path, and all user-provided context. The agent will read prerequisite files and generate the tasks document.
+After gathering all user input, spawn the `task-writer` agent. Pass it: the feature name, specs directory path, and all user-provided context. The agent will read prerequisite files (plan.md, spec.md, guidelines.md) and generate tasks.json.
 
 ## Quality gate
 
-After the agent completes, verify the generated `tasks.md`:
+After the agent completes, verify the generated `tasks.json`:
 
+- [ ] Valid JSON that conforms to `schemas/tasks.schema.json`
 - [ ] Every plan section maps to at least one task
 - [ ] Every spec interface has at least one task that implements it
-- [ ] Every task has a concrete "Verify" step
+- [ ] Every task has a concrete "verify" field
 - [ ] Tasks are ordered so that each task's dependencies are completed in earlier tasks
 - [ ] No task requires reading the full plan to understand (it references specific sections)
-- [ ] Phase milestones describe an observable, testable state
 - [ ] The first phase produces something runnable (even if minimal)
+- [ ] The `check` field is populated from guidelines.md (or empty string if not available)

@@ -86,9 +86,7 @@ All artifacts live under a specs directory in your project (`.specs/` by default
     spec.md
     compliance.md
     plan.md
-    tasks.md
-    implement-state.md      # created during /trellis:implement, tracks progress
-    implement-preflight.json # ephemeral, used by Ralph iterations
+    tasks.json              # created by /trellis:tasks, tracks execution state
 ```
 
 See `examples/` for a complete sample `.specs/` directory showing what finished pipeline output looks like.
@@ -109,33 +107,27 @@ All skills and hooks read from this file, falling back to `.specs/` if it doesn'
 
 The `implement` skill can optionally integrate with external tools:
 
-### Ralph
+### Ralph (Docker-based implementation loop)
 
-A bundled loop script (`scripts/ralph-loop.sh`) that provides context-fresh iteration for large implementations. Based on Geoffrey Huntley's Ralph Wiggum methodology — each iteration runs in a fresh Claude Code context window, using `{specsDir}/{feature}/implement-state.md` as filesystem memory between iterations. Each feature has its own state file, stored alongside its other artifacts.
+A bundled loop script (`scripts/ralph-loop.sh`) that runs each task in a fresh Claude Code context inside a Docker container. Based on Geoffrey Huntley's Ralph Wiggum methodology — fresh context per task prevents degradation on long implementations. Progress is tracked via `{specsDir}/{feature}/tasks.json`.
 
-**When to use:** Large implementations with 10+ acceptance criteria or many files where context degradation becomes a concern.
+**When to use:** Large implementations (5+ tasks, many files) where context degradation is a concern. Fire-and-forget: launch it and come back later.
 
-**Invocation:** `/trellis:implement <feature-name> with ralph [--stream|--tail]`
+**Invocation:** `/trellis:implement <feature-name> with ralph [--stream|--tail|--no-judge]`
 
-Phase 0 and Phase 1 run interactively (config questions, pipeline assembly), then the loop script takes over. Each iteration runs with scoped permissions — only the specific toolchain commands configured during setup are allowed. The loop stops when all criteria pass, max iterations are reached (default 10), or 3 consecutive failures occur.
+**Requirements:** `docker` installed and running. Supports both API key (`ANTHROPIC_API_KEY` env var) and OAuth/subscription auth (one-time `scripts/ralph-loop.sh --login`). Non-empty `check` field in tasks.json.
+
+The loop script does ALL orchestration — it assembles prompts from templates and sends them to `claude -p` directly. For each pending task: optionally writes tests (TDD), implements, runs check on host, marks done or blocked. The loop stops when all tasks are done, all remaining are blocked, or max iterations are reached (default 10).
 
 **Output modes:**
 
 | Flag | Behavior |
 |------|----------|
-| *(default)* | Silent — output goes to log files only. Between-iteration status (criteria counts) is shown. |
+| *(default)* | Silent — output goes to log files only. Between-task status is shown. |
 | `--stream` | Full Claude output visible in real-time via `tee`, also logged to file. |
-| `--tail` | Silent during iteration, shows last 50 lines of log after each iteration completes. |
+| `--tail` | Silent during task, shows last 50 lines of log after each task completes. |
 
-### Ralphd (Docker-sandboxed Ralph)
-
-A variant of Ralph that runs each iteration inside a Docker container with `--dangerously-skip-permissions`. Docker is the security boundary — no scoped permission allowlists needed. Supports the same `--stream` and `--tail` output modes as Ralph.
-
-**When to use:** Same scenarios as Ralph, plus when scoped permissions are too restrictive or when you want full command access inside a sandboxed environment.
-
-**Requirements:** `docker` installed and running. Supports both API key (`ANTHROPIC_API_KEY` env var) and OAuth/subscription auth (one-time `scripts/ralphd-loop.sh --login`).
-
-**Invocation:** `/trellis:implement <feature-name> with ralphd [--stream|--tail]`
+**Resume from interruption:** Kill the process, re-run `/trellis:implement <feature> with ralph`. The script reads tasks.json and picks up from the first pending task.
 
 ### Promptfoo
 
@@ -155,8 +147,8 @@ Trellis includes two built-in agents used by the implement skill:
 
 | Agent | Description |
 |-------|-------------|
-| **Judge** | Reviews implementation against specifications for intent alignment. Final gate in the oracle pipeline. |
-| **Test Writer** | Writes targeted tests for tricky logic from spec criteria before implementation exists. |
+| **Judge** | Reviews implementation against specifications for intent alignment. Runs once at the end of implementation. |
+| **Test Writer** | Writes targeted tests for tricky logic from task criteria before implementation exists (TDD). |
 
 These agents are defined in `agents/` and can be referenced by name from the implement skill.
 
@@ -167,7 +159,7 @@ Trellis includes optional hooks for document validation and workflow enforcement
 | Hook | Trigger | Description |
 |------|---------|-------------|
 | `validate-spec-structure` | PostToolUse (Write/Edit) | Validates `.specs/` documents have required sections |
-| `check-implement-state` | PreToolUse (git commit) | Warns if acceptance criteria are incomplete |
+| `check-implement` | PreToolUse (git commit) | Warns if tasks are incomplete in tasks.json |
 | `session-start` | SessionStart | Shows pipeline status for features in `.specs/` |
 
 ## Testing
@@ -292,7 +284,7 @@ Decomposes the plan into phased, ordered, verifiable work items. Each task has a
 > /trellis:implement team-kudos
 ```
 
-Reads the tasks, plan, spec, and guidelines. Asks for your tooling commands (type-check, lint, build, test), then iterates: write code, run the oracle pipeline (type-check → lint → build → tests → judge), fix failures, repeat until all acceptance criteria pass.
+Reads tasks.json, plan, spec, and guidelines. For each task: optionally writes tests (TDD), implements code, runs the check command, marks done or blocked. Judge review runs at the end for spec intent alignment.
 
 ### Pipeline auto mode
 

@@ -1,0 +1,20 @@
+The check command failed after implementing a task. Fix ONLY the issues shown in the output below.
+Do not refactor, add features, or make unrelated changes. Fix the errors and exit.
+
+## Check Output (FAILED)
+```
+{{check_output}}
+```
+
+## Original Task
+{{task_id}}: {{task_title}}
+
+{{task_do}}
+
+## Acceptance Criteria
+{{task_verify}}
+
+## Technical Guidance (from plan)
+{{plan}}
+
+Read the error output carefully. Identify the specific files and lines that need fixing. Make the minimum changes necessary to make the check command pass.

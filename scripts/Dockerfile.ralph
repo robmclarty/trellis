@@ -1,16 +1,16 @@
-# Dockerfile.ralphd — Sandboxed Claude Code environment for ralphd iterations.
+# Dockerfile.ralph — Sandboxed Claude Code environment for ralph iterations.
 #
 # Provides a disposable container with Claude Code installed. The project
 # directory is bind-mounted at runtime, so no source code is baked into the
 # image. --dangerously-skip-permissions is safe here because the container
 # is the blast-radius boundary.
 #
-# Auth: OAuth credentials persist in the named volume `trellis-ralphd-auth`
-# mounted at /home/claude/.claude. Run `ralphd-loop.sh --login` once to
+# Auth: OAuth credentials persist in the named volume `trellis-ralph-auth`
+# mounted at /home/claude/.claude. Run `ralph-loop.sh --login` once to
 # authenticate, then all subsequent iterations reuse the stored session.
 #
-# Build:  docker build -t trellis-ralphd -f scripts/Dockerfile.ralphd .
-# Run:    (managed by scripts/ralphd-loop.sh — not invoked directly)
+# Build:  docker build -t trellis-ralph -f scripts/Dockerfile.ralph .
+# Run:    (managed by scripts/ralph-loop.sh — not invoked directly)
 
 FROM node:22-slim
 

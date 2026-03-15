@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for Trellis shell scripts (ralph-loop.sh and ralphd-loop.sh).
+# Tests for Trellis shell scripts (ralph-loop.sh).
 #
 # Run: bats tests/test-shell.bats
 #
@@ -74,175 +74,18 @@ except Exception:
   [ "$result" = "design" ]
 }
 
-# --- json_field helper ---
+# --- ralph-loop.sh exit when no tasks.json ---
 
-@test "json_field extracts a value from JSON" {
-  # Reproduce the json_field function inline
-  result=$(echo '{"doneCount": 5, "pendingCount": 3}' | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('doneCount', ''))
-" 2>/dev/null)
-  [ "$result" = "5" ]
-}
-
-@test "json_field returns default on missing key" {
-  result=$(echo '{"doneCount": 5}' | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('missingKey', 'fallback'))
-" 2>/dev/null)
-  [ "$result" = "fallback" ]
-}
-
-@test "json_field returns default on invalid JSON" {
-  result=$(echo 'not json' | python3 -c "
-import sys, json
-try:
-    d = json.load(sys.stdin)
-    print(d.get('field', 'default'))
-except:
-    print('default')
-" 2>/dev/null || echo "default")
-  [ "$result" = "default" ]
-}
-
-# --- ralph-loop.sh exit when no state file ---
-
-@test "ralph-loop.sh exits 1 when no state file exists" {
+@test "ralph-loop.sh exits 1 when no tasks.json exists" {
   mkdir -p .specs/test-feature
   run bash "$SCRIPT_DIR/ralph-loop.sh" test-feature
   [ "$status" -eq 1 ]
-  [[ "$output" == *"No .specs/test-feature/implement-state.md found"* ]]
+  [[ "$output" == *"No .specs/test-feature/tasks.json found"* ]]
 }
 
-# --- generate_permissions creates correct structure ---
+# --- ralph-loop.sh requires docker ---
 
-@test "generate_permissions produces valid settings JSON" {
-  mkdir -p .specs/test-feature .claude
-
-  # Create a minimal state file
-  cat > .specs/test-feature/implement-state.md <<'STATE'
-## Oracle Pipeline
-- [x] build: `npm run build`
-- [x] lint: `npm run lint`
-- [ ] test: `npm test`
-
-## Acceptance Criteria
-- [ ] AC-1 (task 1.1): Pending (pending)
-STATE
-
-  # Source the script in a subshell, extract only the generate_permissions function
-  # by running the script and letting it call generate_permissions before the loop fails
-  # Instead, we directly test the generate_permissions output by calling the Python
-  # snippet that it runs
-  SETTINGS_FILE=".claude/settings.local.json"
-  STATE_FILE=".specs/test-feature/implement-state.md"
-  state_json=$(python3 "$SCRIPT_DIR/parse-implement-state.py" "$STATE_FILE" 2>/dev/null || echo '{}')
-
-  python3 -c "
-import json, sys
-
-state = json.loads('''${state_json}''')
-pipeline = state.get('pipeline', [])
-
-allowed = [
-    'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Agent',
-    'Bash(mkdir *)', 'Bash(cp *)', 'Bash(mv *)', 'Bash(ls *)', 'Bash(cat *)',
-    'Bash(git branch *)', 'Bash(git checkout *)', 'Bash(git diff *)',
-    'Bash(git status)', 'Bash(git log *)',
-]
-
-for stage in pipeline:
-    cmd = stage.get('command')
-    if cmd:
-        allowed.append('Bash(' + cmd + ')')
-
-settings = {
-    'permissions': {
-        'allow': allowed,
-        'deny': []
-    }
-}
-
-with open('${SETTINGS_FILE}', 'w') as f:
-    json.dump(settings, f, indent=2)
-    f.write('\n')
-" 2>/dev/null
-
-  # Verify the file was created and is valid JSON
-  [ -f "$SETTINGS_FILE" ]
-
-  # Verify it contains pipeline commands
-  run python3 -c "
-import json
-with open('$SETTINGS_FILE') as f:
-    data = json.load(f)
-allowed = data['permissions']['allow']
-assert 'Bash(npm run build)' in allowed, 'Missing build command'
-assert 'Bash(npm run lint)' in allowed, 'Missing lint command'
-assert 'Bash(npm test)' in allowed, 'Missing test command'
-assert 'Read' in allowed, 'Missing Read tool'
-print('OK')
-"
-  [ "$status" -eq 0 ]
-  [ "$output" = "OK" ]
-}
-
-# --- run_preflight writes JSON ---
-
-@test "preflight assembles valid JSON from state and prereqs" {
-  mkdir -p .specs/test-feature
-
-  cat > .specs/test-feature/implement-state.md <<'STATE'
-## Acceptance Criteria
-- [ ] AC-1 (task 1.1): Test criterion (pending)
-STATE
-
-  cat > .specs/guidelines.md <<'GUIDE'
-# Guidelines
-GUIDE
-
-  PREFLIGHT_FILE=".specs/test-feature/implement-preflight.json"
-  SPECS_DIR=".specs"
-  FEATURE="test-feature"
-
-  state_json=$(python3 "$SCRIPT_DIR/parse-implement-state.py" "$SPECS_DIR/$FEATURE/implement-state.md" 2>/dev/null || echo '{}')
-  prereqs_json=$(python3 "$SCRIPT_DIR/validate-prereqs.py" implement "$FEATURE" 2>/dev/null || echo '{"valid":false,"missing":["unknown"]}')
-
-  python3 -c "
-import json
-state = json.loads('''${state_json}''')
-prereqs = json.loads('''${prereqs_json}''')
-preflight = {
-    'specsDir': '${SPECS_DIR}',
-    'prereqs': prereqs,
-    'state': state,
-    'criteria': {},
-}
-with open('${PREFLIGHT_FILE}', 'w') as f:
-    json.dump(preflight, f, indent=2)
-    f.write('\n')
-" 2>/dev/null
-
-  [ -f "$PREFLIGHT_FILE" ]
-
-  run python3 -c "
-import json
-with open('$PREFLIGHT_FILE') as f:
-    data = json.load(f)
-assert data['specsDir'] == '.specs'
-assert 'prereqs' in data
-assert 'state' in data
-print('OK')
-"
-  [ "$status" -eq 0 ]
-  [ "$output" = "OK" ]
-}
-
-# --- ralphd-loop.sh requires docker ---
-
-@test "ralphd-loop.sh exits 1 when docker is missing" {
+@test "ralph-loop.sh exits 1 when docker is missing" {
   # Remove the mock docker so the command is truly not found
   rm -f "${MOCK_BIN}/docker"
 
@@ -254,60 +97,27 @@ print('OK')
     skip "docker is installed on this system"
   fi
 
-  run bash "$SCRIPT_DIR/ralphd-loop.sh" test-feature
+  run bash "$SCRIPT_DIR/ralph-loop.sh" test-feature
   [ "$status" -eq 1 ]
   [[ "$output" == *"docker is not installed"* ]]
 }
 
-# --- parse-implement-state.py integration ---
+# --- ralph-loop.sh requires non-empty check command ---
 
-@test "parse-implement-state.py returns valid JSON for state file" {
+@test "ralph-loop.sh exits 1 when check is empty" {
   mkdir -p .specs/test-feature
-
-  cat > .specs/test-feature/implement-state.md <<'STATE'
-## Config
-- Lint: `npm run lint`
-- Test: off
-
-## Oracle Pipeline
-- [x] build: `npm run build`
-- [ ] test: `npm test`
-
-## Acceptance Criteria
-- [x] AC-1 (task 1.1): Setup (done, iteration 1)
-- [ ] AC-2 (task 1.2): Auth (pending)
-
-## Iteration Log
-### Iteration 1
-Did setup.
-STATE
-
-  run python3 "$SCRIPT_DIR/parse-implement-state.py" .specs/test-feature/implement-state.md
-  [ "$status" -eq 0 ]
-
-  # Validate the JSON output
-  run python3 -c "
-import json
-data = json.loads('''$output''')
-assert data['doneCount'] == 1
-assert data['pendingCount'] == 1
-assert data['nextPendingId'] == 'AC-2'
-assert data['iteration'] == 1
-assert data['config']['test'] == False
-assert data['config']['lint'] == 'npm run lint'
-print('OK')
-"
-  [ "$status" -eq 0 ]
-  [ "$output" = "OK" ]
+  echo '{"feature":"test","check":"","tasks":[]}' > .specs/test-feature/tasks.json
+  run bash "$SCRIPT_DIR/ralph-loop.sh" test-feature
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"no check command"* ]]
 }
 
-# --- cleanup removes preflight file ---
+# --- cleanup removes temp settings file ---
 
-@test "cleanup removes preflight JSON file" {
-  mkdir -p .specs/test-feature
-  echo '{}' > .specs/test-feature/implement-preflight.json
-  [ -f .specs/test-feature/implement-preflight.json ]
+@test "cleanup removes temp settings file" {
+  tmpfile=$(mktemp "${TMPDIR:-/tmp}/ralph-settings.XXXXXX")
+  [ -f "$tmpfile" ]
 
-  rm -f .specs/test-feature/implement-preflight.json
-  [ ! -f .specs/test-feature/implement-preflight.json ]
+  rm -f "$tmpfile"
+  [ ! -f "$tmpfile" ]
 }

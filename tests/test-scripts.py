@@ -182,7 +182,7 @@ class TestExtractMarkers(unittest.TestCase):
         self.assertEqual(data["byCategory"]["PRIVACY"], 2)
 
 
-class TestExtractCriteria(unittest.TestCase):
+class TestShouldWriteTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
 
@@ -190,104 +190,101 @@ class TestExtractCriteria(unittest.TestCase):
         import shutil
         shutil.rmtree(self.tmp)
 
-    def test_no_args(self):
-        rc, _, _ = run_script("extract-criteria.py", cwd=self.tmp)
-        self.assertEqual(rc, 2)
-
-    def test_basic_task_criteria(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
+    def _write_tasks(self, verify_text):
+        tasks = os.path.join(self.tmp, "tasks.json")
+        data = {
+            "feature": "test",
+            "check": "npm test",
+            "tasks": [
+                {
+                    "id": "1.1",
+                    "phase": 1,
+                    "title": "Test task",
+                    "do": "Build something",
+                    "verify": verify_text,
+                    "status": "pending",
+                    "iteration": None,
+                }
+            ],
+        }
         with open(tasks, "w") as f:
-            f.write("## Phase 1\n\n")
-            f.write("- [ ] 1.1 -- Set up project\n")
-            f.write("  **Verify:** Project builds successfully\n")
-            f.write("\n")
-            f.write("- [ ] 1.2 -- Add auth\n")
-            f.write("  **Verify:** Login returns JWT token\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks])
+            json.dump(data, f)
+        return tasks
+
+    def test_behavioral_verify_returns_true(self):
+        tasks = self._write_tasks("Rejects invalid input with 400 error")
+        rc, data, _ = run_script("should-write-tests.py", [tasks, "1.1"])
         self.assertEqual(rc, 0)
-        self.assertEqual(len(data["taskCriteria"]), 2)
-        self.assertEqual(data["taskCriteria"][0]["id"], "AC-1")
-        self.assertEqual(data["taskCriteria"][0]["taskId"], "1.1")
-        self.assertIn("builds successfully", data["taskCriteria"][0]["summary"])
+        self.assertTrue(data["shouldWrite"])
 
-    def test_spec_criteria(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
-        with open(tasks, "w") as f:
-            f.write("## Phase 1\n")
-        spec = os.path.join(self.tmp, "spec.md")
-        with open(spec, "w") as f:
-            f.write("## §8 Success Criteria\n\n")
-            f.write("- [ ] Users can log in\n")
-            f.write("- [ ] Dashboard loads in <2s\n")
-            f.write("\n## §9 Constraints\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks, spec])
+    def test_structural_verify_returns_false(self):
+        tasks = self._write_tasks("File exists at src/config.ts and compiles clean")
+        rc, data, _ = run_script("should-write-tests.py", [tasks, "1.1"])
         self.assertEqual(rc, 0)
-        self.assertEqual(len(data["specCriteria"]), 2)
-        self.assertEqual(data["specCriteria"][0]["id"], "SC-1")
+        self.assertFalse(data["shouldWrite"])
 
-    def test_missing_spec_returns_empty(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
-        with open(tasks, "w") as f:
-            f.write("## Phase 1\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks, "/nonexistent/spec.md"])
+    def test_unknown_defaults_to_true(self):
+        tasks = self._write_tasks("The system works correctly")
+        rc, data, _ = run_script("should-write-tests.py", [tasks, "1.1"])
         self.assertEqual(rc, 0)
-        self.assertEqual(data["specCriteria"], [])
+        self.assertTrue(data["shouldWrite"])
 
-    def test_multiline_verify_block(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
-        with open(tasks, "w") as f:
-            f.write("## Phase 1\n\n")
-            f.write("- [ ] 1.1 -- Set up project\n")
-            f.write("  **Verify:** First line of verify\n")
-            f.write("  continuation of verify block\n")
-            f.write("  another continuation line\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks])
-        self.assertEqual(len(data["taskCriteria"]), 1)
-        self.assertIn("First line", data["taskCriteria"][0]["summary"])
-        self.assertIn("continuation", data["taskCriteria"][0]["summary"])
+    def test_missing_task_id_exits_1(self):
+        tasks = self._write_tasks("Some verify")
+        rc, _, _ = run_script("should-write-tests.py", [tasks, "9.9"])
+        self.assertEqual(rc, 1)
 
-    def test_em_dash_separator(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
-        with open(tasks, "w") as f:
-            f.write("## Phase 1\n\n")
-            f.write("- [ ] 1.1 \u2014 Set up with em dash\n")
-            f.write("  **Verify:** It works\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks])
-        self.assertEqual(len(data["taskCriteria"]), 1)
-        self.assertEqual(data["taskCriteria"][0]["taskId"], "1.1")
 
-    def test_checked_task_still_extracted(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
-        with open(tasks, "w") as f:
-            f.write("## Phase 1\n\n")
-            f.write("- [x] 1.1 -- Already done\n")
-            f.write("  **Verify:** Should still appear\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks])
-        self.assertEqual(len(data["taskCriteria"]), 1)
-        self.assertEqual(data["taskCriteria"][0]["status"], "pending")
+class TestUpdateTasks(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
 
-    def test_empty_tasks_file(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp)
+
+    def _write_tasks(self):
+        tasks = os.path.join(self.tmp, "tasks.json")
+        data = {
+            "feature": "test",
+            "check": "npm test",
+            "tasks": [
+                {"id": "1.1", "phase": 1, "title": "First", "do": "Do first",
+                 "verify": "Verify first", "status": "pending", "iteration": None},
+                {"id": "1.2", "phase": 1, "title": "Second", "do": "Do second",
+                 "verify": "Verify second", "status": "pending", "iteration": None},
+            ],
+        }
         with open(tasks, "w") as f:
-            f.write("## Phase 1\n\nNo tasks here.\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks])
+            json.dump(data, f)
+        return tasks
+
+    def test_marks_task_done(self):
+        tasks = self._write_tasks()
+        rc, data, _ = run_script("update-tasks.py", [tasks, "1.1", "done", "--iteration", "1"])
         self.assertEqual(rc, 0)
-        self.assertEqual(data["taskCriteria"], [])
-        self.assertEqual(data["totalCount"], 0)
+        self.assertTrue(data["updated"])
+        self.assertEqual(data["doneCount"], 1)
+        self.assertEqual(data["pendingCount"], 1)
 
-    def test_spec_section8_stops_at_next_section(self):
-        tasks = os.path.join(self.tmp, "tasks.md")
-        with open(tasks, "w") as f:
-            f.write("## Phase 1\n")
-        spec = os.path.join(self.tmp, "spec.md")
-        with open(spec, "w") as f:
-            f.write("## \u00a78 Success Criteria\n\n")
-            f.write("- [ ] Criterion in section 8\n")
-            f.write("\n## \u00a79 Constraints\n\n")
-            f.write("- [ ] This should NOT be extracted\n")
-        rc, data, _ = run_script("extract-criteria.py", [tasks, spec])
-        self.assertEqual(len(data["specCriteria"]), 1)
-        self.assertIn("section 8", data["specCriteria"][0]["summary"])
+        # Verify file was updated in place
+        with open(tasks) as f:
+            on_disk = json.load(f)
+        self.assertEqual(on_disk["tasks"][0]["status"], "done")
+        self.assertEqual(on_disk["tasks"][0]["iteration"], 1)
+
+    def test_marks_task_blocked(self):
+        tasks = self._write_tasks()
+        rc, data, _ = run_script("update-tasks.py", [tasks, "1.2", "blocked"])
+        self.assertEqual(rc, 0)
+        self.assertTrue(data["updated"])
+        self.assertEqual(data["blockedCount"], 1)
+
+    def test_missing_task_exits_1(self):
+        tasks = self._write_tasks()
+        rc, data, _ = run_script("update-tasks.py", [tasks, "9.9", "done"])
+        self.assertEqual(rc, 1)
+        self.assertFalse(data["updated"])
 
 
 class TestPipelineStatus(unittest.TestCase):
@@ -428,210 +425,60 @@ class TestPipelineStatus(unittest.TestCase):
             )
 
 
-class TestParseImplementState(unittest.TestCase):
+class TestAssemblePrompt(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
+        # Create minimal spec artifacts
+        specs = os.path.join(self.tmp, ".specs", "test-feature")
+        os.makedirs(specs)
+        with open(os.path.join(self.tmp, ".specs", "guidelines.md"), "w") as f:
+            f.write("# Guidelines\n\n## Testing\nUse Jest.\n\n## Check Command\n\n```bash\nnpm test\n```\n")
+        with open(os.path.join(specs, "plan.md"), "w") as f:
+            f.write("# Plan\nBuild the thing.")
+        with open(os.path.join(specs, "spec.md"), "w") as f:
+            f.write("# Spec\nDo the thing.")
+        with open(os.path.join(specs, "tasks.json"), "w") as f:
+            json.dump({
+                "feature": "test-feature",
+                "check": "npm test",
+                "tasks": [
+                    {"id": "1.1", "phase": 1, "title": "First task", "do": "Build it",
+                     "verify": "It works", "status": "pending", "iteration": None}
+                ],
+            }, f)
 
     def tearDown(self):
         import shutil
         shutil.rmtree(self.tmp)
 
-    def test_file_not_found(self):
-        rc, data, _ = run_script("parse-implement-state.py", ["/nonexistent/file.md"])
-        self.assertEqual(rc, 1)
-        self.assertIn("error", data)
-
-    def test_basic_state_parsing(self):
-        state = os.path.join(self.tmp, ".implement-state.md")
-        with open(state, "w") as f:
-            f.write("""# Implementation State
-
-## Input
-- Feature: my-feature
-- Source: spec-driven
-
-## Branch
-- name: feat/my-feature
-- base: main
-
-## Config
-- Type-check: `npm run typecheck`
-- Lint: `npm run lint`
-- Test: off
-
-## Oracle Pipeline
-- [x] build: `npm run build`
-- [x] lint: `npm run lint`
-- [ ] test: `npm test`
-
-## Acceptance Criteria
-- [x] AC-1 (task 1.1): Set up project (done, iteration 1)
-- [ ] AC-2 (task 1.2): Add auth endpoint (pending)
-- [ ] AC-3 (task 2.1): Dashboard layout (pending)
-
-## Iteration Log
-### Iteration 1
-Built the project.
-### Iteration 2
-Added auth.
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
+    def test_assembles_implementor_prompt(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["implementor", "test-feature", "--task-id", "1.1"],
+            cwd=self.tmp,
+        )
         self.assertEqual(rc, 0)
-        self.assertEqual(data["doneCount"], 1)
-        self.assertEqual(data["pendingCount"], 2)
-        self.assertEqual(data["nextPendingId"], "AC-2")
-        self.assertEqual(data["iteration"], 2)
-        self.assertEqual(data["branch"]["name"], "feat/my-feature")
-        self.assertEqual(len(data["pipeline"]), 3)
-        self.assertEqual(data["criteria"][0]["status"], "done")
-        self.assertEqual(data["criteria"][1]["status"], "pending")
+        self.assertIn("prompt", data)
+        self.assertIn("Build it", data["prompt"])
+        self.assertIn("First task", data["prompt"])
 
-    def test_all_done(self):
-        state = os.path.join(self.tmp, ".implement-state.md")
-        with open(state, "w") as f:
-            f.write("""## Acceptance Criteria
-- [x] AC-1 (task 1.1): Done thing (done, iteration 1)
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
+    def test_assembles_test_writer_prompt(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["test-writer", "test-feature", "--task-id", "1.1"],
+            cwd=self.tmp,
+        )
         self.assertEqual(rc, 0)
-        self.assertEqual(data["pendingCount"], 0)
-        self.assertEqual(data["doneCount"], 1)
-        self.assertIsNone(data["nextPendingId"])
+        self.assertIn("It works", data["prompt"])
 
-    def test_empty_file(self):
-        state = os.path.join(self.tmp, "empty-state.md")
-        with open(state, "w") as f:
-            f.write("")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
+    def test_assembles_judge_prompt(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["judge", "test-feature"],
+            cwd=self.tmp,
+        )
         self.assertEqual(rc, 0)
-        self.assertEqual(data["pendingCount"], 0)
-        self.assertEqual(data["doneCount"], 0)
-        self.assertEqual(data["criteria"], [])
-        self.assertEqual(data["pipeline"], [])
-        self.assertEqual(data["config"], {})
-        self.assertIsNone(data["nextPendingId"])
-
-    def test_missing_sections(self):
-        state = os.path.join(self.tmp, "partial-state.md")
-        with open(state, "w") as f:
-            f.write("""## Acceptance Criteria
-- [ ] AC-1 (task 1.1): Only criteria here (pending)
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(rc, 0)
-        self.assertEqual(data["pendingCount"], 1)
-        self.assertEqual(data["branch"], {})
-        self.assertEqual(data["input"], {})
-        self.assertEqual(data["pipeline"], [])
-        self.assertEqual(data["iteration"], 0)
-
-    def test_config_boolean_parsing(self):
-        state = os.path.join(self.tmp, "config-state.md")
-        with open(state, "w") as f:
-            f.write("""## Config
-- Type-check: off
-- Lint: on
-- Test: false
-- Build: true
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(rc, 0)
-        self.assertFalse(data["config"]["type-check"])
-        self.assertTrue(data["config"]["lint"])
-        self.assertFalse(data["config"]["test"])
-        self.assertTrue(data["config"]["build"])
-
-    def test_config_backtick_stripping(self):
-        state = os.path.join(self.tmp, "backtick-state.md")
-        with open(state, "w") as f:
-            f.write("""## Config
-- Lint: `npm run lint`
-- Build: `npm run build`
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(rc, 0)
-        self.assertEqual(data["config"]["lint"], "npm run lint")
-        self.assertEqual(data["config"]["build"], "npm run build")
-
-    def test_pipeline_mixed_status(self):
-        state = os.path.join(self.tmp, "pipeline-state.md")
-        with open(state, "w") as f:
-            f.write("""## Oracle Pipeline
-- [x] build: `npm run build`
-- [ ] test: `npm test`
-- [x] lint: `npm run lint`
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(rc, 0)
-        self.assertEqual(len(data["pipeline"]), 3)
-        self.assertEqual(data["pipeline"][0]["status"], "enabled")
-        self.assertEqual(data["pipeline"][0]["command"], "npm run build")
-        self.assertEqual(data["pipeline"][1]["status"], "pending")
-        self.assertEqual(data["pipeline"][2]["status"], "enabled")
-
-    def test_criteria_with_task_ref(self):
-        state = os.path.join(self.tmp, "taskref-state.md")
-        with open(state, "w") as f:
-            f.write("""## Acceptance Criteria
-- [ ] AC-1 (task 1.1): Some criterion (pending)
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(data["criteria"][0]["taskRef"], "task 1.1")
-
-    def test_criteria_without_task_ref(self):
-        state = os.path.join(self.tmp, "notaskref-state.md")
-        with open(state, "w") as f:
-            f.write("""## Acceptance Criteria
-- [ ] AC-1: Some criterion without task ref (pending)
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(rc, 0)
-        self.assertIsNone(data["criteria"][0]["taskRef"])
-
-    def test_iteration_count_zero(self):
-        state = os.path.join(self.tmp, "no-iter-state.md")
-        with open(state, "w") as f:
-            f.write("""## Iteration Log
-No iterations yet.
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(data["iteration"], 0)
-
-    def test_iteration_count_many(self):
-        state = os.path.join(self.tmp, "many-iter-state.md")
-        with open(state, "w") as f:
-            f.write("## Iteration Log\n")
-            for i in range(1, 6):
-                f.write(f"### Iteration {i}\nDid stuff.\n")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(data["iteration"], 5)
-
-    def test_malformed_criteria_line_skipped(self):
-        state = os.path.join(self.tmp, "malformed-state.md")
-        with open(state, "w") as f:
-            f.write("""## Acceptance Criteria
-- [x] AC-1 (task 1.1): Valid criterion (done, iteration 1)
-- This is not a valid criteria line
-- Also not valid
-- [ ] AC-2 (task 1.2): Second valid (pending)
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(rc, 0)
-        self.assertEqual(len(data["criteria"]), 2)
-        self.assertEqual(data["criteria"][0]["id"], "AC-1")
-        self.assertEqual(data["criteria"][1]["id"], "AC-2")
-
-    def test_input_section_na_value(self):
-        state = os.path.join(self.tmp, "na-state.md")
-        with open(state, "w") as f:
-            f.write("""## Input
-- Feature: my-feature
-- Freeform: N/A
-""")
-        rc, data, _ = run_script("parse-implement-state.py", [state])
-        self.assertEqual(rc, 0)
-        self.assertEqual(data["input"]["feature"], "my-feature")
-        self.assertIsNone(data["input"]["freeform"])
+        self.assertIn("Spec", data["prompt"])
 
 
 if __name__ == "__main__":
