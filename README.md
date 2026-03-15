@@ -22,7 +22,7 @@ Trellis makes this practical by giving you meaningful checkpoints where your inp
 
 ## Skills
 
-Trellis provides 10 skills organized into three groups: foundation, specification pipeline, and execution.
+Trellis provides 11 skills organized into three groups: foundation, specification pipeline, and execution.
 
 ### Foundation
 
@@ -54,6 +54,8 @@ These skills run in sequence. Each builds on the output of the previous one.
   Orchestrate the full pipeline from pitch through prep in one session. Supports interactive and automatic modes.
 - `/trellis:implement`
   Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet.
+- `/trellis:status`
+  Show pipeline status for all features — which artifacts exist and what's ready for the next step.
 
 ## Typical workflow
 
@@ -62,14 +64,11 @@ These skills run in sequence. Each builds on the output of the previous one.
 /trellis:sketch              # optional: explore unknowns
 /trellis:pitch               # frame the feature
 /trellis:spec                # define what it does
-/trellis:clarify             # resolve ambiguities
-/trellis:compliance          # if regulated data is involved
-/trellis:plan                # decide how to build it
-/trellis:prep                # prepare tasks for implementation
+/trellis:plan                # decide how to build it (auto-runs clarify + compliance)
 /trellis:implement           # write the code (auto-runs prep if needed)
 ```
 
-Or use `/trellis:pipeline` to run pitch through prep in one pass.
+Or use `/trellis:pipeline` to run pitch through implementation in one pass. Clarify, compliance, and prep run automatically as pre-steps of their parent skills, so you don't need to invoke them separately (though you can if you want to run them standalone).
 
 ## Project structure
 
@@ -89,7 +88,7 @@ All artifacts live under a specs directory in your project (`.specs/` by default
     tasks.json              # created by /trellis:prep, tracks execution state
 ```
 
-See `examples/` for a complete sample `.specs/` directory showing what finished pipeline output looks like.
+See `docs/examples/` for walkthroughs showing what the pipeline looks like in practice.
 
 ### Custom specs directory
 
@@ -135,14 +134,18 @@ The loop script does ALL orchestration — it assembles prompts from templates a
 
 ## Agents
 
-Trellis includes two built-in agents used by the implement skill:
+Trellis includes 8 built-in agents defined in `agents/`. Six handle document generation for their respective skills, and two support the implementation loop:
 
-| Agent | Description |
-|-------|-------------|
-| **Judge** | Reviews implementation against specifications for intent alignment. Runs once at the end of implementation. |
-| **Test Writer** | Writes targeted tests for tricky logic from task criteria before implementation exists (TDD). |
-
-These agents are defined in `agents/` and can be referenced by name from the implement skill.
+| Agent | Used by | Description |
+|-------|---------|-------------|
+| **guidelines-writer** | `/trellis:guidelines` | Generates `guidelines.md` from stack/convention interview |
+| **sketch-writer** | `/trellis:sketch` | Generates experiment documents in `.specs/sketches/` |
+| **pitch-writer** | `/trellis:pitch` | Generates `pitch.md` with problem framing |
+| **spec-writer** | `/trellis:spec` | Generates `spec.md` with full functional specification |
+| **plan-writer** | `/trellis:plan` | Generates `plan.md` with architecture and technology decisions |
+| **task-writer** | `/trellis:prep` | Generates `tasks.json` with phased, ordered tasks |
+| **Test Writer** | `/trellis:implement` | Writes targeted tests for tricky logic before implementation exists (TDD) |
+| **Judge** | `/trellis:implement` | Reviews implementation against specifications for intent alignment. Runs once at the end. |
 
 ## Hooks
 
@@ -150,8 +153,9 @@ Trellis includes optional hooks for document validation and workflow enforcement
 
 | Hook | Trigger | Description |
 |------|---------|-------------|
-| `validate-spec-structure` | PostToolUse (Write/Edit) | Validates `.specs/` documents have required sections |
-| `check-implement` | PreToolUse (git commit) | Warns if tasks are incomplete in tasks.json |
+| `validate-structure` | PostToolUse (Write/Edit) | Validates `.specs/` documents have required sections |
+| `count-markers` | PostToolUse (Write/Edit) | Counts ambiguity `[? ...]` markers in spec.md |
+| `check-implement` | PreToolUse (Bash) | Warns if tasks are incomplete when committing during implementation |
 | `session-start` | SessionStart | Shows pipeline status for features in `.specs/` |
 
 ## Testing
