@@ -2,6 +2,13 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.15
+
+- Fix Docker volume ownership mismatch that silently broke Ralph auth persistence
+- Pre-create `/home/claude/.claude/` with correct ownership in Dockerfile so new volumes inherit `claude:claude`
+- Run `clean_auth_volume` as root to handle root-owned stale files and fix volume ownership
+- Fail loudly during `--login` if credentials weren't saved, with actionable remediation guidance
+
 ## 0.7.14
 
 - Always rebuild Ralph Docker image with daily cache bust to prevent stale Claude Code versions
