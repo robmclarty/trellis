@@ -29,6 +29,7 @@ def resolve_specs_dir():
 # Patterns use {feature} as a placeholder for the feature name.
 # Entries prefixed with ? are optional (checked but not required).
 PREREQS = {
+    "init": [],
     "guidelines": [],
     "sketch": ["guidelines.md"],
     "pitch": ["guidelines.md"],

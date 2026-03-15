@@ -109,9 +109,12 @@ def main():
     feature_filter = sys.argv[1] if len(sys.argv) > 1 else None
     specs_dir = resolve_specs_dir()
 
+    trellis_json_exist = os.path.isfile("trellis.json")
+
     if not os.path.isdir(specs_dir):
         result = {
             "specsDir": specs_dir,
+            "trellisJsonExist": trellis_json_exist,
             "guidelinesExist": False,
             "features": [],
             "sketchCount": 0,
@@ -137,6 +140,7 @@ def main():
 
     result = {
         "specsDir": specs_dir,
+        "trellisJsonExist": trellis_json_exist,
         "guidelinesExist": guidelines_exist,
         "features": features,
         "sketchCount": count_sketches(specs_dir),

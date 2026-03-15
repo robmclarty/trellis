@@ -28,23 +28,9 @@ This skill operates in two modes depending on whether `.specs/guidelines.md` alr
 
 If `.specs/guidelines.md` does not exist, this is a fresh project.
 
-#### Step 0: Choose specs directory
+#### Step 0: Initialize Trellis
 
-Before anything else, check whether `trellis.json` exists at the project root.
-
-- **If `trellis.json` does not exist**, ask the user: "Where should Trellis store spec artifacts? The default is `.specs/` — press Enter to accept or provide a custom path (e.g., `docs/specs`, `design`)."
-  - Write their choice (or the default) to `trellis.json` at the project root:
-
-    ```json
-    {
-      "specsDir": ".specs"
-    }
-    ```
-
-  - Create the directory if it doesn't exist.
-- **If `trellis.json` already exists**, read `specsDir` from it and use that directory. Do not re-ask.
-
-All references to `.specs/` in this skill (and all other Trellis skills) refer to the configured specs directory.
+Run the `/trellis:init` skill to ensure `trellis.json` and the specs directory exist. Use the configured `specsDir` for all subsequent steps.
 
 #### Step 1: Ask the user
 

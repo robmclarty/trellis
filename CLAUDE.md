@@ -1,6 +1,6 @@
 # Trellis — Plugin Context
 
-Trellis is a Claude Code plugin for **spec-driven development**. It provides 10 composable skills that take a feature from problem framing through implementation.
+Trellis is a Claude Code plugin for **spec-driven development**. It provides 11 composable skills that take a feature from problem framing through implementation.
 
 ## Philosophy
 
@@ -9,7 +9,9 @@ Every feature goes through structured phases. Each phase produces a durable mark
 ## Skill relationships
 
 ```text
-Foundation:     guidelines ─────────────────────────────────────────────┐
+Setup:          init ───────────────────────────────────────────────────┐
+                                                                        │
+Foundation:     guidelines ─────────────────────────────────────────────┤
                 sketch ─────────────────────────┐                       │
                                                 │                       │
 Pipeline:       pitch → spec → plan → implement                         │
@@ -18,12 +20,14 @@ Pipeline:       pitch → spec → plan → implement                         �
                           ↑ all inherit from guidelines ────────────────┘
 
 Folded into parent stages:
-  plan      ← automatically runs clarify + compliance as pre-steps
-  implement ← automatically runs prep if tasks.json is missing
+  guidelines ← automatically runs init if trellis.json is missing
+  plan       ← automatically runs clarify + compliance as pre-steps
+  implement  ← automatically runs prep if tasks.json is missing
 
 Orchestration:  pipeline (pitch → spec → plan → implement, with review gates)
 ```
 
+- **Init** creates `trellis.json` and the specs directory — run once per project, or invoked automatically by guidelines
 - **Guidelines** and **Sketch** are foundational — run before starting a feature pipeline
 - **Pitch → Spec → Plan → Implement** is the 4-stage pipeline, each building on the previous
 - **Clarify** and **Compliance** run automatically as pre-steps of `/plan` (can also be invoked standalone)
@@ -42,4 +46,4 @@ Orchestration:  pipeline (pitch → spec → plan → implement, with review gat
 - **Agents**: Generation agents (pitch-writer, spec-writer, plan-writer, task-writer, guidelines-writer, sketch-writer) run on Sonnet for cost-efficient document generation. Judge and Test Writer run on Opus for analytical tasks. All defined in `agents/` and spawned by their parent skills.
 - **Scripts**: Deterministic work (prereq validation, marker extraction, pipeline status, prompt assembly, test-writer heuristic, task status updates) lives in `scripts/` as standalone Python scripts that output JSON. Skills call these in pre-flight; the ralph loop calls them for orchestration.
 - **Hooks**: Python-based validators in `hooks/` for spec structure, ambiguity markers, task status, and session startup status. Two-layer architecture: hooks handle orchestration (stdin JSON, relevance filtering, formatting), scripts handle data processing.
-- **`trellis.json`**: Stores the configured specs directory (`specsDir`). Created by `/guidelines` on first run. All skills and hooks read from it, falling back to `.specs/` if absent.
+- **`trellis.json`**: Stores the configured specs directory (`specsDir`). Created by `/trellis:init` (or automatically via `/trellis:guidelines` on first run). All skills and hooks read from it, falling back to `.specs/` if absent.

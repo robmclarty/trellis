@@ -29,15 +29,24 @@ def main():
     except json.JSONDecodeError:
         sys.exit(0)
 
-    if not data.get("guidelinesExist") and not data.get("features"):
+    if (
+        not data.get("trellisJsonExist")
+        and not data.get("guidelinesExist")
+        and not data.get("features")
+    ):
         sys.exit(0)
 
     print("\U0001f4cb Trellis pipeline status:")
 
+    if data.get("trellisJsonExist"):
+        print("  \u2713 trellis.json")
+    else:
+        print("  \u2717 trellis.json (run /trellis:init to initialize)")
+
     if data.get("guidelinesExist"):
         print("  \u2713 guidelines.md")
     else:
-        print("  \u2717 guidelines.md (run /trellis:guidelines first)")
+        print("  \u2717 guidelines.md (run /trellis:guidelines)")
 
     DISPLAY_LABELS = {"implement-ready": "ready"}
 
