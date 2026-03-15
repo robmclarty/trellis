@@ -2,6 +2,15 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.6
+
+- Rename plugincheck scripts to lint:plugin for consistency
+- Resolve agnix warnings (scope Bash permissions, add trigger phrases, clean CLAUDE.md)
+- Suppress agnix false-positive errors for trellis: namespace prefix
+- Fix shellcheck warnings in ralph-loop.sh
+- Fix markdownlint blanks-around-lists warnings
+- Remove promptfoo test dependency
+
 ## 0.7.5
 
 - Populate changelog entries from git log context in version skill
