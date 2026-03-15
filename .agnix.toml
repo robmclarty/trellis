@@ -1,1 +1,6 @@
 tools = ["claude-code"]
+
+[rules]
+# Claude Code plugins use "trellis:" prefix for namespace disambiguation.
+# agnix flags colons as invalid, but Claude Code requires them.
+disabled_rules = ["AS-004", "AS-017"]
