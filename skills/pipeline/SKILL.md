@@ -1,6 +1,6 @@
 ---
 name: trellis:pipeline
-description: Orchestrates the full spec-driven pipeline (pitch → spec → clarify → compliance → plan → tasks) in one session. Use when starting a new feature from scratch.
+description: Orchestrates the full spec-driven pipeline (pitch → spec → clarify → compliance → plan → prep) in one session. Use when starting a new feature from scratch.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
@@ -9,12 +9,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 ## When to use
 
-- "run the pipeline", "pipeline", "take this from pitch to tasks"
+- "run the pipeline", "pipeline", "take this from pitch to prep"
 - "full spec workflow"
 - Any request to run the complete spec-driven process end-to-end
 - When the user wants to go from a problem description to a complete task breakdown in one session
 
-Orchestrate the full spec-driven development pipeline for a feature, from pitch through tasks.
+Orchestrate the full spec-driven development pipeline for a feature, from pitch through prep.
 
 **Recommended effort: high.** Orchestration with judgment calls, feedback loops, and mode-dependent decision-making.
 
@@ -26,7 +26,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` to
 
 ## Purpose
 
-The pipeline drives all feature-specific phases in sequence, handling the feedback loops between them. Instead of running `/pitch`, then `/spec`, then `/clarify`, then `/compliance`, then `/plan`, then `/tasks` manually, you run `/pipeline` once and it manages the progression, loopbacks, and gating.
+The pipeline drives all feature-specific phases in sequence, handling the feedback loops between them. Instead of running `/pitch`, then `/spec`, then `/clarify`, then `/compliance`, then `/plan`, then `/prep` manually, you run `/pipeline` once and it manages the progression, loopbacks, and gating.
 
 ## Prerequisites
 
@@ -121,9 +121,9 @@ If the user requests changes, revise the plan. No need to re-run earlier stages 
 
 **Auto:** Self-review the plan for consistency with guidelines and spec. Verify every spec interface has a corresponding implementation approach. Continue.
 
-### Stage 7: Tasks
+### Stage 7: Prep
 
-Generate `.specs/<feature-name>/tasks.md` following the `/tasks` skill, reading from the plan and spec.
+Generate `.specs/<feature-name>/tasks.json` following the `/prep` skill, reading from the plan and spec.
 
 **Interactive:** Pause for user review. Present the tasks and ask:
 
@@ -145,7 +145,7 @@ Summarize what was produced:
   spec.md        ✓
   compliance.md  ✓ (or skipped)
   plan.md        ✓
-  tasks.md       ✓
+  tasks.json     ✓
 ```
 
 **Interactive:** Tell the user they can now run `/implement` against the tasks.

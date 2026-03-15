@@ -6,7 +6,7 @@ A Claude Code plugin that bundles composable skills for spec-driven development.
 
 There is a growing trend among AI users: at some point, people stop choosing and start following whatever the LLM suggests. The tool that was supposed to augment human thinking quietly replaces it. Trellis is designed to resist this.
 
-The pipeline moves deliberately from vague to specific, from high-level framing to concrete implementation details. At each stage — pitch, spec, clarify, compliance, plan, tasks — you produce a human-readable artifact that you can audit, edit, and reshape before anything downstream consumes it. The LLM drafts; you decide.
+The pipeline moves deliberately from vague to specific, from high-level framing to concrete implementation details. At each stage — pitch, spec, clarify, compliance, plan, prep — you produce a human-readable artifact that you can audit, edit, and reshape before anything downstream consumes it. The LLM drafts; you decide.
 
 This matters because the artifacts are written in plain language, not code. You don't need to trace execution paths or parse diffs to understand what's being proposed. A pitch is a paragraph about a problem. A spec is a structured description of behavior. You can read them, disagree with them, and rewrite them — either by editing the markdown directly or by vibing with the LLM to refine its output. Every question Trellis asks during guidelines setup, every answer you give during a pipeline run, every small tweak you make to a spec section — these are the control surfaces that keep human intention in the driver's seat.
 
@@ -45,15 +45,15 @@ These skills run in sequence. Each builds on the output of the previous one.
   Evaluate the spec against applicable regulations (GDPR, FERPA, FIPPA, COPPA, SOC 2). Produces `.specs/<feature>/compliance.md`.
 - `/trellis:plan`
   Translate the spec into concrete architecture, technology, and code decisions. Produces `.specs/<feature>/plan.md`.
-- `/trellis:tasks`
-  Decompose the plan into discrete, ordered, verifiable units of work. Produces `.specs/<feature>/tasks.md`.
+- `/trellis:prep`
+  Prepare for implementation by decomposing the plan into discrete, ordered, verifiable tasks. Produces `.specs/<feature>/tasks.json`.
 
 ### Execution
 
 - `/trellis:pipeline`
-  Orchestrate the full pipeline from pitch through tasks in one session. Supports interactive and automatic modes.
+  Orchestrate the full pipeline from pitch through prep in one session. Supports interactive and automatic modes.
 - `/trellis:implement`
-  Turn specs, sketches, or freeform instructions into working code through iterative oracle-driven feedback loops.
+  Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet.
 
 ## Typical workflow
 
@@ -65,11 +65,11 @@ These skills run in sequence. Each builds on the output of the previous one.
 /trellis:clarify             # resolve ambiguities
 /trellis:compliance          # if regulated data is involved
 /trellis:plan                # decide how to build it
-/trellis:tasks               # break it into work items
-/trellis:implement           # write the code
+/trellis:prep                # prepare tasks for implementation
+/trellis:implement           # write the code (auto-runs prep if needed)
 ```
 
-Or use `/trellis:pipeline` to run pitch through tasks in one pass.
+Or use `/trellis:pipeline` to run pitch through prep in one pass.
 
 ## Project structure
 
@@ -86,7 +86,7 @@ All artifacts live under a specs directory in your project (`.specs/` by default
     spec.md
     compliance.md
     plan.md
-    tasks.json              # created by /trellis:tasks, tracks execution state
+    tasks.json              # created by /trellis:prep, tracks execution state
 ```
 
 See `examples/` for a complete sample `.specs/` directory showing what finished pipeline output looks like.
@@ -273,10 +273,10 @@ Review the plan. This is your last chance to adjust implementation details befor
 **8. Break into tasks**
 
 ```text
-> /trellis:tasks team-kudos
+> /trellis:prep team-kudos
 ```
 
-Decomposes the plan into phased, ordered, verifiable work items. Each task has a "Do" section (what to build) and a "Verify" section (how to confirm it's done). Produces `.specs/team-kudos/tasks.md`.
+Decomposes the plan into phased, ordered, verifiable work items. Each task has a "do" field (what to build) and a "verify" field (how to confirm it's done). Produces `.specs/team-kudos/tasks.json`.
 
 **9. Implement**
 
@@ -303,7 +303,7 @@ Technical constraints: Must integrate with existing user model. Cursor-based
   pagination for the feed (validated in sketch).
 ```
 
-The pipeline runs pitch → spec → clarify → compliance (skipped) → plan → tasks without pausing. When it finishes, it presents:
+The pipeline runs pitch → spec → clarify → compliance (skipped) → plan → prep without pausing. When it finishes, it presents:
 
 - A summary of all generated artifacts
 - A list of every `[AUTO]` decision it made, grouped by artifact
@@ -314,7 +314,7 @@ Pipeline complete:
   .specs/team-kudos/spec.md        ✓
   .specs/team-kudos/compliance.md  skipped (no regulated data)
   .specs/team-kudos/plan.md        ✓
-  .specs/team-kudos/tasks.md       ✓
+  .specs/team-kudos/tasks.json     ✓
 
 Auto decisions requiring review:
   spec.md §10:

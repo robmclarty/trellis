@@ -26,7 +26,7 @@ if [ "${1:-}" = "--update" ]; then
   mkdir -p "$SNAPSHOTS"
   cp -R "$EXAMPLES"/ "$SNAPSHOTS"/
   echo "Snapshots updated from examples/.specs/"
-  FILE_COUNT=$(find "$SNAPSHOTS" -name "*.md" | wc -l | tr -d ' ')
+  FILE_COUNT=$(find "$SNAPSHOTS" \( -name "*.md" -o -name "*.json" \) | wc -l | tr -d ' ')
   echo "$FILE_COUNT files captured."
   exit 0
 fi
@@ -59,7 +59,7 @@ while IFS= read -r snap_file; do
     diff -u "$snap_file" "$example_file" | head -20
     echo "  ..."
   fi
-done < <(find "$SNAPSHOTS" -name "*.md" | sort)
+done < <(find "$SNAPSHOTS" \( -name "*.md" -o -name "*.json" \) | sort)
 
 # Check for new files in examples/ not in snapshots
 while IFS= read -r example_file; do
@@ -69,7 +69,7 @@ while IFS= read -r example_file; do
   if [ ! -f "$snap_file" ]; then
     fail "$rel — new file not in snapshots (run --update)"
   fi
-done < <(find "$EXAMPLES" -name "*.md" | sort)
+done < <(find "$EXAMPLES" \( -name "*.md" -o -name "*.json" \) | sort)
 
 # --- structure validation ---
 echo ""
@@ -82,7 +82,7 @@ for dir in "$EXAMPLES"/*/; do
   feature=$(basename "$dir")
   [ "$feature" = "sketches" ] && continue
 
-  for artifact in pitch.md spec.md plan.md tasks.md; do
+  for artifact in pitch.md spec.md plan.md tasks.json; do
     if [ -f "$dir/$artifact" ]; then
       pass "$feature/$artifact exists"
     else
@@ -141,12 +141,12 @@ for dir in "$EXAMPLES"/*/; do
     done
   fi
 
-  # tasks.md phases
-  if [ -f "$dir/tasks.md" ]; then
-    if grep -qi "## Phase" "$dir/tasks.md"; then
-      pass "$feature/tasks.md has Phase sections"
+  # tasks.json structure
+  if [ -f "$dir/tasks.json" ]; then
+    if python3 -c "import json; d=json.load(open('$dir/tasks.json')); assert 'tasks' in d and 'check' in d" 2>/dev/null; then
+      pass "$feature/tasks.json has required fields"
     else
-      fail "$feature/tasks.md missing Phase sections"
+      fail "$feature/tasks.json missing required fields"
     fi
   fi
 done

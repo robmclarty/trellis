@@ -177,8 +177,8 @@ Write the plan now. Do not ask questions. Use numbered sections (§1-§10).""")
             self.assertIn(marker, output, f"Expected output to contain: {marker!r}")
         assert_icontains(self, output, "File Structure")
 
-    def test_tasks_sections(self):
-        output = run_skill("tasks", """\
+    def test_prep_sections(self):
+        output = run_skill("prep", """\
 Plan exists with: Fastify routes, Drizzle schemas, Zod validation,
 3 endpoints (create invite, validate token, create account).
 File structure: src/routes/, src/services/, src/models/, src/schemas/.
@@ -340,8 +340,8 @@ Write the compliance review now. Do not ask questions.""")
             "low risk", "no compliance", "not required",
         ])
 
-    def test_tasks_concretizes_vague_criteria(self):
-        output = run_skill("tasks", """\
+    def test_prep_concretizes_vague_criteria(self):
+        output = run_skill("prep", """\
 Plan exists with: Fastify routes, Drizzle schemas, Zod validation,
 3 endpoints (create invite, validate token, create account).
 File structure: src/routes/, src/services/, src/models/, src/schemas/.

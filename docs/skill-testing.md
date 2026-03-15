@@ -6,7 +6,7 @@ available, when to use each, and how to add new test cases.
 
 ## Background
 
-Each Trellis skill (guidelines, pitch, spec, plan, tasks, sketch) is defined
+Each Trellis skill (guidelines, pitch, spec, plan, prep, sketch) is defined
 by a `SKILL.md` file containing structured instructions. When Claude processes
 these instructions along with user input, it should produce output containing
 specific sections, headings, and keywords. Skill tests validate these

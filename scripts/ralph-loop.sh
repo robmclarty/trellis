@@ -273,7 +273,7 @@ mkdir -p "$LOG_DIR"
 # --- Validate prerequisites ---
 
 if [[ ! -f "$TASKS_JSON" ]]; then
-  echo -e "${RED}No ${TASKS_JSON} found. Run /trellis:tasks ${FEATURE} first.${RESET}"
+  echo -e "${RED}No ${TASKS_JSON} found. Run /trellis:prep ${FEATURE} first.${RESET}"
   exit 1
 fi
 
@@ -287,7 +287,7 @@ with open('$TASKS_JSON') as f:
 
 if [[ -z "$CHECK_CMD" ]]; then
   echo -e "${RED}tasks.json has no check command. Ralph mode requires a non-empty check field.${RESET}"
-  echo -e "${YELLOW}Add a check command to guidelines.md and re-run /trellis:tasks.${RESET}"
+  echo -e "${YELLOW}Add a check command to guidelines.md and re-run /trellis:prep.${RESET}"
   exit 1
 fi
 

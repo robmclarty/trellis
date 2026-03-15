@@ -313,7 +313,7 @@ class TestSessionStart(unittest.TestCase):
         os.makedirs(feat)
         with open(os.path.join(specs, "guidelines.md"), "w") as f:
             f.write("# Guidelines")
-        for artifact in ["pitch.md", "spec.md", "plan.md", "tasks.md"]:
+        for artifact in ["pitch.md", "spec.md", "plan.md", "tasks.json"]:
             with open(os.path.join(feat, artifact), "w") as f:
                 f.write(f"# {artifact}")
         cmd = [sys.executable, os.path.join(HOOKS, "session-start.py")]

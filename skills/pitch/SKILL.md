@@ -23,7 +23,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py pitch <feature-na
 
 ## Feature naming
 
-The pitch creates a new feature folder under `.specs/`. Ask the user for a short kebab-case name that describes the initiative: `hall-pass-extraction`, `kudos-mcp`, `student-search-api`. This folder will hold all subsequent artifacts (spec, compliance, plan, tasks) for this initiative.
+The pitch creates a new feature folder under `.specs/`. Ask the user for a short kebab-case name that describes the initiative: `hall-pass-extraction`, `kudos-mcp`, `student-search-api`. This folder will hold all subsequent artifacts (spec, compliance, plan, tasks.json) for this initiative.
 
 ## What to ask the user
 

@@ -41,7 +41,7 @@ def main():
 
     for feature in data.get("features", []):
         parts = []
-        for artifact in ["pitch", "spec", "plan", "tasks"]:
+        for artifact in ["pitch", "spec", "plan", "prep"]:
             if artifact in feature["completedStages"]:
                 parts.append(f"\u2713{artifact}")
             else:
@@ -54,7 +54,7 @@ def main():
         name = feature["name"]
 
         all_core = all(
-            s in feature["completedStages"] for s in ["pitch", "spec", "plan", "tasks"]
+            s in feature["completedStages"] for s in ["pitch", "spec", "plan", "prep"]
         )
         if all_core:
             print(f"  {name}: {status} (ready for /trellis:implement)")

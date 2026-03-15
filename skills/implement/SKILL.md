@@ -11,8 +11,8 @@ Turn specifications into working code through a task-by-task feedback loop. Each
 ## When to use
 
 - "implement this", "build this"
-- After completing the spec pipeline (pitch → spec → plan → tasks)
-- When `tasks.json` exists and you want to start building
+- After completing the spec pipeline (pitch → spec → plan → prep)
+- When `tasks.json` exists (or plan.md exists — tasks.json will be auto-generated)
 
 ## Step 0 — Parse invocation modifiers
 
@@ -36,7 +36,9 @@ Optional flags (only meaningful in ralph mode):
 
 1. Read `trellis.json` to get `specsDir` (default: `.specs`)
 2. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if prerequisites are missing.
-3. Read `{specsDir}/{feature}/tasks.json`
+3. Check if `{specsDir}/{feature}/tasks.json` exists.
+   - **If missing:** Tell the user "No tasks.json found — running `/trellis:prep` to generate it." Then invoke `/trellis:prep <feature-name>` (skip questions, use defaults). After prep completes, continue with the generated tasks.json.
+   - **If present:** Read it and continue.
 4. If all tasks have status `"done"` → report completion and stop.
 5. If the `check` field is empty → ask the user: "What command should pass for code to be correct? (e.g., `npm run lint && npm run typecheck && npm run build && npm run test`)" Write their answer into tasks.json's `check` field.
 

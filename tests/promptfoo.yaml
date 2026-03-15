@@ -154,11 +154,11 @@ tests:
         value: "File Structure"
 
   # ============================================================
-  # Tasks skill
+  # Prep skill
   # ============================================================
-  - description: "tasks: produces phased task breakdown with verify steps"
+  - description: "prep: produces phased task breakdown with verify steps"
     vars:
-      skill_instructions: file://skills/tasks/SKILL.md
+      skill_instructions: file://skills/prep/SKILL.md
       user_input: |
         Plan exists with: Fastify routes, Drizzle schemas, Zod validation,
         3 endpoints (create invite, validate token, create account).
@@ -383,11 +383,11 @@ tests:
         value: "must comply with GDPR"
 
   # ============================================================
-  # Adversarial: tasks concretizes vague criteria
+  # Adversarial: prep concretizes vague criteria
   # ============================================================
-  - description: "adversarial-tasks: concretizes vague success criteria"
+  - description: "adversarial-prep: concretizes vague success criteria"
     vars:
-      skill_instructions: file://skills/tasks/SKILL.md
+      skill_instructions: file://skills/prep/SKILL.md
       user_input: |
         Plan exists with: Fastify routes, Drizzle schemas, Zod validation,
         3 endpoints (create invite, validate token, create account).
