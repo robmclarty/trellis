@@ -2,6 +2,10 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.9
+
+- Add feature name conflict detection to run skill — resolve name before intake and offer resume/fresh/rename when a feature already exists
+
 ## 0.7.8
 
 - Rename pipeline skill to run for shorter, more intuitive invocation (`/trellis:run`)
