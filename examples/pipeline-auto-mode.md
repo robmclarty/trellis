@@ -15,7 +15,7 @@ Technical constraints: Must integrate with existing user model. Cursor-based
   pagination for the feed (validated in sketch).
 ```
 
-The pipeline runs four stages — pitch → spec → plan → implement — with clarify and compliance folded into the plan stage, and prep folded into implement. When it finishes, it presents:
+The pipeline runs four stages — pitch → spec → plan → build — with clarify and compliance folded into the plan stage, and prep folded into build. When it finishes, it presents:
 
 - A summary of all generated artifacts
 - A list of every `[AUTO]` decision it made, grouped by artifact
@@ -34,4 +34,4 @@ Auto decisions requiring review:
   - [AUTO] Assumed 280-character limit for kudos message body.
 ```
 
-Review the `[AUTO]` items, adjust any artifacts that need changes, then run `/trellis:implement team-kudos`.
+Review the `[AUTO]` items, adjust any artifacts that need changes, then run `/trellis:build team-kudos`.

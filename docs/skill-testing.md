@@ -127,15 +127,15 @@ in constraints sections, or feature-specific content in guidelines.
 | `test_compliance_no_gdpr_applies_for_no_pii` | compliance | No "GDPR applies" for a project with zero PII |
 | `test_guidelines_no_feature_specific_content` | guidelines | No "invitation"/"onboarding" when none were in input |
 
-### E2E implement smoke test (`TestImplementE2E`)
+### E2E build smoke test (`TestBuildE2E`)
 
-End-to-end test that verifies the implement skill can create code from
+End-to-end test that verifies the build skill can create code from
 spec artifacts. Uses a minimal Node.js project (an `add` function) with
 a pre-filled state file to skip Phase 0/1 and go directly to Phase 2.
 
 | Test | Skill | What it checks |
 |------|-------|----------------|
-| `test_implement_creates_code_and_updates_state` | implement | Creates src/add.js, updates state file, tests pass |
+| `test_build_creates_code_and_updates_state` | build | Creates src/add.js, updates state file, tests pass |
 
 **Triple-gated:** requires `claude` on PATH + `TRELLIS_LLM_TESTS=1` +
 `TRELLIS_E2E_TESTS=1`. Run with:
@@ -144,7 +144,7 @@ a pre-filled state file to skip Phase 0/1 and go directly to Phase 2.
 npm run test:e2e
 # or
 TRELLIS_LLM_TESTS=1 TRELLIS_E2E_TESTS=1 python3 -m unittest \
-  tests.test-skills.TestImplementE2E
+  tests.test-skills.TestBuildE2E
 ```
 
 This test uses `--dangerously-skip-permissions` and a $2.00 budget cap.
@@ -158,7 +158,7 @@ Two skills are not testable with the pipe pattern:
 - **pipeline** — orchestrates sub-skills without invoking the model directly
 
 Both require filesystem access and tool use that `claude -p` without
-tools cannot provide. The implement skill is covered by the E2E smoke
+tools cannot provide. The build skill is covered by the E2E smoke
 test above.
 
 ## Adding a new test case

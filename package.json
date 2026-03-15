@@ -20,7 +20,7 @@
     "test:shell": "bats tests/test-shell.bats",
     "test:snapshots": "bash tests/test-snapshots.sh",
     "test:skills": "TRELLIS_LLM_TESTS=1 python3 tests/test-skills.py",
-    "test:e2e": "TRELLIS_LLM_TESTS=1 TRELLIS_E2E_TESTS=1 python3 -m unittest tests.test-skills.TestImplementE2E",
+    "test:e2e": "TRELLIS_LLM_TESTS=1 TRELLIS_E2E_TESTS=1 python3 -m unittest tests.test-skills.TestBuildE2E",
     "typecheck": "",
     "lint": "npm run lint:json && npm run lint:md && npm run lint:py && npm run lint:sh",
     "lint:fix": "npm run lint:md:fix && npm run lint:py:fix",

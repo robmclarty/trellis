@@ -24,7 +24,7 @@ When the human skips this step or provides vague input, the AI fills in the gaps
 
 ### Conducting the Orchestra
 
-The pipeline moves through four stages — pitch, spec, plan, implement — and each stage ends with a review gate. The human reads a summary of what was generated and chooses one of three options:
+The pipeline moves through four stages — pitch, spec, plan, build — and each stage ends with a review gate. The human reads a summary of what was generated and chooses one of three options:
 
 - **Approve** — the output reflects their intent; continue to the next stage.
 - **Edit** — the output is close but needs manual adjustment; the pipeline pauses while they reshape the artifact.

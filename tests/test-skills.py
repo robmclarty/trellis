@@ -495,7 +495,7 @@ Write the guidelines file content now. Do not ask questions.""")
 
 
 # ============================================================
-# E2E Implement Smoke Test
+# E2E Build Smoke Test
 # ============================================================
 
 E2E_TESTS_ENABLED = os.environ.get("TRELLIS_E2E_TESTS") == "1"
@@ -509,14 +509,14 @@ else:
 
 
 @unittest.skipIf(E2E_SKIP_REASON, E2E_SKIP_REASON or "")
-class TestImplementE2E(unittest.TestCase):
-    """End-to-end smoke test for the implement skill."""
+class TestBuildE2E(unittest.TestCase):
+    """End-to-end smoke test for the build skill."""
 
-    def test_implement_creates_code_and_updates_state(self):
+    def test_build_creates_code_and_updates_state(self):
         tmpdir = tempfile.mkdtemp(prefix="trellis-e2e-")
         try:
             self._setup_fixture(tmpdir)
-            self._run_implement(tmpdir)
+            self._run_build(tmpdir)
             self._assert_results(tmpdir)
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
@@ -582,7 +582,7 @@ console.log('All tests passed');
 # Spec: smoke-test
 
 ## §1 Overview
-A simple add function for smoke testing the implement skill.
+A simple add function for smoke testing the build skill.
 
 ## §8 Success Criteria
 1. `add(2, 3)` returns `5`
@@ -636,9 +636,9 @@ src/
                 ],
             }, f, indent=2)
 
-    def _run_implement(self, tmpdir):
-        """Run the implement skill via claude -p."""
-        skill_path = os.path.join(SKILLS, "implement", "SKILL.md")
+    def _run_build(self, tmpdir):
+        """Run the build skill via claude -p."""
+        skill_path = os.path.join(SKILLS, "build", "SKILL.md")
         with open(skill_path) as f:
             skill_instructions = f.read()
 
@@ -671,7 +671,7 @@ The project is in the current directory. Create src/add.js so that
             )
 
     def _assert_results(self, tmpdir):
-        """Verify implement created code and updated state."""
+        """Verify build created code and updated state."""
         # src/add.js exists and is non-empty
         add_path = os.path.join(tmpdir, "src", "add.js")
         self.assertTrue(os.path.isfile(add_path),

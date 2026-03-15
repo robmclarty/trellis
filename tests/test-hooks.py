@@ -127,7 +127,7 @@ class TestValidateStructure(unittest.TestCase):
         self.assertIn("§1", out)
 
 
-class TestCheckImplement(unittest.TestCase):
+class TestCheckBuild(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
 
@@ -142,14 +142,14 @@ class TestCheckImplement(unittest.TestCase):
             json.dump({"feature": feature, "check": "npm test", "tasks": tasks}, f)
 
     def test_ignores_non_commit_commands(self):
-        rc, out = run_hook("check-implement.py", {
+        rc, out = run_hook("check-build.py", {
             "tool_input": {"command": "git status"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
         self.assertEqual(out, "")
 
     def test_silent_when_no_tasks_json(self):
-        rc, out = run_hook("check-implement.py", {
+        rc, out = run_hook("check-build.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
@@ -161,7 +161,7 @@ class TestCheckImplement(unittest.TestCase):
             {"id": "1.2", "title": "Pending task", "status": "pending"},
             {"id": "2.1", "title": "Also pending", "status": "pending"},
         ])
-        rc, out = run_hook("check-implement.py", {
+        rc, out = run_hook("check-build.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
@@ -171,7 +171,7 @@ class TestCheckImplement(unittest.TestCase):
         self._write_tasks("my-feature", [
             {"id": "1.1", "title": "Done task", "status": "done"},
         ])
-        rc, out = run_hook("check-implement.py", {
+        rc, out = run_hook("check-build.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
@@ -180,7 +180,7 @@ class TestCheckImplement(unittest.TestCase):
     def test_truncation_with_many_pending(self):
         tasks = [{"id": f"1.{i}", "title": f"Task {i}", "status": "pending"} for i in range(1, 8)]
         self._write_tasks("my-feature", tasks)
-        rc, out = run_hook("check-implement.py", {
+        rc, out = run_hook("check-build.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
@@ -196,7 +196,7 @@ class TestCheckImplement(unittest.TestCase):
             json.dump({"feature": "my-feature", "check": "npm test", "tasks": [
                 {"id": "1.1", "title": "Pending", "status": "pending"},
             ]}, f)
-        rc, out = run_hook("check-implement.py", {
+        rc, out = run_hook("check-build.py", {
             "tool_input": {"command": "git commit -m test"}
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
@@ -318,7 +318,7 @@ class TestSessionStart(unittest.TestCase):
         cmd = [sys.executable, os.path.join(HOOKS, "session-start.py")]
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=self.tmp)
         self.assertEqual(result.returncode, 0)
-        self.assertIn("ready for /trellis:implement", result.stdout)
+        self.assertIn("ready for /trellis:build", result.stdout)
 
     def test_multiple_features(self):
         specs = os.path.join(self.tmp, ".specs")

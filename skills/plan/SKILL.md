@@ -62,4 +62,4 @@ After gathering all user input, spawn the `plan-writer` agent. Pass it: the feat
 - [ ] The file structure matches the architecture
 - [ ] Code snippets follow the project guidelines
 - [ ] Technology decisions include rejected alternatives where relevant
-- [ ] An implementor could set up the project skeleton from §6 and start coding from §5 without further questions
+- [ ] A builder could set up the project skeleton from §6 and start coding from §5 without further questions

@@ -61,7 +61,7 @@ These skills run in sequence. Each builds on the output of the previous one.
 
 - `/trellis:pipeline`
   Orchestrate the full pipeline from pitch through prep in one session. Supports interactive and automatic modes.
-- `/trellis:implement`
+- `/trellis:build`
   Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet. See [docs/implementation-loop.md](docs/implementation-loop.md).
 - `/trellis:status`
   Show pipeline status for all features — which artifacts exist and what's ready for the next step.
@@ -74,10 +74,10 @@ These skills run in sequence. Each builds on the output of the previous one.
 /trellis:pitch               # frame the feature
 /trellis:spec                # define what it does
 /trellis:plan                # decide how to build it (auto-runs clarify + compliance)
-/trellis:implement           # write the code (auto-runs prep if needed)
+/trellis:build               # write the code (auto-runs prep if needed)
 ```
 
-Or use `/trellis:pipeline` to run pitch through implementation in one pass. Clarify, compliance, and prep run automatically as pre-steps of their parent skills, so you don't need to invoke them separately (though you can if you want to run them standalone).
+Or use `/trellis:pipeline` to run pitch through build in one pass. Clarify, compliance, and prep run automatically as pre-steps of their parent skills, so you don't need to invoke them separately (though you can if you want to run them standalone).
 
 ## Project structure
 
@@ -113,7 +113,7 @@ All skills and hooks read from this file, falling back to `.specs/` if it doesn'
 
 ## External integrations
 
-The `implement` skill can optionally integrate with external tools:
+The `build` skill can optionally integrate with external tools:
 
 ### Ralph (Docker-based implementation loop)
 
@@ -121,7 +121,7 @@ A bundled loop script (`scripts/ralph-loop.sh`) that runs each task in a fresh C
 
 **When to use:** Large implementations (5+ tasks, many files) where context degradation is a concern. Fire-and-forget: launch it and come back later.
 
-**Invocation:** `/trellis:implement <feature-name> with ralph [--stream|--tail|--no-judge]`
+**Invocation:** `/trellis:build <feature-name> with ralph [--stream|--tail|--no-judge]`
 
 **Requirements:** `docker` installed and running. Supports both API key (`ANTHROPIC_API_KEY` env var) and OAuth/subscription auth (one-time `scripts/ralph-loop.sh --login`). Non-empty `check` field in tasks.json.
 
@@ -135,11 +135,11 @@ The loop script does ALL orchestration — it assembles prompts from templates a
 | `--stream` | Full Claude output visible in real-time via `tee`, also logged to file. |
 | `--tail` | Silent during task, shows last 50 lines of log after each task completes. |
 
-**Resume from interruption:** Kill the process, re-run `/trellis:implement <feature> with ralph`. The script reads tasks.json and picks up from the first pending task.
+**Resume from interruption:** Kill the process, re-run `/trellis:build <feature> with ralph`. The script reads tasks.json and picks up from the first pending task.
 
 ### Open Spec
 
-[Open Spec](https://github.com/open-spec/open-spec) is a structured requirements format designed for agentic interpretation. If your spec uses Open Spec format (fields like `validation_criteria`, `constraints`, `scope`), the implement skill uses its structure directly for more reliable criteria extraction.
+[Open Spec](https://github.com/open-spec/open-spec) is a structured requirements format designed for agentic interpretation. If your spec uses Open Spec format (fields like `validation_criteria`, `constraints`, `scope`), the build skill uses its structure directly for more reliable criteria extraction.
 
 ## Agents
 
@@ -153,8 +153,8 @@ Trellis includes 8 built-in agents defined in `agents/`. Six handle document gen
 | **spec-writer** | `/trellis:spec` | Generates `spec.md` with full functional specification |
 | **plan-writer** | `/trellis:plan` | Generates `plan.md` with architecture and technology decisions |
 | **task-writer** | `/trellis:prep` | Generates `tasks.json` with phased, ordered tasks |
-| **Test Writer** | `/trellis:implement` | Writes targeted tests for tricky logic before implementation exists (TDD) |
-| **Judge** | `/trellis:implement` | Reviews implementation against specifications for intent alignment. Runs once at the end. |
+| **Test Writer** | `/trellis:build` | Writes targeted tests for tricky logic before implementation exists (TDD) |
+| **Judge** | `/trellis:build` | Reviews implementation against specifications for intent alignment. Runs once at the end. |
 
 ## Hooks
 
@@ -164,7 +164,7 @@ Trellis includes optional hooks for document validation and workflow enforcement
 |------|---------|-------------|
 | `validate-structure` | PostToolUse (Write/Edit) | Validates `.specs/` documents have required sections |
 | `count-markers` | PostToolUse (Write/Edit) | Counts ambiguity `[? ...]` markers in spec.md |
-| `check-implement` | PreToolUse (Bash) | Warns if tasks are incomplete when committing during implementation |
+| `check-build` | PreToolUse (Bash) | Warns if tasks are incomplete when committing during build |
 | `session-start` | SessionStart | Shows pipeline status for features in `.specs/` |
 
 ## Testing

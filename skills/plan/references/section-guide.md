@@ -27,7 +27,7 @@ Every library, tool, and infrastructure choice with a one-sentence rationale. Or
 | ORM | Drizzle | Project standard; schema-first, supports Postgres RLS |
 | Validation | Zod | Shared schemas for validation and type inference |
 
-If a choice diverges from the guidelines, explain why. If a choice was considered and rejected, include it with the reason (this prevents the implementor from re-evaluating a dead option).
+If a choice diverges from the guidelines, explain why. If a choice was considered and rejected, include it with the reason (this prevents the builder from re-evaluating a dead option).
 
 ## §4 — Data Access Patterns
 
@@ -39,7 +39,7 @@ How the application interacts with its data layer. This is not the data model (t
 - Connection management (pooling, timeouts, retry behavior)
 - If there are compliance constraints on data storage or access, show how the implementation satisfies them
 
-Include concrete code snippets showing the preferred patterns. These should follow the project guidelines and serve as copy-paste templates for the implementor.
+Include concrete code snippets showing the preferred patterns. These should follow the project guidelines and serve as copy-paste templates for the builder.
 
 ## §5 — Interface Implementation
 
@@ -57,7 +57,7 @@ Include a concrete code snippet for one representative endpoint/tool showing the
 
 ## §6 — File Structure
 
-The complete directory layout. Every directory and key file with a brief note about its purpose. Use a tree format. The structure should make the architecture visible. Group by architectural layer (data, services, routes, etc.) not by file type. This is the first thing an implementor creates before writing logic.
+The complete directory layout. Every directory and key file with a brief note about its purpose. Use a tree format. The structure should make the architecture visible. Group by architectural layer (data, services, routes, etc.) not by file type. This is the first thing a builder creates before writing logic.
 
 ## §7 — Error Handling Strategy
 

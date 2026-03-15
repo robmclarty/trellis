@@ -91,12 +91,12 @@ class TestValidatePrereqs(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertTrue(data["valid"])
 
-    def test_implement_checks_feature_dir(self):
+    def test_build_checks_feature_dir(self):
         specs = os.path.join(self.tmp, ".specs", "my-feature")
         os.makedirs(specs)
         with open(os.path.join(self.tmp, ".specs", "guidelines.md"), "w") as f:
             f.write("# Guidelines")
-        rc, data, _ = run_script("validate-prereqs.py", ["implement", "my-feature"], cwd=self.tmp)
+        rc, data, _ = run_script("validate-prereqs.py", ["build", "my-feature"], cwd=self.tmp)
         self.assertEqual(rc, 0)
         self.assertTrue(data["valid"])
 
@@ -478,10 +478,10 @@ class TestAssemblePrompt(unittest.TestCase):
         import shutil
         shutil.rmtree(self.tmp)
 
-    def test_assembles_implementor_prompt(self):
+    def test_assembles_builder_prompt(self):
         rc, data, _ = run_script(
             "assemble-prompt.py",
-            ["implementor", "test-feature", "--task-id", "1.1"],
+            ["builder", "test-feature", "--task-id", "1.1"],
             cwd=self.tmp,
         )
         self.assertEqual(rc, 0)

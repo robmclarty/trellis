@@ -66,7 +66,7 @@ Focus on failures at system boundaries: database, external services, auth, concu
 
 How to determine if the implementation is correct and complete. Organized into:
 
-- *Automated tests*: Specific scenarios with setup, action, and expected outcome. Concrete enough that an implementor can write the test directly from the description.
+- *Automated tests*: Specific scenarios with setup, action, and expected outcome. Concrete enough that a builder can write the test directly from the description.
 - *Integration tests*: Scenarios requiring the running system and possibly a real client. May be semi-automated or manual.
 - *Architectural checks*: Properties of the codebase verified by review (layer separation, no logic duplication, dependency direction).
 
@@ -92,7 +92,7 @@ This section is a pressure valve. It prevents unresolved questions from silently
 
 ## Section selection guidance
 
-**Always include**: §1 (Context), §2 (Functional Overview), §9 (Constraints), §8 (Success Criteria). These are the minimum. Without them, the implementor doesn't know what they're building, how to build it, or when they're done.
+**Always include**: §1 (Context), §2 (Functional Overview), §9 (Constraints), §8 (Success Criteria). These are the minimum. Without them, the builder doesn't know what they're building, how to build it, or when they're done.
 
 **Include for any system with persistence**: §4 (Data Model).
 

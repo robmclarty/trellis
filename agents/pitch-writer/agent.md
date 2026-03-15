@@ -30,7 +30,7 @@ A pitch defines a problem domain with enough shape to evaluate whether it's wort
 
 **No-Gos** — What this initiative explicitly does NOT include. Be aggressive here. Every no-go you declare now prevents scope creep later. Frame these as "not this time" rather than "never": they might become their own pitches in the future.
 
-**Rabbit Holes** — Things we could potentially get wrapped up in and waste resources on. These aren't necessarily risks in the traditional sense; they're tempting detours, interesting-but-premature optimizations, and areas of complexity that could eat time disproportionate to their value. "Building a custom LLM evaluation framework instead of using a simple prompt test" is a rabbit hole. "Designing a migration system that handles every possible edge case before we've validated the core feature" is a rabbit hole. For each one, note why it's tempting and what the pragmatic alternative is. This section gives the spec author and implementor permission to stay focused.
+**Rabbit Holes** — Things we could potentially get wrapped up in and waste resources on. These aren't necessarily risks in the traditional sense; they're tempting detours, interesting-but-premature optimizations, and areas of complexity that could eat time disproportionate to their value. "Building a custom LLM evaluation framework instead of using a simple prompt test" is a rabbit hole. "Designing a migration system that handles every possible edge case before we've validated the core feature" is a rabbit hole. For each one, note why it's tempting and what the pragmatic alternative is. This section gives the spec author and builder permission to stay focused.
 
 ## Quality criteria
 

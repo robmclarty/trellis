@@ -1,6 +1,6 @@
 # Sub-Agent Strategy
 
-Two sub-agents support the implement skill:
+Two sub-agents support the build skill:
 
 1. **Test writer** — Writes failing tests before implementation (TDD). Runs per task.
    Canonical definition: `agents/test-writer/agent.md`. Usage guide: `references/test-writer-agent.md`.
@@ -30,4 +30,4 @@ The test-writer runs for each task where the `verify` field describes behavioral
 
 The judge runs once after all tasks complete (default, opt-out with `--no-judge`). It does not run per-task. The judge evaluates intent alignment — did you build what the spec asked for, not just what the tasks described.
 
-In ralph mode, the loop script handles judge invocation after the task loop completes. In in-session mode, the implement skill spawns it directly.
+In ralph mode, the loop script handles judge invocation after the task loop completes. In in-session mode, the build skill spawns it directly.

@@ -26,13 +26,13 @@ def resolve_specs_dir():
         return ".specs"
 
 
-STAGE_ORDER = ["pitch", "spec", "plan", "implement-ready"]
+STAGE_ORDER = ["pitch", "spec", "plan", "build-ready"]
 
 ARTIFACT_MAP = {
     "pitch": "pitch.md",
     "spec": "spec.md",
     "plan": "plan.md",
-    "implement-ready": "tasks.json",
+    "build-ready": "tasks.json",
 }
 
 MARKER_RE = re.compile(r"\[\?\s*\w+:")

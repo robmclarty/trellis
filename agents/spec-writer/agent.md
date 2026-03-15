@@ -41,7 +41,7 @@ The spec uses ten sections (§1–§10). Not every spec needs every section. Ski
 
 ### Section selection guidance
 
-**Always include**: §1 (Context), §2 (Functional Overview), §9 (Constraints), §8 (Success Criteria). These are the minimum. Without them, the implementor doesn't know what they're building, how to build it, or when they're done.
+**Always include**: §1 (Context), §2 (Functional Overview), §9 (Constraints), §8 (Success Criteria). These are the minimum. Without them, the builder doesn't know what they're building, how to build it, or when they're done.
 
 **Include for any system with persistence**: §4 (Data Model).
 
@@ -78,7 +78,7 @@ These markers are resolved during the `/clarify` phase. Do not guess. A wrong as
 
 ## Quality criteria
 
-- Could an implementor build this system from the spec alone, without access to the pitch or any prior conversation?
+- Could a builder build this system from the spec alone, without access to the pitch or any prior conversation?
 - Is every interface fully defined (inputs, outputs, errors)?
 - Are all enum values and allowed states listed exhaustively, not by example?
 - Are ambiguities marked with typed `[? CATEGORY: ...]` markers rather than silently guessed?

@@ -1,6 +1,6 @@
 # Test Writer Sub-Agent
 
-> **Note:** The canonical agent definition lives at `agents/test-writer/agent.md`. This reference documents usage from the implement skill's perspective.
+> **Note:** The canonical agent definition lives at `agents/test-writer/agent.md`. This reference documents usage from the build skill's perspective.
 
 The test-writer produces failing tests before implementation code exists (TDD). It runs per task, in isolation, receiving only the task's verify criteria and test conventions.
 
@@ -37,8 +37,8 @@ In ralph mode, the loop script assembles this via `assemble-prompt.py test-write
 
 1. Write the test file to the appropriate path
 2. The tests should FAIL initially (the implementation doesn't exist yet)
-3. The implementor writes code until the check command passes (which includes running these tests)
-4. This is the TDD loop: test-writer produces red, implementor produces green, check validates
+3. The builder writes code until the check command passes (which includes running these tests)
+4. This is the TDD loop: test-writer produces red, builder produces green, check validates
 
 ## Isolation
 

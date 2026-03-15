@@ -15,7 +15,7 @@ code, fixing errors, or judging alignment.
 
 Templates use {{variable}} syntax. Variables are resolved from:
 - tasks.json: task fields, check command, completed task titles
-- plan.md: full content (implementor needs architectural context)
+- plan.md: full content (builder needs architectural context)
 - spec.md: full content (judge needs spec for alignment review)
 - guidelines.md: full content + extracted test conventions
 - git: diff stat (for judge)
@@ -86,7 +86,7 @@ def extract_check_command(guidelines_content):
 def get_completed_tasks(tasks_data):
     """Build a summary of completed tasks for context.
 
-    The implementor needs to know what's already been built so it doesn't
+    The builder needs to know what's already been built so it doesn't
     recreate existing code. A list of completed task titles is enough —
     the LLM can infer what files/modules exist from the task descriptions.
     """
@@ -200,7 +200,7 @@ def main():
     )
     parser.add_argument(
         "template",
-        choices=["test-writer", "implementor", "implementor-retry", "judge"],
+        choices=["test-writer", "builder", "builder-retry", "judge"],
         help="Template name",
     )
     parser.add_argument("feature", help="Feature name")

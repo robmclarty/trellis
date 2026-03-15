@@ -1,6 +1,6 @@
 # Judge Sub-Agent
 
-> **Note:** The canonical agent definition lives at `agents/judge/agent.md`. This reference documents usage from the implement skill's perspective.
+> **Note:** The canonical agent definition lives at `agents/judge/agent.md`. This reference documents usage from the build skill's perspective.
 
 The judge is the final gate after all tasks complete. It evaluates *intent alignment* — whether the implementation satisfies what the spec asked for, not just whether the code runs or tests pass.
 
@@ -26,7 +26,7 @@ The judge runs in an isolated context. Compose a message containing:
 
 In ralph mode, the loop script assembles this via `assemble-prompt.py judge <feature>` and the `templates/judge.txt` template.
 
-In in-session mode, the implement skill composes the message directly.
+In in-session mode, the build skill composes the message directly.
 
 ## Interpreting judge output
 

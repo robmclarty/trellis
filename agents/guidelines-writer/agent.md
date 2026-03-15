@@ -52,7 +52,7 @@ Reference the example files in the skill's `examples/` directory (at `${CLAUDE_P
 
 **Testing** — When tests appear in the development process, what gets tested and what doesn't, preferred test structure, any frameworks or conventions. Be honest about the team's actual practice, not an aspirational ideal. Include: test framework name (e.g., Vitest, pytest), file location pattern (e.g., `test/**/*.test.ts`, `tests/`), naming convention (e.g., `*.test.ts`, `test_*.py`), and any shared test utilities or fixtures.
 
-**Check Command** — The single CLI command chain that must exit 0 for code to be considered correct. This is used by the implement skill as the feedback signal after every task. Write it as a fenced code block. Example:
+**Check Command** — The single CLI command chain that must exit 0 for code to be considered correct. This is used by the build skill as the feedback signal after every task. Write it as a fenced code block. Example:
 
 ```bash
 npm run lint && npm run typecheck && npm run build && npm run test

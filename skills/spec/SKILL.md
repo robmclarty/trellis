@@ -41,7 +41,7 @@ After gathering all user input, spawn the `spec-writer` agent. Pass it: the feat
 
 ## Quality gate
 
-- [ ] Could an implementor build this system from the spec alone, without access to the pitch or any prior conversation?
+- [ ] Could a builder build this system from the spec alone, without access to the pitch or any prior conversation?
 - [ ] Is every interface fully defined (inputs, outputs, errors)?
 - [ ] Are all enum values and allowed states listed exhaustively, not by example?
 - [ ] Are ambiguities marked with typed `[? CATEGORY: ...]` markers rather than silently guessed?

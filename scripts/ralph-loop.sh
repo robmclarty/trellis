@@ -7,7 +7,7 @@
 #
 # Runs each task in a fresh Claude Code context inside a Docker container.
 # The loop script does ALL orchestration — it assembles prompts from templates
-# and sends them to `claude -p` directly. The implement skill is NOT invoked
+# and sends them to `claude -p` directly. The build skill is NOT invoked
 # inside Docker. The LLM does only creative work: writing tests, writing code,
 # fixing errors, judging alignment.
 #
@@ -15,7 +15,7 @@
 #   1. Read tasks.json for next pending task (deterministic)
 #   2. Run should-write-tests.py (deterministic heuristic)
 #   3. If tests needed: assemble-prompt.py test-writer → claude -p in Docker
-#   4. assemble-prompt.py implementor → claude -p in Docker
+#   4. assemble-prompt.py builder → claude -p in Docker
 #   5. Run check command on HOST (uses host toolchain)
 #   6. Pass → update-tasks.py done / Fail → retry once → still fail → blocked
 #   7. Git commit progress
@@ -399,7 +399,7 @@ trap cleanup EXIT
 
 # --- Main task loop ---
 # Each iteration processes one task. This is different from the old loop
-# which ran one full implement skill invocation per iteration (processing
+# which ran one full build skill invocation per iteration (processing
 # multiple criteria). Here, each task gets its own Docker invocations for
 # test-writing and implementation, with check running on the host between.
 
@@ -442,12 +442,12 @@ print(task['title'])
   fi
 
   # --- Step 2: Implementation ---
-  # The implementor receives the full task context: what to build, acceptance
+  # The builder receives the full task context: what to build, acceptance
   # criteria, the plan, guidelines, and what's already been built.
 
-  echo -e "${CYAN}Implementing task ${TASK_ID}...${RESET}"
-  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" implementor "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
-  run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-impl.log" "implementor ${TASK_ID}"
+  echo -e "${CYAN}Building task ${TASK_ID}...${RESET}"
+  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+  run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-impl.log" "builder ${TASK_ID}"
 
   # --- Step 3: Check on host ---
   # The check command runs on the HOST, not in Docker. This uses the host's
@@ -473,7 +473,7 @@ print(task['title'])
 
   echo -e "${YELLOW}Check failed for ${TASK_ID}. Retrying...${RESET}"
 
-  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" implementor-retry "$FEATURE" --task-id "$TASK_ID" --check-output "$CHECK_OUTPUT_FILE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder-retry "$FEATURE" --task-id "$TASK_ID" --check-output "$CHECK_OUTPUT_FILE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
   run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-retry.log" "retry ${TASK_ID}"
 
   # Re-run check after retry

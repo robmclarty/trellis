@@ -1,6 +1,6 @@
 ---
 name: trellis:pipeline
-description: Orchestrates the spec-driven pipeline (pitch → spec → plan → implement) with review gates between stages. Use when running the full feature pipeline or resuming from the last completed stage.
+description: Orchestrates the spec-driven pipeline (pitch → spec → plan → build) with review gates between stages. Use when running the full feature pipeline or resuming from the last completed stage.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
@@ -82,14 +82,14 @@ After generation, present the **review gate**:
    - **edit** — End the pipeline. Tell the user the file path and that they can re-invoke `/pipeline` when ready.
    - **redo** — Delete plan.md and regenerate. Re-present the gate. Limit: 3 redos per stage.
 
-### Stage 4: Implement
+### Stage 4: Build
 
-Before starting implementation, ask the user: **"OK to proceed with implementation?"**
+Before starting implementation, ask the user: **"OK to proceed with building?"**
 
 This is a write-heavy operation that modifies source code. The user must explicitly confirm before it begins — especially important when the pipeline resumes and jumps directly to this stage.
 
-- **If the user confirms:** Run the `/implement` skill, which automatically runs prep (generating tasks.json) if it doesn't already exist.
-- **If the user declines:** End the pipeline. Tell the user they can run `/trellis:implement <feature-name>` when ready.
+- **If the user confirms:** Run the `/build` skill, which automatically runs prep (generating tasks.json) if it doesn't already exist.
+- **If the user declines:** End the pipeline. Tell the user they can run `/trellis:build <feature-name>` when ready.
 
 ### Pipeline complete
 

@@ -48,11 +48,11 @@ def main():
     else:
         print("  \u2717 guidelines.md (run /trellis:guidelines)")
 
-    DISPLAY_LABELS = {"implement-ready": "ready"}
+    DISPLAY_LABELS = {"build-ready": "ready"}
 
     for feature in data.get("features", []):
         parts = []
-        for stage in ["pitch", "spec", "plan", "implement-ready"]:
+        for stage in ["pitch", "spec", "plan", "build-ready"]:
             label = DISPLAY_LABELS.get(stage, stage)
             if stage in feature["completedStages"]:
                 parts.append(f"\u2713{label}")
@@ -65,10 +65,10 @@ def main():
         all_core = all(
             s in feature["completedStages"] for s in ["pitch", "spec", "plan"]
         )
-        if "implement-ready" in feature["completedStages"]:
-            print(f"  {name}: {status} (ready for /trellis:implement)")
+        if "build-ready" in feature["completedStages"]:
+            print(f"  {name}: {status} (ready for /trellis:build)")
         elif all_core:
-            print(f"  {name}: {status} (run /trellis:implement to generate tasks and start)")
+            print(f"  {name}: {status} (run /trellis:build to generate tasks and start)")
         else:
             print(f"  {name}: {status}")
 

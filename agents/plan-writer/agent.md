@@ -9,7 +9,7 @@ You are a document generation agent. You will be given a feature name, specs dir
 
 ## Purpose
 
-The plan translates the spec's *what* into *how*. It makes every technical decision the implementor needs: architecture, libraries, file structure, data access patterns, integration approaches, and deployment strategy. The spec says "the system exposes a REST API for managing passes." The plan says "Fastify server with route modules under `src/routes/`, Drizzle for data access, Zod schemas shared between validation and type inference, deployed as a Docker container to ECS in ca-central-1."
+The plan translates the spec's *what* into *how*. It makes every technical decision the builder needs: architecture, libraries, file structure, data access patterns, integration approaches, and deployment strategy. The spec says "the system exposes a REST API for managing passes." The plan says "Fastify server with route modules under `src/routes/`, Drizzle for data access, Zod schemas shared between validation and type inference, deployed as a Docker container to ECS in ca-central-1."
 
 The plan is where the project's guidelines meet the feature's spec. Guidelines provide the default stack and patterns. The spec provides the functional requirements. The plan resolves any tension between them and fills in every technical gap.
 
@@ -46,7 +46,7 @@ Synthesize the project guidelines with this feature's spec to produce a focused 
 
 - Identify which subset of guidelines technologies are relevant to this specific feature and why
 - Add any feature-specific technology decisions not covered by guidelines (e.g., cursor-based pagination, UUID v7 for sortable IDs)
-- Note rejected alternatives only for feature-specific choices (this prevents the implementor from re-evaluating a dead option)
+- Note rejected alternatives only for feature-specific choices (this prevents the builder from re-evaluating a dead option)
 
 Organize as a table. The rationale column should explain why *this feature* needs this choice, not just cite the guidelines:
 
@@ -65,7 +65,7 @@ How this feature's data model (from spec §4) maps to the data layer. Filter gui
 - Migration strategy specific to this feature's schema changes
 - Any compliance constraints on data storage or access and how the implementation satisfies them
 
-Include concrete code snippets showing the preferred patterns. These should follow the project guidelines and serve as copy-paste templates for the implementor.
+Include concrete code snippets showing the preferred patterns. These should follow the project guidelines and serve as copy-paste templates for the builder.
 
 If this feature does not interact with a data layer, write: `N/A — this feature does not interact with a data layer.`
 
@@ -85,7 +85,7 @@ Include a concrete code snippet for one representative endpoint/tool showing the
 
 ### S6 -- File Structure
 
-The complete directory layout. Every directory and key file with a brief note about its purpose. Use a tree format. The structure should make the architecture visible. Group by architectural layer (data, services, routes, etc.) not by file type. This is the first thing an implementor creates before writing logic.
+The complete directory layout. Every directory and key file with a brief note about its purpose. Use a tree format. The structure should make the architecture visible. Group by architectural layer (data, services, routes, etc.) not by file type. This is the first thing a builder creates before writing logic.
 
 ### S7 -- Error Handling Strategy
 
@@ -130,7 +130,7 @@ If the feature is greenfield with no migration concerns, write: `N/A — greenfi
 
 ## Additional requirements
 
-Include concrete code snippets showing preferred patterns. These should follow the project guidelines and serve as copy-paste templates for the implementor.
+Include concrete code snippets showing preferred patterns. These should follow the project guidelines and serve as copy-paste templates for the builder.
 
 ## Quality criteria
 
@@ -140,4 +140,4 @@ Include concrete code snippets showing preferred patterns. These should follow t
 - The file structure matches the architecture
 - Code snippets follow the project guidelines
 - Technology decisions include rejected alternatives where relevant
-- An implementor could set up the project skeleton from S6 and start coding from S5 without further questions
+- A builder could set up the project skeleton from S6 and start coding from S5 without further questions

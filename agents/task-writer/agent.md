@@ -61,7 +61,7 @@ Each task has these fields:
 
 **title** — Short, action-oriented. Start with a verb: "Create," "Implement," "Configure," "Add," "Wire up."
 
-**do** — What the implementor needs to build or change. Reference specific plan sections for patterns to follow and spec sections for requirements. Be concrete: name files to create, functions to write, configurations to set. An implementor should not need to re-read the full plan to execute a single task.
+**do** — What the builder needs to build or change. Reference specific plan sections for patterns to follow and spec sections for requirements. Be concrete: name files to create, functions to write, configurations to set. An builder should not need to re-read the full plan to execute a single task.
 
 **verify** — How to confirm the task is done. This should be a concrete, observable check: a test passes, a command produces expected output, a file exists with specific content, an API endpoint returns the expected response. This field is used by the test-writer agent to generate tests, so be specific about expected behavior and edge cases.
 

@@ -73,18 +73,18 @@ Then it translates the spec into technical decisions: architecture, technology c
 
 Review the plan. This is your last chance to adjust implementation details before they get decomposed into tasks.
 
-**6. Implement**
+**6. Build**
 
 ```text
-> /trellis:implement team-kudos
+> /trellis:build team-kudos
 ```
 
-Since `tasks.json` doesn't exist yet, the implement skill automatically runs **prep** first — decomposing the plan into phased, ordered, verifiable work items. Each task has a "do" field (what to build) and a "verify" field (how to confirm it's done). Produces `.specs/team-kudos/tasks.json`.
+Since `tasks.json` doesn't exist yet, the build skill automatically runs **prep** first — decomposing the plan into phased, ordered, verifiable work items. Each task has a "do" field (what to build) and a "verify" field (how to confirm it's done). Produces `.specs/team-kudos/tasks.json`.
 
 Then for each task: optionally writes tests (TDD), implements code, runs the check command, marks done or blocked. Judge review runs at the end for spec intent alignment.
 
 For large implementations, you can use Ralph mode to run each task in a fresh Docker container:
 
 ```text
-> /trellis:implement team-kudos with ralph
+> /trellis:build team-kudos with ralph
 ```

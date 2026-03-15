@@ -1,16 +1,16 @@
 ---
-name: trellis:implement
+name: trellis:build
 description: Executes implementation from tasks.json through a check-driven feedback loop. Use when all spec artifacts are ready and implementation should begin.
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Task
 ---
 
-# Implement
+# Build
 
 Turn specifications into working code through a task-by-task feedback loop. Each task gets tests first (TDD), then implementation, then a check command validates correctness.
 
 ## When to use
 
-- "implement this", "build this"
+- "build this", "implement this"
 - After completing the spec pipeline (pitch → spec → plan → prep)
 - When `tasks.json` exists (or plan.md exists — tasks.json will be auto-generated)
 
@@ -46,7 +46,7 @@ Optional flags (only meaningful in ralph mode):
 
 If `ralphMode == "ralph"`:
 
-1. Verify the `check` field in tasks.json is non-empty. If empty, abort with: "Ralph mode requires a check command. Set it in guidelines.md or run `/trellis:implement <feature>` interactively first."
+1. Verify the `check` field in tasks.json is non-empty. If empty, abort with: "Ralph mode requires a check command. Set it in guidelines.md or run `/trellis:build <feature>` interactively first."
 2. Launch `bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name> [max-iterations] [flags]`
 3. **STOP HERE.** The loop script handles everything from here. It does NOT invoke this skill — it assembles prompts from templates and sends them to `claude -p` directly. See `references/external-integrations.md` for details.
 
@@ -92,7 +92,7 @@ Run the check command from tasks.json:
 
 ### Step 4: Write updated tasks.json
 
-After each task, write the updated tasks.json to disk. This is the resume point — if the session is interrupted, re-running `/trellis:implement <feature>` picks up from the first pending task.
+After each task, write the updated tasks.json to disk. This is the resume point — if the session is interrupted, re-running `/trellis:build <feature>` picks up from the first pending task.
 
 ## Judge review
 

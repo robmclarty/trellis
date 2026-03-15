@@ -13,7 +13,7 @@ Prepare a feature for implementation by decomposing its plan into ordered, verif
 - "prep this for implementation", "prepare tasks", "break this into tasks"
 - "what do I build first", "generate work items", "create task breakdown"
 - Any request to decompose a technical plan into actionable steps or prepare work items for execution
-- Called automatically by `/trellis:implement` when `tasks.json` doesn't exist yet
+- Called automatically by `/trellis:build` when `tasks.json` doesn't exist yet
 
 Create an ordered task breakdown at `.specs/<feature-name>/tasks.json`.
 
@@ -32,7 +32,7 @@ If the user runs `/prep` without additional context:
 1. Are there any ordering constraints beyond what the plan implies? (e.g., "I need the API working before the MCP layer so I can demo it")
 2. Should tasks be sized for a human developer or for an AI coding agent? (This affects granularity. Agent tasks can be smaller and more mechanical. Human tasks should be more self-contained.)
 
-If invoked automatically from `/trellis:implement` (no user present), skip questions and use defaults (agent-sized tasks, plan-implied ordering).
+If invoked automatically from `/trellis:build` (no user present), skip questions and use defaults (agent-sized tasks, plan-implied ordering).
 
 ## Generation
 

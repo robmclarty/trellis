@@ -1,12 +1,12 @@
 # External Integrations
 
-The implement skill can optionally integrate with external tools.
+The build skill can optionally integrate with external tools.
 
 ## Ralph (Docker-based implementation loop)
 
 **What it is:** A bundled loop script (`scripts/ralph-loop.sh`) that runs each task in a fresh Claude Code context inside a Docker container. Based on Geoffrey Huntley's Ralph Wiggum methodology — fresh context per task prevents degradation on long implementations.
 
-**How to use:** `/implement <feature> with ralph [--stream|--tail|--no-judge]`
+**How to use:** `/build <feature> with ralph [--stream|--tail|--no-judge]`
 
 **Output modes:**
 
@@ -16,9 +16,9 @@ The implement skill can optionally integrate with external tools.
 
 **How it works:** When `with ralph` is specified:
 
-1. The implement skill validates tasks.json exists and has a non-empty `check` field
+1. The build skill validates tasks.json exists and has a non-empty `check` field
 2. The skill launches `scripts/ralph-loop.sh <feature-name>`
-3. The loop script does ALL orchestration — it does NOT invoke the implement skill inside Docker
+3. The loop script does ALL orchestration — it does NOT invoke the build skill inside Docker
 4. For each pending task, the loop script:
    - Runs `should-write-tests.py` to decide if tests are needed (deterministic heuristic)
    - Runs `assemble-prompt.py` to build a prompt from templates + task data + spec artifacts
@@ -45,7 +45,7 @@ The implement skill can optionally integrate with external tools.
 
 **When to use:** Large implementations (5+ tasks, many files) where context degradation is a concern. Fire-and-forget: launch it and come back hours later.
 
-**Resume from interruption:** Kill the process, re-run `/implement <feature> with ralph`. The script reads tasks.json and picks up from the first pending task.
+**Resume from interruption:** Kill the process, re-run `/build <feature> with ralph`. The script reads tasks.json and picks up from the first pending task.
 
 ## Open Spec
 

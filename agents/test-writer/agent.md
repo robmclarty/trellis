@@ -48,11 +48,11 @@ Rules:
    behavior is being verified without reading the implementation.
 
 10. Output ONLY the test file contents. No explanation, no preamble, no
-    suggestions for the implementor. Just the code.
+    suggestions for the builder. Just the code.
 
 ## Input format
 
-The implement skill (or ralph loop script via `templates/test-writer.txt`) passes you a message with these sections:
+The build skill (or ralph loop script via `templates/test-writer.txt`) passes you a message with these sections:
 
 - **What to test** — The task's verify criteria (what behavior to assert)
 - **Context for what will be built** — The task's do field (what code will exist)
@@ -67,5 +67,5 @@ Respond with the complete test file, ready to write to disk.
 
 1. The test file is written to disk
 2. The tests FAIL initially (the implementation doesn't exist yet)
-3. The implementor writes code until the check command passes (which includes running these tests)
-4. This is the TDD loop: test-writer produces red, implementor produces green, check validates
+3. The builder writes code until the check command passes (which includes running these tests)
+4. This is the TDD loop: test-writer produces red, builder produces green, check validates
