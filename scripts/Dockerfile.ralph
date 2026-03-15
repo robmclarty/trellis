@@ -21,7 +21,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Claude Code globally (as root, before user switch)
+# Install Claude Code globally (as root, before user switch).
+# CACHE_BUST is set by ralph-loop.sh to force a fresh install when the
+# date changes, ensuring we don't run a stale Claude Code version.
+ARG CACHE_BUST=0
 RUN npm install -g @anthropic-ai/claude-code
 
 # Non-root user — the auth volume mounts at /home/claude/.claude

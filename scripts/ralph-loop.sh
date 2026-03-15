@@ -67,10 +67,10 @@ if ! docker info &>/dev/null 2>&1; then
   exit 1
 fi
 
-# Build the image if it doesn't exist.
-# We rebuild on every run rather than caching aggressively because the
-# Dockerfile is small (node + claude-code) and a stale image with an old
-# Claude Code version causes hard-to-debug failures.
+# Always rebuild the image. The Dockerfile is small (node + claude-code)
+# and a stale image with an old Claude Code version causes hard-to-debug
+# auth and runtime failures. Docker layer caching keeps rebuilds fast
+# when nothing has changed.
 build_image() {
   if [[ ! -f "$DOCKERFILE" ]]; then
     # Fall back to legacy Dockerfile name during migration
@@ -81,16 +81,14 @@ build_image() {
       exit 1
     fi
   fi
-  if ! docker image inspect "$IMAGE_NAME" &>/dev/null 2>&1; then
-    echo -e "${CYAN}Building Docker image ${IMAGE_NAME}...${RESET}"
-    docker build -t "$IMAGE_NAME" -f "$DOCKERFILE" "${SCRIPT_DIR}/.." || {
-      echo -e "${RED}Docker build failed. Aborting.${RESET}"
-      exit 1
-    }
-    echo -e "${GREEN}Image ${IMAGE_NAME} built successfully.${RESET}"
-  else
-    echo -e "${CYAN}Docker image ${IMAGE_NAME} already exists.${RESET}"
-  fi
+  echo -e "${CYAN}Building Docker image ${IMAGE_NAME}...${RESET}"
+  docker build -t "$IMAGE_NAME" -f "$DOCKERFILE" \
+    --build-arg "CACHE_BUST=$(date +%Y%m%d)" \
+    "${SCRIPT_DIR}/.." || {
+    echo -e "${RED}Docker build failed. Aborting.${RESET}"
+    exit 1
+  }
+  echo -e "${GREEN}Image ${IMAGE_NAME} ready.${RESET}"
 }
 
 # Ensure the named auth volume exists.
@@ -152,6 +150,23 @@ with open(sys.argv[2], 'w') as f:
 " "$host_settings" "$CONTAINER_SETTINGS"
 }
 
+# Extract Docker-persisted .claude.json from the auth volume.
+# The --login command copies ~/.claude.json into the volume as _claude.json.
+# We extract it to a temp file so build_docker_run_args can mount it.
+DOCKER_CLAUDE_JSON=""
+extract_docker_claude_json() {
+  DOCKER_CLAUDE_JSON=$(mktemp "${TMPDIR:-/tmp}/ralph-claude-json.XXXXXX")
+  docker run --rm \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    --entrypoint sh \
+    "$IMAGE_NAME" \
+    -c 'cat /home/claude/.claude/_claude.json 2>/dev/null' > "$DOCKER_CLAUDE_JSON" 2>/dev/null || true
+  if [[ ! -s "$DOCKER_CLAUDE_JSON" ]]; then
+    rm -f "$DOCKER_CLAUDE_JSON"
+    DOCKER_CLAUDE_JSON=""
+  fi
+}
+
 # Build docker run arguments as a string.
 # Bash 3.2 compatible — no readarray, no local -a with +=.
 build_docker_run_args() {
@@ -174,7 +189,13 @@ build_docker_run_args() {
       args="$args -v ${host_claude_dir}/settings.json:/home/claude/.claude/settings.json:ro"
     fi
   fi
-  if [[ -f "${HOME}/.claude.json" ]]; then
+
+  # Mount .claude.json for account/auth data. Prefer the Docker-persisted
+  # copy from --login (which has the Docker OAuth token) over the host's
+  # copy (which has a macOS keychain-backed token unusable in Docker).
+  if [[ -n "$DOCKER_CLAUDE_JSON" ]] && [[ -f "$DOCKER_CLAUDE_JSON" ]]; then
+    args="$args -v ${DOCKER_CLAUDE_JSON}:/home/claude/.claude.json"
+  elif [[ -f "${HOME}/.claude.json" ]]; then
     args="$args -v ${HOME}/.claude.json:/home/claude/.claude.json"
   fi
 
@@ -230,10 +251,15 @@ if [[ "${1:-}" == "--login" ]]; then
   echo -e "${YELLOW}stored in the ${AUTH_VOLUME} volume and reused for all tasks.${RESET}"
   echo ""
 
+  # Run login, then copy ~/.claude.json into the auth volume so the OAuth
+  # token persists. Claude Code stores account/token data in ~/.claude.json
+  # (a file at the home directory level), NOT inside ~/.claude/ (the volume).
+  # Without this copy, the token is lost when the container exits.
   docker run --rm -it \
     -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    --entrypoint sh \
     "$IMAGE_NAME" \
-    login
+    -c 'claude login && cp ~/.claude.json ~/.claude/_claude.json 2>/dev/null || true'
 
   echo ""
   echo -e "${GREEN}${BOLD}Login complete. You can now run: ralph-loop.sh <feature-name>${RESET}"
@@ -341,10 +367,12 @@ check_auth() {
   echo -e "${GREEN}OAuth session verified in ${AUTH_VOLUME} volume.${RESET}"
 }
 
-# Order matters: generate settings and clean stale files BEFORE auth check,
-# so check_auth runs with the same environment as actual task runs.
+# Order matters: generate settings, clean stale files, and extract
+# Docker-persisted .claude.json BEFORE auth check, so check_auth
+# runs with the same environment as actual task runs.
 generate_container_settings
 clean_auth_volume
+extract_docker_claude_json
 check_auth
 
 # --- Helpers ---
@@ -411,6 +439,7 @@ run_in_docker() {
 # shellcheck disable=SC2329  # invoked indirectly via trap
 cleanup() {
   rm -f "$CONTAINER_SETTINGS"
+  rm -f "$DOCKER_CLAUDE_JSON"
 }
 trap cleanup EXIT
 
