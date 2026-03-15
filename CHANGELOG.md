@@ -2,6 +2,12 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.13
+
+- Fix Ralph auth check using bare Docker invocation instead of full docker args, causing false auth failures
+- Reorder Ralph init so settings and volume cleaning happen before auth check
+- Stop cleaning `session-env/` and `cache/` from auth volume to preserve OAuth tokens
+
 ## 0.7.12
 
 - Fix build skill calling validate-prereqs with wrong skill name (`implement` → `build`)
