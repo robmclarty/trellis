@@ -2,7 +2,7 @@
 name: lint
 description: Run all project linters (JSON, Markdown, Python, shell). Use when checking code style and formatting.
 disable-model-invocation: true
-allowed-tools: Bash(npm run lint*), Bash(npm run plugincheck*)
+allowed-tools: Bash(npm run lint*)
 ---
 
 Run `npm run lint` to check all file types. Report the results.
@@ -15,4 +15,4 @@ Individual linters can also be run:
 - `npm run lint:md` — markdownlint on Markdown files
 - `npm run lint:py` — Ruff on Python files
 - `npm run lint:sh` — ShellCheck on shell scripts
-- `npm run plugincheck` — agnix plugin structure validation
+- `npm run lint:plugin` — agnix plugin structure validation

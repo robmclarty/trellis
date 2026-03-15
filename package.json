@@ -30,8 +30,8 @@
     "lint:py": "ruff check scripts/ hooks/ tests/",
     "lint:py:fix": "ruff check --fix scripts/ hooks/ tests/",
     "lint:sh": "shellcheck scripts/*.sh tests/*.sh",
-    "plugincheck": "agnix .",
-    "plugincheck:fix": "agnix --fix ."
+    "lint:plugin": "agnix .",
+    "lint:plugin:fix": "agnix --fix ."
   },
   "engines": {
     "node": ">=20"

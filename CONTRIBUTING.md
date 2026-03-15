@@ -60,6 +60,6 @@ Individual fix commands are also available: `lint:json:fix`, `lint:md:fix`, `lin
 Trellis uses [agnix](https://github.com/nicobailon/agnix) to validate its Claude Code plugin structure:
 
 ```bash
-npm run plugincheck
-npm run plugincheck:fix
+npm run lint:plugin
+npm run lint:plugin:fix
 ```
