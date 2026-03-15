@@ -2,6 +2,10 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.5
+
+- Populate changelog entries from git log context in version skill
+
 ## 0.7.4
 
 - Add CHANGELOG.md with full version history
