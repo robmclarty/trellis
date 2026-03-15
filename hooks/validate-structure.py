@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """PostToolUse hook for Write/Edit — validates spec document structure.
 
-Checks that documents under the specs directory have their minimum required
-sections. Self-contained: no script dependency. Receives tool input as JSON
-on stdin. Outputs warnings only (exit 0).
+Delegates to scripts/validate-doc.py for pitch.md, spec.md, and plan.md files
+under the specs directory. Outputs errors and warnings. Always exits 0.
 """
 
 import json
 import os
-import re
+import subprocess
 import sys
+
+PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def resolve_specs_dir():
@@ -20,26 +21,6 @@ def resolve_specs_dir():
             return config.get("specsDir", ".specs")
     except (FileNotFoundError, json.JSONDecodeError):
         return ".specs"
-
-
-SECTION_CHECKS = {
-    "spec.md": {
-        "patterns": [r"§1", r"§2", r"§8", r"§9"],
-        "label": "required section",
-    },
-    "pitch.md": {
-        "patterns": [r"(?i)##\s*Problem", r"(?i)##\s*Appetite", r"(?i)##\s*Shape", r"(?i)##\s*No-Gos"],
-        "label": "required section",
-    },
-    "plan.md": {
-        "patterns": [r"§1", r"§2", r"§3", r"§6"],
-        "label": "required section",
-    },
-    "tasks.md": {
-        "patterns": [r"(?i)##\s*Phase"],
-        "label": "at least one Phase section",
-    },
-}
 
 
 def main():
@@ -57,31 +38,39 @@ def main():
     if specs_dir not in file_path:
         sys.exit(0)
 
-    if not file_path.endswith(".md"):
-        sys.exit(0)
-
     basename = os.path.basename(file_path)
-    checks = SECTION_CHECKS.get(basename)
-    if not checks:
+    if basename not in ("pitch.md", "spec.md", "plan.md"):
         sys.exit(0)
 
     if not os.path.isfile(file_path):
         sys.exit(0)
 
-    with open(file_path) as f:
-        content = f.read()
+    script = os.path.join(PLUGIN_ROOT, "scripts", "validate-doc.py")
+    result = subprocess.run(
+        [sys.executable, script, file_path],
+        capture_output=True,
+        text=True,
+    )
 
-    warnings = []
-    for pattern in checks["patterns"]:
-        if not re.search(pattern, content):
-            # Extract a readable label from the pattern
-            label = pattern.replace(r"(?i)", "").replace(r"##\s*", "").strip()
-            warnings.append(f"  \u26a0 Missing {checks['label']}: {label}")
+    if result.returncode != 0:
+        sys.exit(0)
 
-    if warnings:
-        print(f"Spec structure warnings for {basename}:")
-        for w in warnings:
-            print(w)
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        sys.exit(0)
+
+    errors = data.get("errors", [])
+    warnings = data.get("warnings", [])
+
+    if not errors and not warnings:
+        sys.exit(0)
+
+    print(f"Document validation for {basename}:")
+    for e in errors:
+        print(f"  \u2717 {e}")
+    for w in warnings:
+        print(f"  \u26a0 {w}")
 
     sys.exit(0)
 

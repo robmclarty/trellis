@@ -508,5 +508,265 @@ class TestAssemblePrompt(unittest.TestCase):
         self.assertIn("Spec", data["prompt"])
 
 
+class TestValidateDoc(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp)
+
+    def _write(self, filename, content):
+        path = os.path.join(self.tmp, filename)
+        with open(path, "w") as f:
+            f.write(content)
+        return path
+
+    # --- General ---
+
+    def test_no_args(self):
+        rc, _, _ = run_script("validate-doc.py", cwd=self.tmp)
+        self.assertEqual(rc, 2)
+
+    def test_file_not_found(self):
+        rc, data, _ = run_script("validate-doc.py", ["/nonexistent/pitch.md"])
+        self.assertEqual(rc, 0)
+        self.assertFalse(data["valid"])
+        self.assertIn("File not found", data["errors"][0])
+
+    def test_unrecognized_filename(self):
+        path = self._write("readme.md", "# Hello")
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertEqual(rc, 0)
+        self.assertTrue(data["valid"])
+        self.assertIsNone(data["type"])
+        self.assertEqual(data["errors"], [])
+
+    # --- Pitch ---
+
+    def test_empty_pitch(self):
+        path = self._write("pitch.md", "# Empty pitch\n")
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertEqual(rc, 0)
+        self.assertFalse(data["valid"])
+        self.assertEqual(data["type"], "pitch")
+        # All 4 required sections missing
+        missing = [e for e in data["errors"] if "Missing required" in e]
+        self.assertEqual(len(missing), 4)
+
+    def test_complete_pitch(self):
+        content = (
+            "# Pitch: Test\n\n"
+            "## Problem\n\nUsers have no way to do the thing they need to do right now.\n\n"
+            "## Appetite\n\n2-week effort for one developer, keep it simple.\n\n"
+            "## Shape\n\nBuild a simple system that does the thing with REST endpoints.\n\n"
+            "## No-Gos\n\n- No gamification mechanics\n- No external integrations\n\n"
+            "## Rabbit Holes\n\n- Building a notification system. Resist the urge.\n"
+        )
+        path = self._write("pitch.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertEqual(rc, 0)
+        self.assertTrue(data["valid"])
+        self.assertEqual(data["errors"], [])
+        self.assertEqual(data["warnings"], [])
+
+    def test_pitch_thin_section(self):
+        content = (
+            "## Problem\n\nShort.\n\n"
+            "## Appetite\n\n2-week effort for one developer, keep it simple.\n\n"
+            "## Shape\n\nBuild a simple system that does the thing with REST endpoints.\n\n"
+            "## No-Gos\n\n- No gamification mechanics\n- No external integrations\n\n"
+            "## Rabbit Holes\n\n- Building a notification system.\n"
+        )
+        path = self._write("pitch.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertFalse(data["valid"])
+        self.assertTrue(any("too short" in e and "Problem" in e for e in data["errors"]))
+
+    def test_pitch_missing_rabbit_holes(self):
+        content = (
+            "## Problem\n\nUsers have no way to do the thing they need.\n\n"
+            "## Appetite\n\n2-week effort for one developer, keep it simple.\n\n"
+            "## Shape\n\nBuild a simple system that does the thing with REST.\n\n"
+            "## No-Gos\n\n- No gamification mechanics\n- No external integrations\n"
+        )
+        path = self._write("pitch.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertTrue(data["valid"])
+        self.assertTrue(any("Rabbit Holes" in w for w in data["warnings"]))
+
+    def test_pitch_out_of_order(self):
+        content = (
+            "## Shape\n\nBuild a simple system that does the thing with REST.\n\n"
+            "## Problem\n\nUsers have no way to do the thing they need.\n\n"
+            "## Appetite\n\n2-week effort for one developer, keep it simple.\n\n"
+            "## No-Gos\n\n- No gamification mechanics\n- No external integrations\n"
+        )
+        path = self._write("pitch.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertTrue(any("out of order" in w for w in data["warnings"]))
+
+    def test_pitch_no_gos_variants(self):
+        for variant in ["No Gos", "NoGos", "No-Gos"]:
+            content = (
+                f"## Problem\n\nUsers have no way to do the thing they need.\n\n"
+                f"## Appetite\n\n2-week effort for one developer.\n\n"
+                f"## Shape\n\nBuild a simple system with REST endpoints.\n\n"
+                f"## {variant}\n\n- No gamification mechanics\n- No external integrations\n"
+            )
+            path = self._write("pitch.md", content)
+            rc, data, _ = run_script("validate-doc.py", [path])
+            self.assertTrue(data["valid"], f"Failed for variant: {variant}")
+
+    # --- Spec ---
+
+    def test_empty_spec(self):
+        path = self._write("spec.md", "# Empty spec\n")
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertFalse(data["valid"])
+        self.assertEqual(data["type"], "spec")
+        missing = [e for e in data["errors"] if "Missing required" in e]
+        self.assertEqual(len(missing), 4)  # §1, §2, §8, §9
+
+    def test_complete_spec(self):
+        content = (
+            "# Spec: Test\n\n"
+            "## §1 — Context\n\nSee pitch.md. This spec defines a system for managing things.\n\n"
+            "## §2 — Functional Overview\n\nThe system allows users to create and manage resources.\n\n"
+            "## §3 — Actors and Permissions\n\nAll authenticated users can perform all actions.\n\n"
+            "## §4 — Data Model\n\nSingle entity with id, name, and created_at fields.\n\n"
+            "## §5 — Interfaces\n\nREST API with CRUD endpoints for managing resources.\n\n"
+            "## §6 — Business Rules\n\nNames must be unique within the same organization context.\n\n"
+            "## §7 — Failure Modes\n\nDatabase unreachable returns 503 with clear error message.\n\n"
+            "## §8 — Success Criteria\n\nAll CRUD operations work correctly with proper validation.\n\n"
+            "## §9 — Constraints\n\nNo external service dependencies beyond the database layer.\n\n"
+            "## §10 — Open Questions\n\nN/A — all questions resolved during spec writing phase.\n"
+        )
+        path = self._write("spec.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertTrue(data["valid"])
+        self.assertEqual(data["errors"], [])
+        self.assertEqual(data["warnings"], [])
+
+    def test_spec_out_of_order(self):
+        content = (
+            "## §2 — Functional Overview\n\nThe system allows users to manage resources.\n\n"
+            "## §1 — Context\n\nSee pitch.md. This spec defines something important.\n\n"
+            "## §8 — Success Criteria\n\nAll operations work correctly with validation.\n\n"
+            "## §9 — Constraints\n\nNo external service dependencies beyond database.\n"
+        )
+        path = self._write("spec.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertFalse(data["valid"])
+        self.assertTrue(any("out of order" in e for e in data["errors"]))
+
+    def test_spec_missing_optional_warns(self):
+        content = (
+            "## §1 — Context\n\nSee pitch.md. This spec defines a system for things.\n\n"
+            "## §2 — Functional Overview\n\nThe system allows users to manage resources.\n\n"
+            "## §8 — Success Criteria\n\nAll operations work correctly with validation.\n\n"
+            "## §9 — Constraints\n\nNo external service dependencies beyond database.\n"
+        )
+        path = self._write("spec.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertTrue(data["valid"])
+        # Should warn about missing §3-§7 and §10
+        optional_warnings = [w for w in data["warnings"] if "Missing optional" in w]
+        self.assertEqual(len(optional_warnings), 6)
+
+    def test_spec_malformed_heading(self):
+        content = (
+            "## §1 Context\n\nMissing the em-dash separator in heading format.\n\n"
+            "## §2 — Functional Overview\n\nThe system allows users to manage things.\n\n"
+            "## §8 — Success Criteria\n\nAll operations work correctly with validation.\n\n"
+            "## §9 — Constraints\n\nNo external deps beyond the database layer.\n"
+        )
+        path = self._write("spec.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertFalse(data["valid"])
+        self.assertTrue(any("Malformed" in e for e in data["errors"]))
+
+    def test_spec_duplicate_section(self):
+        content = (
+            "## §1 — Context\n\nFirst context section with enough content here.\n\n"
+            "## §1 — Context\n\nDuplicate context section with enough content.\n\n"
+            "## §2 — Functional Overview\n\nThe system allows users to manage resources.\n\n"
+            "## §8 — Success Criteria\n\nAll operations work correctly with validation.\n\n"
+            "## §9 — Constraints\n\nNo external service dependencies beyond database.\n"
+        )
+        path = self._write("spec.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertFalse(data["valid"])
+        self.assertTrue(any("Duplicate" in e for e in data["errors"]))
+
+    def test_spec_na_optional_section(self):
+        content = (
+            "## §1 — Context\n\nSee pitch.md. This spec defines a system for things.\n\n"
+            "## §2 — Functional Overview\n\nThe system allows users to manage resources.\n\n"
+            "## §10 — Open Questions\n\nN/A — all resolved.\n\n"
+            "## §8 — Success Criteria\n\nAll operations work correctly with validation.\n\n"
+            "## §9 — Constraints\n\nNo external service dependencies beyond database.\n"
+        )
+        path = self._write("spec.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        # §10 has N/A body — should NOT trigger "too short" warning
+        thin_warnings = [w for w in data["warnings"] if "too short" in w and "§10" in w]
+        self.assertEqual(len(thin_warnings), 0)
+
+    # --- Plan ---
+
+    def test_empty_plan(self):
+        path = self._write("plan.md", "# Empty plan\n")
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertFalse(data["valid"])
+        self.assertEqual(data["type"], "plan")
+        missing = [e for e in data["errors"] if "Missing required" in e]
+        self.assertEqual(len(missing), 4)  # §1, §2, §3, §6
+
+    def test_complete_plan(self):
+        content = (
+            "# Plan: Test\n\n"
+            "## §1 — Technical Summary\n\nA FastAPI service with REST endpoints backed by PostgreSQL.\n\n"
+            "## §2 — Architecture\n\nSingle module with routes, services, models layers.\n\n"
+            "## §3 — Technology Decisions\n\n| Decision | Choice | Rationale |\n|----------|--------|-----------|\n| Framework | FastAPI | Project standard |\n\n"
+            "## §4 — Data Access Patterns\n\nStandard SQLAlchemy async queries with connection pooling.\n\n"
+            "## §5 — Interface Implementation\n\nRoutes map to service functions, Pydantic for validation.\n\n"
+            "## §6 — File Structure\n\napp/routes/, app/services/, app/models/, app/schemas/.\n\n"
+            "## §7 — Error Handling Strategy\n\nResult types for business logic, HTTP exceptions at route boundary.\n\n"
+            "## §8 — Testing Strategy\n\npytest with async fixtures, test database per session.\n\n"
+            "## §9 — Deployment and Infrastructure\n\nDocker container with health check on /health endpoint.\n\n"
+            "## §10 — Migration Path\n\nN/A — greenfield project with no migration concerns.\n"
+        )
+        path = self._write("plan.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertTrue(data["valid"])
+        self.assertEqual(data["errors"], [])
+        self.assertEqual(data["warnings"], [])
+
+    def test_plan_no_table_in_s3(self):
+        content = (
+            "## §1 — Technical Summary\n\nA FastAPI service with REST endpoints backed by PostgreSQL.\n\n"
+            "## §2 — Architecture\n\nSingle module with routes, services, models layers.\n\n"
+            "## §3 — Technology Decisions\n\nWe will use FastAPI and PostgreSQL for this project.\n\n"
+            "## §6 — File Structure\n\napp/routes/, app/services/, app/models/, app/schemas/.\n"
+        )
+        path = self._write("plan.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertTrue(data["valid"])
+        self.assertTrue(any("table" in w and "§3" in w for w in data["warnings"]))
+
+    def test_plan_out_of_order(self):
+        content = (
+            "## §3 — Technology Decisions\n\n| Decision | Choice | Rationale |\n|--|--|--|\n| FW | FastAPI | std |\n\n"
+            "## §1 — Technical Summary\n\nA FastAPI service with REST endpoints backed by PostgreSQL.\n\n"
+            "## §2 — Architecture\n\nSingle module with routes, services, models layers.\n\n"
+            "## §6 — File Structure\n\napp/routes/, app/services/, app/models/, app/schemas/.\n"
+        )
+        path = self._write("plan.md", content)
+        rc, data, _ = run_script("validate-doc.py", [path])
+        self.assertFalse(data["valid"])
+        self.assertTrue(any("out of order" in e for e in data["errors"]))
+
+
 if __name__ == "__main__":
     unittest.main()

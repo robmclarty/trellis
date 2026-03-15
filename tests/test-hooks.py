@@ -69,7 +69,18 @@ class TestValidateStructure(unittest.TestCase):
         os.makedirs(specs)
         spec_file = os.path.join(specs, "spec.md")
         with open(spec_file, "w") as f:
-            f.write("§1 Context\n§2 Overview\n§8 Criteria\n§9 Constraints\n")
+            f.write(
+                "## §1 — Context\n\nSee pitch.md. This spec defines something.\n\n"
+                "## §2 — Functional Overview\n\nThe system allows users to manage resources.\n\n"
+                "## §3 — Actors and Permissions\n\nAll authenticated users can do things.\n\n"
+                "## §4 — Data Model\n\nSingle entity with id, name, created_at.\n\n"
+                "## §5 — Interfaces\n\nREST API with CRUD endpoints for resources.\n\n"
+                "## §6 — Business Rules\n\nNames must be unique within the organization.\n\n"
+                "## §7 — Failure Modes\n\nDatabase unreachable returns 503 with message.\n\n"
+                "## §8 — Success Criteria\n\nAll CRUD operations work with proper validation.\n\n"
+                "## §9 — Constraints\n\nNo external service dependencies beyond database.\n\n"
+                "## §10 — Open Questions\n\nN/A — all questions resolved during writing.\n"
+            )
         rc, out = run_hook("validate-structure.py", {
             "tool_input": {"file_path": spec_file}
         }, cwd=self.tmp)
@@ -100,18 +111,6 @@ class TestValidateStructure(unittest.TestCase):
         }, cwd=self.tmp)
         self.assertEqual(rc, 0)
         self.assertIn("§3", out)
-
-    def test_warns_missing_tasks_phase(self):
-        specs = os.path.join(self.tmp, ".specs", "my-feature")
-        os.makedirs(specs)
-        tasks_file = os.path.join(specs, "tasks.md")
-        with open(tasks_file, "w") as f:
-            f.write("# Tasks with no phases\n")
-        rc, out = run_hook("validate-structure.py", {
-            "tool_input": {"file_path": tasks_file}
-        }, cwd=self.tmp)
-        self.assertEqual(rc, 0)
-        self.assertIn("Phase", out)
 
     def test_custom_specs_dir(self):
         with open(os.path.join(self.tmp, "trellis.json"), "w") as f:
