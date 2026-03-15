@@ -19,7 +19,6 @@
     "test:hooks": "python3 tests/test-hooks.py",
     "test:shell": "bats tests/test-shell.bats",
     "test:snapshots": "bash tests/test-snapshots.sh",
-    "test:llm": "promptfoo eval -c tests/promptfoo.yaml",
     "test:skills": "TRELLIS_LLM_TESTS=1 python3 tests/test-skills.py",
     "test:e2e": "TRELLIS_LLM_TESTS=1 TRELLIS_E2E_TESTS=1 python3 -m unittest tests.test-skills.TestImplementE2E",
     "typecheck": "",

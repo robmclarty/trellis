@@ -129,14 +129,6 @@ The loop script does ALL orchestration — it assembles prompts from templates a
 
 **Resume from interruption:** Kill the process, re-run `/trellis:implement <feature> with ralph`. The script reads tasks.json and picks up from the first pending task.
 
-### Promptfoo
-
-[Promptfoo](https://www.promptfoo.dev/) is an eval framework for LLM outputs. The implement skill can generate Promptfoo configs from acceptance criteria for repeatable, versioned evaluation of implementation quality.
-
-**When to use:** Teams that build similar features often and want to codify judge criteria, A/B test prompts, or run regression checks against spec criteria.
-
-**Install:** `npm install -g promptfoo` or see the [Promptfoo docs](https://www.promptfoo.dev/docs/installation/).
-
 ### Open Spec
 
 [Open Spec](https://github.com/open-spec/open-spec) is a structured requirements format designed for agentic interpretation. If your spec uses Open Spec format (fields like `validation_criteria`, `constraints`, `scope`), the implement skill uses its structure directly for more reliable criteria extraction.
@@ -175,8 +167,6 @@ Skill output tests validate that each skill prompt produces structurally
 correct output (required sections, headings, keywords). Two approaches are
 available depending on your auth setup:
 
-- **Promptfoo** (`npm run test:llm`) — requires `ANTHROPIC_API_KEY`, runs in
-  parallel with a web UI for results
 - **Claude -p harness** (`npm run test:skills`) — works with Claude Code
   subscription auth, no API key needed
 

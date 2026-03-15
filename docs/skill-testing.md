@@ -1,8 +1,7 @@
 # Skill Testing
 
 Trellis includes a test harness for validating that skill prompts produce
-structurally correct output. This document explains the two approaches
-available, when to use each, and how to add new test cases.
+structurally correct output.
 
 ## Background
 
@@ -12,45 +11,7 @@ these instructions along with user input, it should produce output containing
 specific sections, headings, and keywords. Skill tests validate these
 structural properties without checking exact wording.
 
-## Two approaches
-
-### Promptfoo (API key required)
-
-[Promptfoo](https://www.promptfoo.dev/) is a dedicated LLM evaluation
-framework. Trellis includes a promptfoo config at `tests/promptfoo.yaml`
-with 18 test cases covering structural validation, adversarial judgment
-probes, and negative assertions across all testable skills.
-
-**Requirements:**
-
-- `npm install -g promptfoo`
-- `ANTHROPIC_API_KEY` environment variable set
-
-**Run:**
-
-```bash
-npm run test:llm
-# or
-promptfoo eval -c tests/promptfoo.yaml
-promptfoo view  # opens web UI with results
-```
-
-**Tradeoffs:**
-
-| Aspect | Promptfoo |
-|--------|-----------|
-| Auth | Requires `ANTHROPIC_API_KEY` |
-| Parallelism | Runs tests in parallel |
-| Assertions | Built-in (`contains`, `icontains`, regex, JS functions) |
-| Reporting | Web UI with diffs, history, and CI integration |
-| Cost model | Pay per API token |
-| Speed | Fast (parallel API calls, no process overhead) |
-| Setup | Separate install (`npm install -g promptfoo`) |
-
-Promptfoo is the better choice for teams with API access who want rich
-reporting, parallel execution, and CI integration.
-
-### Claude -p test harness (subscription only)
+## Claude -p test harness
 
 The `tests/test-skills.py` harness uses `claude -p` (pipe mode) to run skill
 prompts through the locally installed Claude Code CLI. This works with Claude
@@ -75,35 +36,7 @@ TRELLIS_LLM_TESTS=1 python3 -m unittest \
   tests.test-skills.TestSkillOutput.test_pitch_sections
 ```
 
-**Tradeoffs:**
-
-| Aspect | Claude -p harness |
-|--------|-------------------|
-| Auth | Subscription auth (no API key) |
-| Parallelism | Sequential (one test at a time) |
-| Assertions | Python `unittest` (`assertIn`, case-insensitive helpers) |
-| Reporting | Terminal output (standard unittest) |
-| Cost model | Included in subscription |
-| Speed | Slower (~15-60s per test, ~2-5 min total) |
-| Setup | None beyond Claude Code |
-
-The Claude -p harness is the better choice for individual developers with a
-Claude Code subscription who want to validate skills without managing API keys.
-
-## Comparison summary
-
-| | Promptfoo | Claude -p harness |
-|---|-----------|-------------------|
-| Auth | `ANTHROPIC_API_KEY` | Subscription |
-| Install | `npm install -g promptfoo` | Nothing extra |
-| Speed | ~30s total (parallel) | ~2-5 min (sequential) |
-| Reporting | Web UI | Terminal |
-| CI-friendly | Yes | Possible (needs auth) |
-| Cost | Per-token API pricing | Included in subscription |
-
 ## How it works
-
-The test harness follows the same pattern as promptfoo:
 
 1. Read the skill's `SKILL.md` file
 2. Concatenate it with user input using a `---` separator
@@ -230,26 +163,6 @@ test above.
 
 ## Adding a new test case
 
-To add a test for a new skill or scenario:
-
-### 1. Add to promptfoo.yaml
-
-```yaml
-- description: "new-skill: produces expected output"
-  vars:
-    skill_instructions: file://skills/new-skill/SKILL.md
-    user_input: |
-      Your test input here.
-      Write the output now. Do not ask questions.
-  assert:
-    - type: icontains
-      value: "## Expected Section"
-    - type: contains
-      value: "exact match"
-```
-
-### 2. Add to test-skills.py
-
 Add a new method to `TestSkillOutput`:
 
 ```python
@@ -262,15 +175,15 @@ Write the output now. Do not ask questions.""")
     self.assertIn("exact match", output)
 ```
 
-### Assertion mapping
+### Assertion helpers
 
-| Promptfoo assertion | Python equivalent |
-|---------------------|-------------------|
-| `type: icontains` | `assert_icontains(self, output, value)` |
-| `type: contains` | `self.assertIn(value, output)` |
-| `type: not-icontains` | `assert_not_icontains(self, output, value)` |
-| `type: not-contains` | `self.assertNotIn(value, output)` |
-| `type: javascript` | `assert_any_icontains(self, output, values)` or custom logic |
+| Helper | Usage |
+|--------|-------|
+| `assert_icontains(self, output, value)` | Case-insensitive contains |
+| `self.assertIn(value, output)` | Exact contains |
+| `assert_not_icontains(self, output, value)` | Case-insensitive not-contains |
+| `self.assertNotIn(value, output)` | Exact not-contains |
+| `assert_any_icontains(self, output, values)` | Any value matches (case-insensitive) |
 
 ## Non-determinism
 
@@ -282,6 +195,3 @@ LLM output is non-deterministic. The assertions are intentionally structural
 - If a test is consistently flaky, loosen the assertion rather than adding
   retries
 - No retry logic is built in — a failure should surface for investigation
-
-Both promptfoo (with `temperature: 0`) and the Claude -p harness use the same
-structural assertion strategy, so flakiness rates should be comparable.

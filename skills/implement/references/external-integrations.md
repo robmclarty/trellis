@@ -47,14 +47,6 @@ The implement skill can optionally integrate with external tools.
 
 **Resume from interruption:** Kill the process, re-run `/implement <feature> with ralph`. The script reads tasks.json and picks up from the first pending task.
 
-## Promptfoo
-
-**What it is:** An eval framework for LLM outputs that supports assertions, model comparison, and repeatable test suites.
-
-**Where to find it:** [promptfoo.dev](https://www.promptfoo.dev/)
-
-**How it integrates:** When enabled, `promptfoo eval` can run as part of the check command. Configure it in the check field of tasks.json.
-
 ## Open Spec
 
 **What it is:** A structured requirements format designed for agentic interpretation, with machine-parseable fields.

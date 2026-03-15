@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Skill output validation tests using claude -p (pipe mode).
 
-These tests mirror the promptfoo test cases in tests/promptfoo.yaml but use
-claude -p with subscription auth instead of the Anthropic API directly.
+These tests use claude -p (pipe mode) with subscription auth to validate
+that skill prompts produce structurally correct output.
 
 Gated behind:
   1. claude binary on PATH
@@ -68,7 +68,7 @@ def run_skill(skill_name, user_input):
 
 
 def assert_icontains(test_case, output, value):
-    """Case-insensitive contains (matches promptfoo 'icontains')."""
+    """Case-insensitive contains."""
     test_case.assertIn(
         value.lower(), output.lower(),
         f"Expected output to contain (case-insensitive): {value!r}"

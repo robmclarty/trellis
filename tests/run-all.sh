@@ -47,20 +47,6 @@ else
   echo ""
 fi
 
-echo "=== Promptfoo tests ==="
-if command -v promptfoo &>/dev/null; then
-  if promptfoo eval -c tests/promptfoo.yaml; then
-    echo ""
-  else
-    FAILED=1
-    echo ""
-  fi
-else
-  echo "  (skipped — promptfoo not installed)"
-  echo "  Install: npm install -g promptfoo"
-  echo ""
-fi
-
 echo "=== Skill tests (claude -p) ==="
 if command -v claude &>/dev/null && [ "${TRELLIS_LLM_TESTS:-}" = "1" ]; then
   if python3 tests/test-skills.py; then
