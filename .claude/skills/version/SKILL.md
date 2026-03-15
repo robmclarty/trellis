@@ -1,6 +1,6 @@
 ---
 name: version
-description: Bump the project version (major, minor, or patch) across all manifest files. Use when preparing a release.
+description: Bump the project version (major, minor, or patch) across all manifest files and add a changelog entry. Use when preparing a release.
 allowed-tools: Read, Edit
 ---
 
@@ -21,6 +21,7 @@ All three files must be updated to the new version:
 1. `package.json` — top-level `"version"` field
 2. `.claude-plugin/plugin.json` — top-level `"version"` field
 3. `.claude-plugin/marketplace.json` — `"version"` inside `plugins[0]`
+4. `CHANGELOG.md` — new version section inserted at the top
 
 ## Steps
 
@@ -28,7 +29,13 @@ All three files must be updated to the new version:
 2. Read `package.json` to get the current version.
 3. Compute the new version according to the semver rules above.
 4. Tell the user: "Bumping version from X.Y.Z to A.B.C"
-5. Update all three files using the Edit tool.
-6. Report the updated version.
+5. Update all three manifest files using the Edit tool.
+6. Read `CHANGELOG.md` and insert a new version section immediately after the `# Changelog` heading (before the first existing `##` entry) using the Edit tool:
+   ```
+   ## A.B.C
+
+   -
+   ```
+7. Report the updated version.
 
 Do NOT commit the changes — the user will decide when to commit.
