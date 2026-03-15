@@ -2,6 +2,12 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.7.12
+
+- Fix build skill calling validate-prereqs with wrong skill name (`implement` → `build`)
+- Make streaming the default output mode for Ralph mode (add `--silent` flag for old behavior)
+- Fix OAuth auth check false positives by using exit codes instead of output grepping
+
 ## 0.7.11
 
 - Fix prep skill skipping user questions when auto-invoked from build during run pipeline
