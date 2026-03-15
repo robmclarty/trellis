@@ -110,7 +110,10 @@ ensure_auth_volume() {
 # `claude login` inside Docker (e.g., statsig/, .credentials, etc.).
 clean_auth_volume() {
   echo -e "${CYAN}Cleaning stale config from auth volume...${RESET}"
+  # Run as root to ensure we can remove files regardless of ownership.
+  # Also fix volume ownership so the claude user can write credentials.
   docker run --rm \
+    --user root \
     -v "${AUTH_VOLUME}:/home/claude/.claude" \
     --entrypoint sh \
     "$IMAGE_NAME" \
@@ -121,6 +124,7 @@ clean_auth_volume() {
       rm -rf /home/claude/.claude/shell-snapshots
       rm -rf /home/claude/.claude/backups
       rm -f  /home/claude/.claude/mcp-needs-auth-cache.json
+      chown claude:claude /home/claude/.claude
     ' 2>/dev/null || true
 }
 
@@ -259,10 +263,24 @@ if [[ "${1:-}" == "--login" ]]; then
     -v "${AUTH_VOLUME}:/home/claude/.claude" \
     --entrypoint sh \
     "$IMAGE_NAME" \
-    -c 'claude login && cp ~/.claude.json ~/.claude/_claude.json 2>/dev/null || true'
+    -c 'claude login && cp ~/.claude.json ~/.claude/_claude.json'
 
-  echo ""
-  echo -e "${GREEN}${BOLD}Login complete. You can now run: ralph-loop.sh <feature-name>${RESET}"
+  # Verify the token was actually persisted to the volume
+  if docker run --rm \
+    -v "${AUTH_VOLUME}:/home/claude/.claude" \
+    --entrypoint sh \
+    "$IMAGE_NAME" \
+    -c 'test -s /home/claude/.claude/_claude.json'; then
+    echo ""
+    echo -e "${GREEN}${BOLD}Login complete. You can now run: ralph-loop.sh <feature-name>${RESET}"
+  else
+    echo ""
+    echo -e "${RED}${BOLD}Login succeeded but credentials were not saved to the auth volume.${RESET}"
+    echo -e "${YELLOW}This usually means the volume has wrong permissions. Try:${RESET}"
+    echo -e "${YELLOW}  docker run --rm --user root -v ${AUTH_VOLUME}:/data --entrypoint sh ${IMAGE_NAME} -c 'chown -R claude:claude /data'${RESET}"
+    echo -e "${YELLOW}Then re-run: ralph-loop.sh --login${RESET}"
+    exit 1
+  fi
   exit 0
 fi
 
