@@ -1,9 +1,9 @@
-# Pipeline auto mode
+# Run auto mode
 
 Run the entire specification pipeline in one pass. Auto mode gathers all context upfront, makes best-guess decisions at every point where interactive mode would pause, and documents every autonomous decision as an `[AUTO]` tag for your review.
 
 ```text
-> /trellis:pipeline auto
+> /trellis:run auto
 
 Feature name: team-kudos
 Problem: Team members have no lightweight way to recognize each other's

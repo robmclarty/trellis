@@ -100,8 +100,8 @@ class TestValidatePrereqs(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertTrue(data["valid"])
 
-    def test_pipeline_requires_only_guidelines(self):
-        rc, data, _ = run_script("validate-prereqs.py", ["pipeline"], cwd=self.tmp)
+    def test_run_requires_only_guidelines(self):
+        rc, data, _ = run_script("validate-prereqs.py", ["run"], cwd=self.tmp)
         self.assertEqual(rc, 1)
         self.assertIn("guidelines.md", data["missing"])
         self.assertEqual(len(data["missing"]), 1)

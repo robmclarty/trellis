@@ -1,16 +1,16 @@
 ---
-name: trellis:pipeline
+name: trellis:run
 description: Orchestrates the spec-driven pipeline (pitch → spec → plan → build) with review gates between stages. Use when running the full feature pipeline or resuming from the last completed stage.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
-# Pipeline
+# Run
 
 ## When to use
 
-- "run the pipeline", "pipeline", "take this from pitch to implementation"
-- "full spec workflow", "resume pipeline"
+- "run the pipeline", "run", "take this from pitch to implementation"
+- "full spec workflow", "resume"
 - Any request to run the complete spec-driven process end-to-end
 - When the user wants to go from a problem description to working code in one or more sessions
 
@@ -20,7 +20,7 @@ Orchestrate the full spec-driven development pipeline for a feature.
 
 ## Pre-flight
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py pipeline <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py run <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` to detect which artifacts already exist and determine the resumption point.
 
@@ -31,12 +31,12 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` to
 
 ## Stage override
 
-The pipeline accepts an optional argument to force restart at a specific stage:
+The run skill accepts an optional argument to force restart at a specific stage:
 
-- `/pipeline` — Resume from the next incomplete stage (default).
-- `/pipeline pitch` — Restart at pitch, regardless of existing artifacts.
-- `/pipeline spec` — Restart at spec.
-- `/pipeline plan` — Restart at plan.
+- `/run` — Resume from the next incomplete stage (default).
+- `/run pitch` — Restart at pitch, regardless of existing artifacts.
+- `/run spec` — Restart at spec.
+- `/run plan` — Restart at plan.
 
 ## Intake questions
 
@@ -55,7 +55,7 @@ After generation, present the **review gate**:
 1. Show the artifact path and a 3-5 sentence summary highlighting problem framing, appetite, no-gos, and rabbit holes.
 2. Ask the user: **approve**, **edit**, or **redo**?
    - **approve** — Continue to Stage 2.
-   - **edit** — End the pipeline. Tell the user the file path and that they can re-invoke `/pipeline` when ready.
+   - **edit** — End the run. Tell the user the file path and that they can re-invoke `/run` when ready.
    - **redo** — Delete pitch.md and regenerate. Re-present the gate. Limit: 3 redos per stage.
 
 ### Stage 2: Spec
@@ -67,7 +67,7 @@ After generation, present the **review gate**:
 1. Show the artifact path and a 3-5 sentence summary highlighting key interfaces, data model entities, and open questions count (§10 items).
 2. Ask the user: **approve**, **edit**, or **redo**?
    - **approve** — Continue to Stage 3.
-   - **edit** — End the pipeline. Tell the user the file path and that they can re-invoke `/pipeline` when ready.
+   - **edit** — End the run. Tell the user the file path and that they can re-invoke `/run` when ready.
    - **redo** — Delete spec.md and regenerate. Re-present the gate. Limit: 3 redos per stage.
 
 ### Stage 3: Plan
@@ -79,7 +79,7 @@ After generation, present the **review gate**:
 1. Show the artifact path and a 3-5 sentence summary highlighting architecture decisions, technology choices, whether compliance was run and what it found, and the file structure.
 2. Ask the user: **approve**, **edit**, or **redo**?
    - **approve** — Continue to Stage 4.
-   - **edit** — End the pipeline. Tell the user the file path and that they can re-invoke `/pipeline` when ready.
+   - **edit** — End the run. Tell the user the file path and that they can re-invoke `/run` when ready.
    - **redo** — Delete plan.md and regenerate. Re-present the gate. Limit: 3 redos per stage.
 
 ### Stage 4: Build

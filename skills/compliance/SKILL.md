@@ -44,7 +44,7 @@ Since this skill runs in an isolated context (`context: fork`) without access to
 
 If the data model contains no sensitive categories and no jurisdictional constraints are found, note that no regulations apply and produce a minimal compliance document explaining why.
 
-> **Note:** When invoked through `/pipeline`, the pipeline skill asks the user about compliance requirements upfront (interactive mode question 3, auto mode question 10). This context is embedded in the spec's §9 or the pitch before compliance runs, enabling accurate regulation selection. When invoked standalone, compliance infers from artifacts only — if regulation scope is ambiguous, list the ambiguity in the Residual Risks section.
+> **Note:** When invoked through `/run`, the run skill asks the user about compliance requirements upfront (interactive mode question 3, auto mode question 10). This context is embedded in the spec's §9 or the pitch before compliance runs, enabling accurate regulation selection. When invoked standalone, compliance infers from artifacts only — if regulation scope is ambiguous, list the ambiguity in the Residual Risks section.
 
 Read only the reference files in `references/` for regulations determined to be applicable. Do not load all five regulation references upfront.
 

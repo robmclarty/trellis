@@ -59,7 +59,7 @@ These skills run in sequence. Each builds on the output of the previous one.
 
 ### Execution
 
-- `/trellis:pipeline`
+- `/trellis:run`
   Orchestrate the full pipeline from pitch through prep in one session. Supports interactive and automatic modes.
 - `/trellis:build`
   Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet. See [docs/implementation-loop.md](docs/implementation-loop.md).
@@ -77,7 +77,7 @@ These skills run in sequence. Each builds on the output of the previous one.
 /trellis:build               # write the code (auto-runs prep if needed)
 ```
 
-Or use `/trellis:pipeline` to run pitch through build in one pass. Clarify, compliance, and prep run automatically as pre-steps of their parent skills, so you don't need to invoke them separately (though you can if you want to run them standalone).
+Or use `/trellis:run` to run pitch through build in one pass. Clarify, compliance, and prep run automatically as pre-steps of their parent skills, so you don't need to invoke them separately (though you can if you want to run them standalone).
 
 ## Project structure
 

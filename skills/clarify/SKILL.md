@@ -96,7 +96,7 @@ Since this skill runs in an isolated context (`context: fork`) without access to
 
 - Note which sections need rework in §10 and recommend the user re-run `/spec` then `/clarify`.
 
-> **Note:** When invoked through `/pipeline`, the pipeline skill gathers user context upfront (in interactive mode via review pauses, in auto mode via extended intake questions). This context is passed to clarify, enabling better resolution. When invoked standalone, clarify works from the spec and available artifacts only.
+> **Note:** When invoked through `/run`, the run skill gathers user context upfront (in interactive mode via review pauses, in auto mode via extended intake questions). This context is passed to clarify, enabling better resolution. When invoked standalone, clarify works from the spec and available artifacts only.
 
 ### Step 4: Apply resolutions
 

@@ -155,7 +155,7 @@ It runs in a temporary directory and cleans up after itself.
 Two skills are not testable with the pipe pattern:
 
 - **clarify** — modifies spec.md in place rather than producing a new document
-- **pipeline** — orchestrates sub-skills without invoking the model directly
+- **run** — orchestrates sub-skills without invoking the model directly
 
 Both require filesystem access and tool use that `claude -p` without
 tools cannot provide. The build skill is covered by the E2E smoke

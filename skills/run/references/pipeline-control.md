@@ -15,9 +15,9 @@ When resuming, tell the user where you're picking up and confirm they want to co
 
 The user can force the pipeline to restart at a specific stage:
 
-- `/pipeline pitch` — Restart at pitch regardless of existing artifacts
-- `/pipeline spec` — Restart at spec
-- `/pipeline plan` — Restart at plan
+- `/run pitch` — Restart at pitch regardless of existing artifacts
+- `/run spec` — Restart at spec
+- `/run plan` — Restart at plan
 
 Overrides do not delete downstream artifacts. The stage's generation will overwrite its own artifact; downstream artifacts remain until their stages re-run.
 

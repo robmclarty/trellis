@@ -39,7 +39,7 @@ PREREQS = {
     "plan": ["{feature}/spec.md", "guidelines.md"],
     "prep": ["{feature}/plan.md", "{feature}/spec.md", "guidelines.md"],
     "build": ["{feature}/", "guidelines.md"],
-    "pipeline": ["guidelines.md"],
+    "run": ["guidelines.md"],
 }
 
 

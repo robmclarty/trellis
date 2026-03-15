@@ -24,7 +24,7 @@ Folded into parent stages:
   plan      ← automatically runs clarify + compliance as pre-steps
   build     ← automatically runs prep if tasks.json is missing
 
-Orchestration:  pipeline (pitch → spec → plan → build, with review gates)
+Orchestration:  run (pitch → spec → plan → build, with review gates)
 ```
 
 - **Init** creates `trellis.json` and the specs directory, then runs guidelines — the entry point for new projects
@@ -32,7 +32,7 @@ Orchestration:  pipeline (pitch → spec → plan → build, with review gates)
 - **Pitch → Spec → Plan → Build** is the 4-stage pipeline, each building on the previous
 - **Clarify** and **Compliance** run automatically as pre-steps of `/plan` (can also be invoked standalone)
 - **Prep** runs automatically as a pre-step of `/build` (can also be invoked standalone)
-- **Pipeline** orchestrates all 4 stages with review gates (approve/edit/redo) after each document stage
+- **Run** orchestrates all 4 stages with review gates (approve/edit/redo) after each document stage
 - **Build** executes tasks through a check-driven feedback loop with an optional test-writer (TDD) and LLM judge
 
 ## Key design decisions
