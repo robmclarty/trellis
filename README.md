@@ -125,7 +125,7 @@ A bundled loop script (`scripts/ralph-loop.sh`) that runs each task in a fresh C
 
 **Requirements:** `docker` installed and running. Supports both API key (`ANTHROPIC_API_KEY` env var) and OAuth/subscription auth (one-time `scripts/ralph-loop.sh --login`). Non-empty `check` field in tasks.json.
 
-The loop script does ALL orchestration — it assembles prompts from templates and sends them to `claude -p` directly. For each pending task: optionally writes tests (TDD), implements, runs check on host, marks done or blocked. The loop stops when all tasks are done, all remaining are blocked, or max iterations are reached (default 10).
+The loop script does ALL orchestration — it assembles prompts from templates and sends them to `claude -p` directly. For each pending task: optionally writes tests (TDD), implements, runs check on host, marks done or blocked. The loop stops when all tasks are done, all remaining are blocked, or the task limit is reached (default 10).
 
 **Output modes:**
 

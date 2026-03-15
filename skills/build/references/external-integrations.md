@@ -28,7 +28,7 @@ The build skill can optionally integrate with external tools.
    - Runs `update-tasks.py` to mark the task done or blocked in tasks.json
    - Git commits the progress
 5. After all tasks: optionally runs the judge agent for spec intent alignment review
-6. The loop stops when: all tasks done, all remaining tasks blocked, or max iterations reached (default 10)
+6. The loop stops when: all tasks done, all remaining tasks blocked, or task limit reached (default 10)
 
 **Security model:** Each LLM invocation runs inside a Docker container with `--dangerously-skip-permissions`. Docker is the security boundary — the container can only access the bind-mounted project directory and the auth volume. The `check` command runs on the host (not in Docker), using the host's toolchain.
 

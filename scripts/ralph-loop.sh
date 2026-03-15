@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ralph-loop.sh — Script-driven Docker implementation loop for Trellis.
 #
-# Usage: ralph-loop.sh <feature-name> [max-iterations] [--silent|--tail|--no-judge]
+# Usage: ralph-loop.sh <feature-name> [limit] [--silent|--tail|--no-judge]
 #        ralph-loop.sh --login
 #        ralph-loop.sh --check-auth
 #
@@ -299,8 +299,8 @@ fi
 
 # --- Main loop mode ---
 
-FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations] [--silent|--tail|--no-judge]  or  ralph-loop.sh --login}"
-MAX_ITERATIONS="${2:-10}"
+FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [limit] [--silent|--tail|--no-judge]  or  ralph-loop.sh --login}"
+LIMIT="${2:-10}"
 
 # Parse optional flags
 OUTPUT_MODE="stream"
@@ -369,7 +369,7 @@ fi
 
 echo -e "${CYAN}Feature:  ${BOLD}${FEATURE}${RESET}"
 echo -e "${CYAN}Check:    ${CHECK_CMD}${RESET}"
-echo -e "${CYAN}Max iter: ${MAX_ITERATIONS}${RESET}"
+echo -e "${CYAN}Limit:    ${LIMIT}${RESET}"
 echo ""
 
 build_image
@@ -613,7 +613,7 @@ echo -e "${CYAN}${BOLD}Starting ralph loop for ${FEATURE}${RESET}"
 echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
 echo ""
 
-for ((i = 1; i <= MAX_ITERATIONS; i++)); do
+for ((i = 1; i <= LIMIT; i++)); do
   TASK_ID=$(get_next_pending_task)
 
   if [[ -z "$TASK_ID" ]]; then
@@ -634,7 +634,7 @@ print(task['title'])
   compute_task_index
   refresh_counts
 
-  echo -e "${CYAN}${BOLD}═══ Task ${TASK_ID}: ${TASK_TITLE} (iteration ${i}/${MAX_ITERATIONS}) ═══${RESET}"
+  echo -e "${CYAN}${BOLD}═══ Task ${TASK_ID}: ${TASK_TITLE} (${i}/${LIMIT}) ═══${RESET}"
   log_phase "Task ${TASK_ID}: ${TASK_TITLE} (${TASK_INDEX}/${TOTAL_COUNT})"
 
   # --- Step 1: Test writer (conditional) ---

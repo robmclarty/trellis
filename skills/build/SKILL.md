@@ -49,7 +49,7 @@ If `ralphMode == "ralph"`:
 1. Verify the `check` field in tasks.json is non-empty. If empty, abort with: "Ralph mode requires a check command. Set it in guidelines.md or run `/trellis:build <feature>` interactively first."
 2. Launch ralph in the background:
    ```
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name> [max-iterations] [flags]
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh <feature-name> [limit] [flags]
    ```
    Use `run_in_background: true` on the Bash tool.
 
