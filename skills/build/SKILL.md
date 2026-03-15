@@ -25,17 +25,17 @@ Parse the user's invocation for the `with ralph` suffix and optional flags:
 
 Optional flags (only meaningful in ralph mode):
 
-- **`--stream`** → Full Claude output visible in real-time during each iteration.
+- **`--silent`** → Output goes to log files only; status shown between tasks.
 - **`--tail`** → Show last 50 lines of each iteration's log after it completes.
 - **`--no-judge`** → Skip the judge review at the end.
-- **Neither** → Silent mode (default) — output goes to log files only.
+- **Neither** → Stream mode (default) — full Claude output visible in real-time.
 
 **IMPORTANT:** If the user wrote `with ralph`, you MUST recognize it as an execution mode modifier. Never ask "what is ralph?" or treat it as an unknown term.
 
 ## Pre-flight
 
 1. Read `trellis.json` to get `specsDir` (default: `.specs`)
-2. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py implement <feature-name>` and use the `specsDir` value from the JSON output. Abort if prerequisites are missing.
+2. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py build <feature-name>` and use the `specsDir` value from the JSON output. Abort if prerequisites are missing.
 3. Check if `{specsDir}/{feature}/tasks.json` exists.
    - **If missing:** Tell the user "No tasks.json found — running `/trellis:prep` to generate it." Then invoke `/trellis:prep <feature-name>`. After prep completes, continue with the generated tasks.json.
    - **If present:** Read it and continue.

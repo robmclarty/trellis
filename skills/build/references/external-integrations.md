@@ -6,12 +6,12 @@ The build skill can optionally integrate with external tools.
 
 **What it is:** A bundled loop script (`scripts/ralph-loop.sh`) that runs each task in a fresh Claude Code context inside a Docker container. Based on Geoffrey Huntley's Ralph Wiggum methodology — fresh context per task prevents degradation on long implementations.
 
-**How to use:** `/build <feature> with ralph [--stream|--tail|--no-judge]`
+**How to use:** `/build <feature> with ralph [--silent|--tail|--no-judge]`
 
 **Output modes:**
 
-- *(default)* — Silent. Output goes to log files only. Between-task status (done/blocked/pending counts) is shown.
-- `--stream` — Full Claude output visible in real-time via `tee`, also logged.
+- *(default)* — Stream. Full Claude output visible in real-time via `tee`, also logged.
+- `--silent` — Output goes to log files only. Between-task status (done/blocked/pending counts) is shown.
 - `--tail` — Silent during task, shows last 50 lines of log after each task completes.
 
 **How it works:** When `with ralph` is specified:

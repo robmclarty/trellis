@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ralph-loop.sh — Script-driven Docker implementation loop for Trellis.
 #
-# Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail|--no-judge]
+# Usage: ralph-loop.sh <feature-name> [max-iterations] [--silent|--tail|--no-judge]
 #        ralph-loop.sh --login
 #        ralph-loop.sh --check-auth
 #
@@ -24,8 +24,8 @@
 # After all tasks: optionally run judge for spec intent alignment review.
 #
 # Output modes:
-#   (default)  Silent — output goes to log file only, status shown between tasks
-#   --stream   Full Claude output visible in real-time via tee (also logged)
+#   (default)  Stream — full Claude output visible in real-time via tee (also logged)
+#   --silent   Output goes to log file only, status shown between tasks
 #   --tail     Silent during task, show last 50 lines of log after completion
 #
 # Auth: Supports both API key (ANTHROPIC_API_KEY env var) and OAuth/subscription
@@ -240,15 +240,16 @@ fi
 
 # --- Main loop mode ---
 
-FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations] [--stream|--tail|--no-judge]  or  ralph-loop.sh --login}"
+FEATURE="${1:?Usage: ralph-loop.sh <feature-name> [max-iterations] [--silent|--tail|--no-judge]  or  ralph-loop.sh --login}"
 MAX_ITERATIONS="${2:-10}"
 
 # Parse optional flags
-OUTPUT_MODE="silent"
+OUTPUT_MODE="stream"
 NO_JUDGE=false
 shift 2 2>/dev/null || shift $# 2>/dev/null || true
 for arg in "$@"; do
   case "$arg" in
+    --silent)   OUTPUT_MODE="silent" ;;
     --stream)   OUTPUT_MODE="stream" ;;
     --tail)     OUTPUT_MODE="tail" ;;
     --no-judge) NO_JUDGE=true ;;
@@ -308,22 +309,30 @@ check_auth() {
     return 0
   fi
 
-  docker run --rm \
-    -v "${AUTH_VOLUME}:/home/claude/.claude" \
-    "$IMAGE_NAME" \
-    --version 2>/dev/null || true
-
   echo -e "${CYAN}Checking authentication in Docker volume...${RESET}"
-  if echo "say ok" | docker run --rm -i \
+
+  # Use exit code instead of grepping output — the old grep for
+  # "error|unauthorized|login|authenticate" produced false positives
+  # because normal OAuth startup messages contain those words.
+  local auth_output
+  auth_output=$(echo "say ok" | docker run --rm -i \
     -v "${AUTH_VOLUME}:/home/claude/.claude" \
     "$IMAGE_NAME" \
-    -p --dangerously-skip-permissions 2>&1 | head -5 | grep -qi "error\|unauthorized\|login\|authenticate"; then
-    echo -e "${RED}No valid authentication found in Docker volume.${RESET}"
+    -p --dangerously-skip-permissions 2>&1) && true
+  local auth_exit=$?
+
+  if [[ $auth_exit -ne 0 ]]; then
+    echo -e "${RED}Authentication check failed (exit code ${auth_exit}).${RESET}"
+    echo -e "${RED}Output:${RESET}"
+    echo "$auth_output" | head -20
+    echo ""
     echo -e "${YELLOW}Run this first:  ${BOLD}ralph-loop.sh --login${RESET}"
+    echo -e "${YELLOW}If you already ran --login and still see this, try setting${RESET}"
+    echo -e "${YELLOW}ANTHROPIC_API_KEY as a fallback.${RESET}"
     exit 1
   fi
 
-  echo -e "${GREEN}OAuth session found in ${AUTH_VOLUME} volume.${RESET}"
+  echo -e "${GREEN}OAuth session verified in ${AUTH_VOLUME} volume.${RESET}"
 }
 
 check_auth
