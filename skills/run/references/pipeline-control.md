@@ -9,7 +9,7 @@ The pipeline is resumable across sessions. Each stage writes its artifact to dis
 - `spec.md` exists, no `plan.md` → resume at Stage 3 (Plan)
 - `plan.md` exists → resume at Stage 4 (Implement)
 
-When resuming, tell the user where you're picking up and confirm they want to continue from that point.
+When an existing feature is detected, the "Feature resolution" step in the skill presents the user with resume/fresh/rename options before the pipeline begins.
 
 ## Stage overrides
 

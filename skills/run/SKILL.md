@@ -20,14 +20,32 @@ Orchestrate the full spec-driven development pipeline for a feature.
 
 ## Pre-flight
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py run <feature-name>` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
-
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` to detect which artifacts already exist and determine the resumption point.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-prereqs.py run` and use the `specsDir` value from the JSON output. Abort if the output reports missing prerequisites.
 
 ## Prerequisites
 
 - `.specs/guidelines.md` must exist. If it doesn't, tell the user to run `/guidelines` first.
 - Any sketches that should inform the pitch should already exist in `.specs/sketches/`. The pipeline does not create sketches; those are exploratory and happen before you commit to a feature.
+
+## Feature resolution
+
+Determine the feature name. If provided as an argument (e.g., `/run my-feature` or `/run spec my-feature`), use it. Otherwise, ask the user:
+
+> **What's the feature name?** (kebab-case, becomes the folder name under the specs directory)
+
+Once the feature name is known, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-status.py <feature-name>` to check whether the feature directory already exists and which artifacts are present.
+
+### New feature (no existing directory)
+
+Proceed to **Intake questions** below, then start the pipeline at Stage 1.
+
+### Existing feature
+
+Tell the user which stages are already completed, then ask:
+
+1. **Resume** — Continue from the next incomplete stage. Skip intake questions — the existing artifacts contain the context.
+2. **Start fresh** — Overwrite existing artifacts by restarting at Stage 1. Proceed to intake questions.
+3. **Choose a different name** — Loop back and ask for a new feature name.
 
 ## Stage override
 
@@ -37,6 +55,8 @@ The run skill accepts an optional argument to force restart at a specific stage:
 - `/run pitch` — Restart at pitch, regardless of existing artifacts.
 - `/run spec` — Restart at spec.
 - `/run plan` — Restart at plan.
+
+When a stage override is provided with an existing feature, skip the resume/fresh/rename prompt — the user's intent is explicit. Run `pipeline-status.py` to determine the resumption point and proceed directly.
 
 ## Intake questions
 
