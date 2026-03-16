@@ -143,6 +143,20 @@ In ralph mode, after the judge completes, an automated redefinition loop kicks i
 
 During redefinition, `status.json` shows `"currentPhase": "redefining"` and includes a `redefinitionPass` field. Redefiner logs are written to `logs/ralph-<feature>/redefiner-pass-N.log`.
 
+## Post-judge polish phase (ralph mode)
+
+After the build is functionally complete (or redefinition limit reached), a polish phase runs two review agents sequentially:
+
+1. The **optimizer agent** reads the completed implementation and identifies localized performance/simplification opportunities — function-level complexity, redundant computation, component efficiency, and cross-module interaction overhead. It creates up to 5 new tasks (phase N+1) and appends §11 to plan.md.
+2. The **improver agent** reads the implementation AND all build logs to identify robustness improvements — fragile patterns that required retries, edge case gaps revealed by check failures, and thin error handling. It creates up to 5 new tasks (phase N+2) and appends §12 to plan.md.
+3. If either agent created tasks, they're executed in one final task pass (no judge/redefiner after polish).
+
+Both agents are constrained: the optimizer must not change architecture, the improver must stay within spec scope. Neither may add new features. Tasks created by these agents include a `"source"` field (`"optimizer"` or `"improver"`) for traceability.
+
+During polish, `status.json` shows `"currentPhase": "optimizing"` or `"improving"`. Logs are written to `logs/ralph-<feature>/optimizer.log` and `logs/ralph-<feature>/improver.log`.
+
+Opt out with `--no-polish`. Skipped automatically if `--no-judge` is set (no judge means no polish).
+
 ## Reporting
 
 When done (or when stopping due to blocked tasks), report:

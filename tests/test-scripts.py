@@ -649,6 +649,374 @@ class TestAssemblePromptRedefiner(unittest.TestCase):
         self.assertIn("0 of 3", data["prompt"])
 
 
+class TestAssemblePromptOptimizer(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        specs = os.path.join(self.tmp, ".specs", "test-feature")
+        os.makedirs(specs)
+        with open(os.path.join(self.tmp, ".specs", "guidelines.md"), "w") as f:
+            f.write("# Guidelines\n\n## Testing\nUse Jest.\n\n## Check Command\n\n```bash\nnpm test\n```\n")
+        with open(os.path.join(specs, "plan.md"), "w") as f:
+            f.write("# Plan\n\n## §6 — File Structure\nsrc/index.ts, src/utils.ts\n")
+        with open(os.path.join(specs, "spec.md"), "w") as f:
+            f.write("# Spec\nDo the thing.")
+        with open(os.path.join(specs, "tasks.json"), "w") as f:
+            json.dump({
+                "feature": "test-feature",
+                "check": "npm test",
+                "redefinitionPass": 0,
+                "tasks": [
+                    {"id": "1.1", "phase": 1, "title": "First task", "do": "Build it",
+                     "verify": "It works", "status": "done", "iteration": 1},
+                    {"id": "1.2", "phase": 1, "title": "Second task", "do": "Wire it",
+                     "verify": "Wiring works", "status": "done", "iteration": 2},
+                ],
+            }, f)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp)
+
+    def test_assembles_optimizer_prompt(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["optimizer", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("prompt", data)
+        prompt = data["prompt"]
+        # tasks.json raw included
+        self.assertIn('"feature": "test-feature"', prompt)
+        # Plan included
+        self.assertIn("File Structure", prompt)
+        # Spec included
+        self.assertIn("Do the thing", prompt)
+        # Guidelines included
+        self.assertIn("Use Jest", prompt)
+        # Task summary included
+        self.assertIn("First task", prompt)
+        self.assertIn("DONE", prompt)
+
+    def test_optimizer_no_unresolved_variables(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["optimizer", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertNotIn("UNRESOLVED", data["prompt"])
+
+    def test_optimizer_does_not_include_judge_verdict(self):
+        """Optimizer prompt should not contain judge verdict — that's for improver."""
+        # Create a judge.log to verify it's NOT pulled in
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test-feature")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "judge.log"), "w") as f:
+            f.write("VERDICT: PASS\nJudge says all good.\n")
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["optimizer", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        # Judge verdict should NOT appear in optimizer prompt
+        self.assertNotIn("Judge says all good", data["prompt"])
+
+    def test_optimizer_does_not_include_blocked_diagnostics(self):
+        """Optimizer should not include blocked task diagnostics."""
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["optimizer", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertNotIn("Blocked Task Diagnostics", data["prompt"])
+
+
+class TestAssemblePromptImprover(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        specs = os.path.join(self.tmp, ".specs", "test-feature")
+        os.makedirs(specs)
+        with open(os.path.join(self.tmp, ".specs", "guidelines.md"), "w") as f:
+            f.write("# Guidelines\n\n## Testing\nUse Jest.\n\n## Check Command\n\n```bash\nnpm test\n```\n")
+        with open(os.path.join(specs, "plan.md"), "w") as f:
+            f.write("# Plan\nBuild the thing.")
+        with open(os.path.join(specs, "spec.md"), "w") as f:
+            f.write("# Spec\nDo the thing.")
+        with open(os.path.join(specs, "tasks.json"), "w") as f:
+            json.dump({
+                "feature": "test-feature",
+                "check": "npm test",
+                "redefinitionPass": 0,
+                "tasks": [
+                    {"id": "1.1", "phase": 1, "title": "First task", "do": "Build it",
+                     "verify": "It works", "status": "done", "iteration": 1},
+                    {"id": "2.1", "phase": 2, "title": "Second task", "do": "Wire it",
+                     "verify": "Wiring works", "status": "done", "iteration": 2},
+                ],
+            }, f)
+        # Create mock logs
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test-feature")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "judge.log"), "w") as f:
+            f.write("VERDICT: PASS\n\nCRITERIA:\n- 1.1: PASS — works\n- 2.1: PASS — works\n")
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("Implemented first task successfully.\n")
+        with open(os.path.join(log_dir, "task-1.1-check.log"), "w") as f:
+            f.write("All tests pass.\n")
+        with open(os.path.join(log_dir, "task-2.1-impl.log"), "w") as f:
+            f.write("Implemented second task.\n")
+        with open(os.path.join(log_dir, "task-2.1-check.log"), "w") as f:
+            f.write("All tests pass.\n")
+        with open(os.path.join(log_dir, "task-2.1-retry.log"), "w") as f:
+            f.write("Had to retry due to flaky test.\nFixed by pinning date.\n")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp)
+
+    def test_assembles_improver_prompt(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["improver", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("prompt", data)
+        prompt = data["prompt"]
+        # Judge verdict included
+        self.assertIn("VERDICT: PASS", prompt)
+        # tasks.json raw included
+        self.assertIn('"feature": "test-feature"', prompt)
+        # All logs summary included
+        self.assertIn("Implemented first task", prompt)
+        self.assertIn("Had to retry due to flaky test", prompt)
+        # Spec and guidelines included
+        self.assertIn("Do the thing", prompt)
+        self.assertIn("Use Jest", prompt)
+
+    def test_improver_no_unresolved_variables(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["improver", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertNotIn("UNRESOLVED", data["prompt"])
+
+    def test_improver_includes_retry_logs(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["improver", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("Had to retry due to flaky test", data["prompt"])
+        self.assertIn("Fixed by pinning date", data["prompt"])
+
+    def test_improver_all_logs_truncated(self):
+        """Impl logs should be truncated to 30 lines."""
+        # Overwrite impl log with 50 lines
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test-feature")
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("impl line\n" * 50)
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["improver", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        # Should have 30 lines, not 50
+        self.assertEqual(data["prompt"].count("impl line"), 30)
+
+    def test_improver_no_logs_dir(self):
+        """When log directory doesn't exist, should handle gracefully."""
+        import shutil
+        shutil.rmtree(os.path.join(self.tmp, "logs"))
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["improver", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("No build logs found", data["prompt"])
+
+    def test_improver_includes_all_tasks_not_just_blocked(self):
+        """All task logs should be included, not just blocked ones."""
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["improver", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        prompt = data["prompt"]
+        # Both tasks' logs should be present
+        self.assertIn("Task 1.1", prompt)
+        self.assertIn("Task 2.1", prompt)
+
+
+class TestGatherAllLogs(unittest.TestCase):
+    """Tests for the gather_all_logs helper in assemble-prompt.py."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp)
+
+    def _import_gather_all_logs(self):
+        """Import the function from assemble-prompt.py."""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "assemble_prompt",
+            os.path.join(SCRIPTS, "assemble-prompt.py"),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.gather_all_logs
+
+    def test_no_log_dir(self):
+        gather = self._import_gather_all_logs()
+        # Point to a feature whose log dir doesn't exist
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("nonexistent-feature")
+            self.assertEqual(result, "No build logs found.")
+        finally:
+            os.chdir(old_cwd)
+
+    def test_empty_log_dir(self):
+        gather = self._import_gather_all_logs()
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test")
+        os.makedirs(log_dir)
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("test")
+            self.assertEqual(result, "No task logs found.")
+        finally:
+            os.chdir(old_cwd)
+
+    def test_gathers_all_task_logs(self):
+        gather = self._import_gather_all_logs()
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("Built first task.\n")
+        with open(os.path.join(log_dir, "task-1.1-check.log"), "w") as f:
+            f.write("Check passed.\n")
+        with open(os.path.join(log_dir, "task-2.1-impl.log"), "w") as f:
+            f.write("Built second task.\n")
+        with open(os.path.join(log_dir, "task-2.1-retry.log"), "w") as f:
+            f.write("Retried second task.\n")
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("test")
+            self.assertIn("Task 1.1", result)
+            self.assertIn("Task 2.1", result)
+            self.assertIn("Built first task", result)
+            self.assertIn("Check passed", result)
+            self.assertIn("Retried second task", result)
+        finally:
+            os.chdir(old_cwd)
+
+    def test_truncates_impl_logs_to_30_lines(self):
+        gather = self._import_gather_all_logs()
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("long line\n" * 60)
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("test")
+            self.assertEqual(result.count("long line"), 30)
+        finally:
+            os.chdir(old_cwd)
+
+    def test_truncates_retry_logs_to_30_lines(self):
+        gather = self._import_gather_all_logs()
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("impl\n")
+        with open(os.path.join(log_dir, "task-1.1-retry.log"), "w") as f:
+            f.write("retry line\n" * 50)
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("test")
+            self.assertEqual(result.count("retry line"), 30)
+        finally:
+            os.chdir(old_cwd)
+
+    def test_check_output_not_truncated(self):
+        gather = self._import_gather_all_logs()
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("impl\n")
+        with open(os.path.join(log_dir, "task-1.1-check.log"), "w") as f:
+            f.write("check line\n" * 60)
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("test")
+            # Check output is NOT truncated (kept in full)
+            self.assertEqual(result.count("check line"), 60)
+        finally:
+            os.chdir(old_cwd)
+
+    def test_sorted_by_task_id(self):
+        gather = self._import_gather_all_logs()
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test")
+        os.makedirs(log_dir)
+        # Create in reverse order
+        with open(os.path.join(log_dir, "task-2.1-impl.log"), "w") as f:
+            f.write("second\n")
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("first\n")
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("test")
+            # 1.1 should appear before 2.1
+            pos_1 = result.index("Task 1.1")
+            pos_2 = result.index("Task 2.1")
+            self.assertLess(pos_1, pos_2)
+        finally:
+            os.chdir(old_cwd)
+
+    def test_ignores_non_task_logs(self):
+        gather = self._import_gather_all_logs()
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "task-1.1-impl.log"), "w") as f:
+            f.write("impl\n")
+        # These should be ignored
+        with open(os.path.join(log_dir, "judge.log"), "w") as f:
+            f.write("VERDICT: PASS\n")
+        with open(os.path.join(log_dir, "optimizer.log"), "w") as f:
+            f.write("optimizer output\n")
+        with open(os.path.join(log_dir, "output.log"), "w") as f:
+            f.write("combined output\n")
+        old_cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = gather("test")
+            self.assertIn("Task 1.1", result)
+            self.assertNotIn("VERDICT", result)
+            self.assertNotIn("optimizer output", result)
+            self.assertNotIn("combined output", result)
+        finally:
+            os.chdir(old_cwd)
+
+
 class TestValidateDoc(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()

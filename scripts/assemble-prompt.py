@@ -157,6 +157,48 @@ def gather_blocked_diagnostics(tasks_data, feature):
     return "\n".join(sections)
 
 
+def gather_all_logs(feature):
+    """Gather log summaries for all tasks (not just blocked).
+
+    The improver needs to see what happened during the entire build to identify
+    fragile patterns and improvement opportunities. Check output is kept in full
+    (contains actual errors), impl/retry logs are truncated to last 30 lines
+    to keep prompt size reasonable across many tasks.
+    """
+    log_dir = os.path.join("logs", f"ralph-{feature}")
+    if not os.path.isdir(log_dir):
+        return "No build logs found."
+
+    def tail_lines(content, n):
+        lines = content.splitlines()
+        return "\n".join(lines[-n:]) if len(lines) > n else content
+
+    sections = []
+    # Find all task logs by looking for impl logs (one per task)
+    for filename in sorted(os.listdir(log_dir)):
+        if not filename.startswith("task-") or not filename.endswith("-impl.log"):
+            continue
+        tid = filename.replace("task-", "").replace("-impl.log", "")
+
+        section = f"### Task {tid}\n\n"
+
+        check_log = read_file_safe(os.path.join(log_dir, f"task-{tid}-check.log"))
+        if check_log:
+            section += f"**Check output (full):**\n```\n{check_log}\n```\n\n"
+
+        impl_log = read_file_safe(os.path.join(log_dir, f"task-{tid}-impl.log"))
+        if impl_log:
+            section += f"**Impl log (last 30 lines):**\n```\n{tail_lines(impl_log, 30)}\n```\n\n"
+
+        retry_log = read_file_safe(os.path.join(log_dir, f"task-{tid}-retry.log"))
+        if retry_log:
+            section += f"**Retry log (last 30 lines):**\n```\n{tail_lines(retry_log, 30)}\n```\n\n"
+
+        sections.append(section)
+
+    return "\n".join(sections) if sections else "No task logs found."
+
+
 def get_git_diff_stat():
     """Get git diff --stat for the judge prompt.
 
@@ -226,9 +268,10 @@ def assemble(template_name, feature, task_id=None, check_output_path=None, redef
         "tasks_summary": get_tasks_summary(tasks_data) if tasks_data else "",
         "test_conventions": extract_test_conventions(guidelines),
         "git_diff_stat": get_git_diff_stat() if template_name == "judge" else "",
-        "judge_verdict": read_file_safe(os.path.join("logs", f"ralph-{feature}", "judge.log")) if template_name == "redefiner" else "",
+        "judge_verdict": read_file_safe(os.path.join("logs", f"ralph-{feature}", "judge.log")) if template_name in ("redefiner", "improver") else "",
         "blocked_task_diagnostics": gather_blocked_diagnostics(tasks_data, feature) if template_name == "redefiner" else "",
-        "tasks_json_raw": json.dumps(tasks_data, indent=2) if template_name == "redefiner" else "",
+        "tasks_json_raw": json.dumps(tasks_data, indent=2) if template_name in ("redefiner", "optimizer", "improver") else "",
+        "all_logs_summary": gather_all_logs(feature) if template_name == "improver" else "",
         "redefinition_pass": str(redef_pass),
     }
 
@@ -248,7 +291,7 @@ def main():
     )
     parser.add_argument(
         "template",
-        choices=["test-writer", "builder", "builder-retry", "judge", "redefiner"],
+        choices=["test-writer", "builder", "builder-retry", "judge", "redefiner", "optimizer", "improver"],
         help="Template name",
     )
     parser.add_argument("feature", help="Feature name")

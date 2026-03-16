@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ralph-loop.sh — Script-driven Docker implementation loop for Trellis.
 #
-# Usage: ralph-loop.sh <feature-name> [limit] [--silent|--tail|--no-judge]
+# Usage: ralph-loop.sh <feature-name> [limit] [--silent|--tail|--no-judge|--no-polish]
 #        ralph-loop.sh --login
 #        ralph-loop.sh --check-auth
 #
@@ -305,13 +305,15 @@ LIMIT="${2:-10}"
 # Parse optional flags
 OUTPUT_MODE="stream"
 NO_JUDGE=false
+NO_POLISH=false
 shift 2 2>/dev/null || shift $# 2>/dev/null || true
 for arg in "$@"; do
   case "$arg" in
-    --silent)   OUTPUT_MODE="silent" ;;
-    --stream)   OUTPUT_MODE="stream" ;;
-    --tail)     OUTPUT_MODE="tail" ;;
-    --no-judge) NO_JUDGE=true ;;
+    --silent)    OUTPUT_MODE="silent" ;;
+    --stream)    OUTPUT_MODE="stream" ;;
+    --tail)      OUTPUT_MODE="tail" ;;
+    --no-judge)  NO_JUDGE=true ;;
+    --no-polish) NO_POLISH=true ;;
   esac
 done
 
@@ -328,6 +330,7 @@ BLOCKED_COUNT=0
 TOTAL_COUNT=0
 REDEF_PASS=0
 MAX_REDEF=3
+POLISH_DONE=false
 
 # Resolve specs dir from trellis.json (default: .specs)
 SPECS_DIR=$(python3 -c "
@@ -601,11 +604,139 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# --- Task execution function ---
+# Processes pending tasks up to LIMIT. Each task gets its own Docker
+# invocations for test-writing and implementation, with check running
+# on the host between. Extracted into a function so it can be called
+# from both the main loop and the polish phase.
+
+execute_pending_tasks() {
+  for ((i = 1; i <= LIMIT; i++)); do
+    TASK_ID=$(get_next_pending_task)
+
+    if [[ -z "$TASK_ID" ]]; then
+      echo -e "${GREEN}${BOLD}All tasks complete!${RESET}"
+      echo -e "${YELLOW}Final: $(get_task_counts)${RESET}"
+      break
+    fi
+
+    CURRENT_TASK_ID="$TASK_ID"
+    TASK_TITLE=$(python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+task = next(t for t in data['tasks'] if t['id'] == '$TASK_ID')
+print(task['title'])
+")
+    CURRENT_TASK_TITLE="$TASK_TITLE"
+    compute_task_index
+    refresh_counts
+
+    echo -e "${CYAN}${BOLD}═══ Task ${TASK_ID}: ${TASK_TITLE} (${i}/${LIMIT}) ═══${RESET}"
+    log_phase "Task ${TASK_ID}: ${TASK_TITLE} (${TASK_INDEX}/${TOTAL_COUNT})"
+
+    # --- Step 1: Test writer (conditional) ---
+    # Deterministic heuristic decides if this task warrants test-first development.
+    # Structural tasks (scaffold, config) skip this; behavioral tasks get tests.
+
+    NEEDS_TESTS=$(python3 "${SCRIPT_DIR}/should-write-tests.py" "$TASKS_JSON" "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['shouldWrite'])")
+
+    if [[ "$NEEDS_TESTS" == "True" ]]; then
+      echo -e "${CYAN}Writing tests for task ${TASK_ID}...${RESET}"
+      write_status "tests"
+      log_phase "Task ${TASK_ID}: test-writer"
+      PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" test-writer "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+      run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-tests.log" "test-writer ${TASK_ID}"
+      echo -e "${GREEN}Test-writer complete for ${TASK_ID}.${RESET}"
+    else
+      echo -e "${YELLOW}Skipping test-writer for ${TASK_ID} (structural task).${RESET}"
+    fi
+
+    # --- Step 2: Implementation ---
+    # The builder receives the full task context: what to build, acceptance
+    # criteria, the plan, guidelines, and what's already been built.
+
+    echo -e "${CYAN}Building task ${TASK_ID}...${RESET}"
+    write_status "impl"
+    log_phase "Task ${TASK_ID}: builder"
+    PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+    run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-impl.log" "builder ${TASK_ID}"
+
+    # --- Step 3: Check on host ---
+    # The check command runs on the HOST, not in Docker. This uses the host's
+    # toolchain (node, npm, cargo, etc.) which matches what the user configured.
+    # The check output is captured for potential retry.
+
+    CHECK_OUTPUT_FILE="${LOG_DIR}/task-${TASK_ID}-check.log"
+    echo -e "${CYAN}Running check: ${CHECK_CMD}${RESET}"
+    write_status "check"
+    log_phase "Task ${TASK_ID}: check"
+    host_dep_sync
+
+    if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
+      # --- Check passed: mark done ---
+      echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check.${RESET}"
+      log_phase "Task ${TASK_ID}: PASSED"
+      python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
+      git add -A && git commit -m "ralph: task ${TASK_ID} done — ${TASK_TITLE}" 2>/dev/null || true
+      refresh_counts
+      write_status "check"
+      echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
+      echo ""
+      continue
+    fi
+
+    # --- Step 4: Retry once ---
+    # If check fails, assemble a retry prompt with the error output. The retry
+    # prompt is focused: fix ONLY the errors shown, don't refactor or add features.
+
+    echo -e "${YELLOW}Check failed for ${TASK_ID}. Retrying...${RESET}"
+    write_status "retry"
+    log_phase "Task ${TASK_ID}: retry"
+
+    PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder-retry "$FEATURE" --task-id "$TASK_ID" --check-output "$CHECK_OUTPUT_FILE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+    run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-retry.log" "retry ${TASK_ID}"
+
+    # Re-run check after retry
+    host_dep_sync
+    if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
+      echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check (after retry).${RESET}"
+      log_phase "Task ${TASK_ID}: PASSED (retry)"
+      python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
+      git add -A && git commit -m "ralph: task ${TASK_ID} done (retry) — ${TASK_TITLE}" 2>/dev/null || true
+    else
+      echo -e "${RED}${BOLD}✗ Task ${TASK_ID} still failing after retry. Marking blocked.${RESET}"
+      log_phase "Task ${TASK_ID}: BLOCKED"
+      if [[ "$OUTPUT_MODE" != "stream" ]]; then
+        echo -e "${CYAN}--- Check output ---${RESET}"
+        tail -20 "$CHECK_OUTPUT_FILE"
+        echo -e "${CYAN}--- End check output ---${RESET}"
+      fi
+      python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" blocked --iteration "$i" > /dev/null
+      git add -A && git commit -m "ralph: task ${TASK_ID} blocked — ${TASK_TITLE}" 2>/dev/null || true
+    fi
+
+    refresh_counts
+    write_status "check"
+    echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
+    echo ""
+
+    # Check if all remaining tasks are blocked (no point continuing)
+    REMAINING=$(python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+pending = sum(1 for t in data['tasks'] if t['status'] == 'pending')
+print(pending)
+")
+    if [[ "$REMAINING" == "0" ]]; then
+      echo -e "${YELLOW}${BOLD}No pending tasks remain.${RESET}"
+      break
+    fi
+  done
+}
+
 # --- Main task loop ---
-# Each iteration processes one task. This is different from the old loop
-# which ran one full build skill invocation per iteration (processing
-# multiple criteria). Here, each task gets its own Docker invocations for
-# test-writing and implementation, with check running on the host between.
 
 START_TIME=$(date +%s)
 > "$COMBINED_LOG"
@@ -619,129 +750,7 @@ echo ""
 
 while true; do
 
-for ((i = 1; i <= LIMIT; i++)); do
-  TASK_ID=$(get_next_pending_task)
-
-  if [[ -z "$TASK_ID" ]]; then
-    echo -e "${GREEN}${BOLD}All tasks complete!${RESET}"
-    echo -e "${YELLOW}Final: $(get_task_counts)${RESET}"
-    break
-  fi
-
-  CURRENT_TASK_ID="$TASK_ID"
-  TASK_TITLE=$(python3 -c "
-import json
-with open('$TASKS_JSON') as f:
-    data = json.load(f)
-task = next(t for t in data['tasks'] if t['id'] == '$TASK_ID')
-print(task['title'])
-")
-  CURRENT_TASK_TITLE="$TASK_TITLE"
-  compute_task_index
-  refresh_counts
-
-  echo -e "${CYAN}${BOLD}═══ Task ${TASK_ID}: ${TASK_TITLE} (${i}/${LIMIT}) ═══${RESET}"
-  log_phase "Task ${TASK_ID}: ${TASK_TITLE} (${TASK_INDEX}/${TOTAL_COUNT})"
-
-  # --- Step 1: Test writer (conditional) ---
-  # Deterministic heuristic decides if this task warrants test-first development.
-  # Structural tasks (scaffold, config) skip this; behavioral tasks get tests.
-
-  NEEDS_TESTS=$(python3 "${SCRIPT_DIR}/should-write-tests.py" "$TASKS_JSON" "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['shouldWrite'])")
-
-  if [[ "$NEEDS_TESTS" == "True" ]]; then
-    echo -e "${CYAN}Writing tests for task ${TASK_ID}...${RESET}"
-    write_status "tests"
-    log_phase "Task ${TASK_ID}: test-writer"
-    PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" test-writer "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
-    run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-tests.log" "test-writer ${TASK_ID}"
-    echo -e "${GREEN}Test-writer complete for ${TASK_ID}.${RESET}"
-  else
-    echo -e "${YELLOW}Skipping test-writer for ${TASK_ID} (structural task).${RESET}"
-  fi
-
-  # --- Step 2: Implementation ---
-  # The builder receives the full task context: what to build, acceptance
-  # criteria, the plan, guidelines, and what's already been built.
-
-  echo -e "${CYAN}Building task ${TASK_ID}...${RESET}"
-  write_status "impl"
-  log_phase "Task ${TASK_ID}: builder"
-  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder "$FEATURE" --task-id "$TASK_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
-  run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-impl.log" "builder ${TASK_ID}"
-
-  # --- Step 3: Check on host ---
-  # The check command runs on the HOST, not in Docker. This uses the host's
-  # toolchain (node, npm, cargo, etc.) which matches what the user configured.
-  # The check output is captured for potential retry.
-
-  CHECK_OUTPUT_FILE="${LOG_DIR}/task-${TASK_ID}-check.log"
-  echo -e "${CYAN}Running check: ${CHECK_CMD}${RESET}"
-  write_status "check"
-  log_phase "Task ${TASK_ID}: check"
-  host_dep_sync
-
-  if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
-    # --- Check passed: mark done ---
-    echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check.${RESET}"
-    log_phase "Task ${TASK_ID}: PASSED"
-    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
-    git add -A && git commit -m "ralph: task ${TASK_ID} done — ${TASK_TITLE}" 2>/dev/null || true
-    refresh_counts
-    write_status "check"
-    echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
-    echo ""
-    continue
-  fi
-
-  # --- Step 4: Retry once ---
-  # If check fails, assemble a retry prompt with the error output. The retry
-  # prompt is focused: fix ONLY the errors shown, don't refactor or add features.
-
-  echo -e "${YELLOW}Check failed for ${TASK_ID}. Retrying...${RESET}"
-  write_status "retry"
-  log_phase "Task ${TASK_ID}: retry"
-
-  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" builder-retry "$FEATURE" --task-id "$TASK_ID" --check-output "$CHECK_OUTPUT_FILE" | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
-  run_in_docker "$PROMPT" "${LOG_DIR}/task-${TASK_ID}-retry.log" "retry ${TASK_ID}"
-
-  # Re-run check after retry
-  host_dep_sync
-  if eval "$CHECK_CMD" > "$CHECK_OUTPUT_FILE" 2>&1; then
-    echo -e "${GREEN}${BOLD}✓ Task ${TASK_ID} passed check (after retry).${RESET}"
-    log_phase "Task ${TASK_ID}: PASSED (retry)"
-    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" "done" --iteration "$i" > /dev/null
-    git add -A && git commit -m "ralph: task ${TASK_ID} done (retry) — ${TASK_TITLE}" 2>/dev/null || true
-  else
-    echo -e "${RED}${BOLD}✗ Task ${TASK_ID} still failing after retry. Marking blocked.${RESET}"
-    log_phase "Task ${TASK_ID}: BLOCKED"
-    if [[ "$OUTPUT_MODE" != "stream" ]]; then
-      echo -e "${CYAN}--- Check output ---${RESET}"
-      tail -20 "$CHECK_OUTPUT_FILE"
-      echo -e "${CYAN}--- End check output ---${RESET}"
-    fi
-    python3 "${SCRIPT_DIR}/update-tasks.py" "$TASKS_JSON" "$TASK_ID" blocked --iteration "$i" > /dev/null
-    git add -A && git commit -m "ralph: task ${TASK_ID} blocked — ${TASK_TITLE}" 2>/dev/null || true
-  fi
-
-  refresh_counts
-  write_status "check"
-  echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
-  echo ""
-
-  # Check if all remaining tasks are blocked (no point continuing)
-  REMAINING=$(python3 -c "
-import json
-with open('$TASKS_JSON') as f:
-    data = json.load(f)
-pending = sum(1 for t in data['tasks'] if t['status'] == 'pending')
-print(pending)
-")
-  if [[ "$REMAINING" == "0" ]]; then
-    echo -e "${YELLOW}${BOLD}No pending tasks remain.${RESET}"
-    break
-  fi
-done
+execute_pending_tasks
 
 # --- Judge review ---
 # The judge evaluates intent alignment: did you build what the spec asked for,
@@ -854,6 +863,69 @@ echo ""
 
 # Continue outer loop — task loop picks up newly-pending tasks
 done
+
+# --- Polish phase (optimizer + improver) ---
+# Runs once after the build is functionally complete. The optimizer reviews
+# the implementation for localized performance/simplification opportunities.
+# The improver reviews build logs for robustness and quality improvements.
+# Both create new tasks, which are executed in one final pass.
+# Sequential: improver sees optimizer's additions to avoid duplicates.
+# Opt-out with --no-polish. Skipped if judge was disabled.
+
+if [[ "$JUDGE_ENABLED" == "True" ]] && [[ "$NO_POLISH" != "true" ]] && [[ "$POLISH_DONE" != "true" ]]; then
+  POLISH_DONE="true"
+
+  echo ""
+  echo -e "${CYAN}${BOLD}═══ Polish Phase ═══${RESET}"
+
+  # --- Optimizer ---
+  echo -e "${CYAN}Running optimizer review...${RESET}"
+  CURRENT_TASK_ID=""
+  CURRENT_TASK_TITLE=""
+  TASK_INDEX=0
+  refresh_counts
+  write_status "optimizing"
+  log_phase "Optimizer Review"
+
+  PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" optimizer "$FEATURE" \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+  run_in_docker "$PROMPT" "${LOG_DIR}/optimizer.log" "optimizer"
+
+  # Validate tasks.json after optimizer wrote it
+  if ! python3 -c "import json; json.load(open('$TASKS_JSON'))" 2>/dev/null; then
+    echo -e "${RED}${BOLD}Optimizer produced invalid tasks.json. Skipping polish phase.${RESET}"
+  else
+
+    # --- Improver ---
+    echo -e "${CYAN}Running improver review...${RESET}"
+    write_status "improving"
+    log_phase "Improver Review"
+
+    PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" improver "$FEATURE" \
+      | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+    run_in_docker "$PROMPT" "${LOG_DIR}/improver.log" "improver"
+
+    # Validate tasks.json after improver wrote it
+    if ! python3 -c "import json; json.load(open('$TASKS_JSON'))" 2>/dev/null; then
+      echo -e "${RED}${BOLD}Improver produced invalid tasks.json. Skipping polish execution.${RESET}"
+    else
+      # Check if new tasks were created
+      refresh_counts
+      if [[ "$PENDING_COUNT" != "0" ]]; then
+        echo -e "${CYAN}${BOLD}Executing ${PENDING_COUNT} polish tasks...${RESET}"
+        git add -A && git commit -m "ralph: optimizer+improver added polish tasks" 2>/dev/null || true
+
+        # Execute one final task pass — no judge/redefiner after polish
+        execute_pending_tasks
+
+        git add -A && git commit -m "ralph: polish tasks complete" 2>/dev/null || true
+        echo -e "${GREEN}${BOLD}Polish phase complete.${RESET}"
+      else
+        echo -e "${YELLOW}No polish tasks created. Implementation is clean.${RESET}"
+      fi
+    fi
+  fi
+fi
 
 # --- Final summary ---
 
