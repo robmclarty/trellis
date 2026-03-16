@@ -18,6 +18,11 @@
       "default": true,
       "description": "Whether to run the judge agent after all tasks complete. Default true, opt-out with --no-judge."
     },
+    "redefinitionPass": {
+      "type": "integer",
+      "default": 0,
+      "description": "Current redefinition pass (0 = initial run, 1-3 = redefinition passes). Updated by ralph-loop.sh after each redefiner run."
+    },
     "tasks": {
       "type": "array",
       "items": {

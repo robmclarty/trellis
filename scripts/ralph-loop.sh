@@ -326,6 +326,8 @@ DONE_COUNT=0
 PENDING_COUNT=0
 BLOCKED_COUNT=0
 TOTAL_COUNT=0
+REDEF_PASS=0
+MAX_REDEF=3
 
 # Resolve specs dir from trellis.json (default: .specs)
 SPECS_DIR=$(python3 -c "
@@ -491,6 +493,7 @@ write_status() {
   WS_TOTAL="$TOTAL_COUNT" \
   WS_FINISHED="$finished" \
   WS_EXIT_CODE="$exit_code" \
+  WS_REDEF_PASS="$REDEF_PASS" \
   WS_TMP="$tmp_status" \
   python3 -c "
 import json, time, os
@@ -510,7 +513,8 @@ data = {
     'blocked': int(e['WS_BLOCKED']),
     'total': int(e['WS_TOTAL']),
     'finished': e['WS_FINISHED'] == 'True',
-    'exitCode': None if exit_code == 'None' else int(exit_code)
+    'exitCode': None if exit_code == 'None' else int(exit_code),
+    'redefinitionPass': int(e['WS_REDEF_PASS'])
 }
 with open(e['WS_TMP'], 'w') as f:
     json.dump(data, f, indent=2)
@@ -612,6 +616,8 @@ write_status "starting"
 echo -e "${CYAN}${BOLD}Starting ralph loop for ${FEATURE}${RESET}"
 echo -e "${YELLOW}Status: $(get_task_counts)${RESET}"
 echo ""
+
+while true; do
 
 for ((i = 1; i <= LIMIT; i++)); do
   TASK_ID=$(get_next_pending_task)
@@ -771,6 +777,83 @@ if [[ "$JUDGE_ENABLED" == "True" ]]; then
 else
   echo -e "${YELLOW}Judge review skipped (--no-judge).${RESET}"
 fi
+
+# --- Redefinition decision ---
+# After the judge, decide whether to redefine blocked tasks and re-run.
+# Skip if judge was disabled — no verdict to act on.
+
+if [[ "$JUDGE_ENABLED" != "True" ]]; then
+  break  # No judge means no redefiner
+fi
+
+# Extract verdict from judge.log
+VERDICT=$(grep -m1 'VERDICT:' "${LOG_DIR}/judge.log" 2>/dev/null | awk '{print $2}')
+VERDICT="${VERDICT:-UNKNOWN}"
+
+refresh_counts
+
+# Exit if PASS with no blocked tasks — build is complete
+if [[ "$VERDICT" == "PASS" ]] && [[ "$BLOCKED_COUNT" == "0" ]]; then
+  echo -e "${GREEN}${BOLD}Judge passed with no blocked tasks. Build complete.${RESET}"
+  break
+fi
+
+# Check redefinition limit before incrementing
+if [[ "$REDEF_PASS" -ge "$MAX_REDEF" ]]; then
+  echo -e "${YELLOW}${BOLD}Redefinition limit reached (${MAX_REDEF} passes). Stopping.${RESET}"
+  echo -e "${YELLOW}Remaining issues require human judgment.${RESET}"
+  break
+fi
+
+# Increment pass counter
+REDEF_PASS=$((REDEF_PASS + 1))
+
+echo -e "${CYAN}${BOLD}═══ Redefinition Pass ${REDEF_PASS} ═══${RESET}"
+echo -e "${YELLOW}Verdict: ${VERDICT} | Blocked: ${BLOCKED_COUNT}${RESET}"
+echo ""
+
+CURRENT_TASK_ID=""
+CURRENT_TASK_TITLE=""
+TASK_INDEX=0
+refresh_counts
+write_status "redefining"
+log_phase "Redefinition Pass ${REDEF_PASS}"
+
+PROMPT=$(python3 "${SCRIPT_DIR}/assemble-prompt.py" redefiner "$FEATURE" --redef-pass "$REDEF_PASS" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['prompt'])")
+run_in_docker "$PROMPT" "${LOG_DIR}/redefiner-pass-${REDEF_PASS}.log" "redefiner pass ${REDEF_PASS}"
+
+# Validate tasks.json after redefiner wrote it
+if ! python3 -c "import json; json.load(open('$TASKS_JSON'))" 2>/dev/null; then
+  echo -e "${RED}${BOLD}Redefiner produced invalid tasks.json. Aborting redefinition.${RESET}"
+  break
+fi
+
+# Update redefinitionPass field in tasks.json
+python3 -c "
+import json
+with open('$TASKS_JSON') as f:
+    data = json.load(f)
+data['redefinitionPass'] = $REDEF_PASS
+with open('$TASKS_JSON', 'w') as f:
+    json.dump(data, f, indent=2)
+    f.write('\n')
+"
+
+# Verify there are pending tasks to work on
+refresh_counts
+if [[ "$PENDING_COUNT" == "0" ]]; then
+  echo -e "${YELLOW}No pending tasks after redefinition. Nothing to retry.${RESET}"
+  break
+fi
+
+git add -A && git commit -m "ralph: redefinition pass ${REDEF_PASS} — rewrote blocked tasks" 2>/dev/null || true
+
+echo -e "${YELLOW}Status after redefinition: $(get_task_counts)${RESET}"
+echo ""
+
+# Continue outer loop — task loop picks up newly-pending tasks
+done
 
 # --- Final summary ---
 

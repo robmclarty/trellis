@@ -508,6 +508,147 @@ class TestAssemblePrompt(unittest.TestCase):
         self.assertIn("Spec", data["prompt"])
 
 
+class TestAssemblePromptRedefiner(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        # Create minimal spec artifacts
+        specs = os.path.join(self.tmp, ".specs", "test-feature")
+        os.makedirs(specs)
+        with open(os.path.join(self.tmp, ".specs", "guidelines.md"), "w") as f:
+            f.write("# Guidelines\n\n## Testing\nUse Jest.\n\n## Check Command\n\n```bash\nnpm test\n```\n")
+        with open(os.path.join(specs, "plan.md"), "w") as f:
+            f.write("# Plan\nBuild the thing.")
+        with open(os.path.join(specs, "spec.md"), "w") as f:
+            f.write("# Spec\nDo the thing.")
+        with open(os.path.join(specs, "tasks.json"), "w") as f:
+            json.dump({
+                "feature": "test-feature",
+                "check": "npm test",
+                "redefinitionPass": 0,
+                "tasks": [
+                    {"id": "1.1", "phase": 1, "title": "First task", "do": "Build it",
+                     "verify": "It works", "status": "done", "iteration": 1},
+                    {"id": "1.2", "phase": 1, "title": "Second task", "do": "Wire it up",
+                     "verify": "Wiring works", "status": "blocked", "iteration": None},
+                ],
+            }, f)
+        # Create mock logs
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test-feature")
+        os.makedirs(log_dir)
+        with open(os.path.join(log_dir, "judge.log"), "w") as f:
+            f.write("VERDICT: PARTIAL\n\nCRITERIA:\n- 1.1: PASS — works\n- 1.2: FAIL — wiring broken\n\n"
+                    "RECOMMENDATIONS:\n- Fix the wiring in component X\n")
+        with open(os.path.join(log_dir, "task-1.2-check.log"), "w") as f:
+            f.write("FAIL: Expected component to render but got null\n")
+        with open(os.path.join(log_dir, "task-1.2-impl.log"), "w") as f:
+            f.write("Created component file...\n" * 100)  # >80 lines
+        with open(os.path.join(log_dir, "task-1.2-retry.log"), "w") as f:
+            f.write("Attempted fix...\nStill broken.\n")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp)
+
+    def test_assembles_redefiner_prompt(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["redefiner", "test-feature", "--redef-pass", "1"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("prompt", data)
+        prompt = data["prompt"]
+        # Judge verdict included
+        self.assertIn("VERDICT: PARTIAL", prompt)
+        # Blocked task diagnostics included
+        self.assertIn("Second task", prompt)
+        self.assertIn("Expected component to render but got null", prompt)
+        # tasks.json raw included
+        self.assertIn('"feature": "test-feature"', prompt)
+        # Spec included
+        self.assertIn("Do the thing", prompt)
+        # Guidelines included
+        self.assertIn("Use Jest", prompt)
+        # Pass number included
+        self.assertIn("1 of 3", prompt)
+
+    def test_redefiner_no_unresolved_variables(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["redefiner", "test-feature", "--redef-pass", "2"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertNotIn("UNRESOLVED", data["prompt"])
+
+    def test_redefiner_truncates_long_impl_log(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["redefiner", "test-feature", "--redef-pass", "1"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        # Impl log had 100 lines, should be truncated to 80
+        impl_section = data["prompt"]
+        # Count occurrences of the repeated line — should be 80 not 100
+        self.assertEqual(impl_section.count("Created component file..."), 80)
+
+    def test_redefiner_includes_retry_log(self):
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["redefiner", "test-feature", "--redef-pass", "1"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("Attempted fix...", data["prompt"])
+        self.assertIn("Still broken.", data["prompt"])
+
+    def test_redefiner_no_blocked_tasks(self):
+        """When no tasks are blocked, diagnostics say so."""
+        specs = os.path.join(self.tmp, ".specs", "test-feature")
+        with open(os.path.join(specs, "tasks.json"), "w") as f:
+            json.dump({
+                "feature": "test-feature",
+                "check": "npm test",
+                "tasks": [
+                    {"id": "1.1", "phase": 1, "title": "First task", "do": "Build it",
+                     "verify": "It works", "status": "done", "iteration": 1},
+                ],
+            }, f)
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["redefiner", "test-feature", "--redef-pass", "1"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("No blocked tasks", data["prompt"])
+
+    def test_redefiner_missing_logs_handled(self):
+        """When log files don't exist, diagnostics handle gracefully."""
+        # Remove the log files
+        log_dir = os.path.join(self.tmp, "logs", "ralph-test-feature")
+        os.remove(os.path.join(log_dir, "task-1.2-check.log"))
+        os.remove(os.path.join(log_dir, "task-1.2-impl.log"))
+        os.remove(os.path.join(log_dir, "task-1.2-retry.log"))
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["redefiner", "test-feature", "--redef-pass", "1"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("No check log found", data["prompt"])
+
+    def test_redefiner_default_redef_pass(self):
+        """--redef-pass defaults to 0."""
+        rc, data, _ = run_script(
+            "assemble-prompt.py",
+            ["redefiner", "test-feature"],
+            cwd=self.tmp,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("0 of 3", data["prompt"])
+
+
 class TestValidateDoc(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()

@@ -132,6 +132,17 @@ The judge evaluates **intent alignment**: did the implementation satisfy what th
 
 If the judge says PARTIAL or FAIL, fix the specific issues and re-run the check. Limit: 2 judge re-submissions. After that, report to the user with the judge's feedback.
 
+## Post-judge redefinition (ralph mode)
+
+In ralph mode, after the judge completes, an automated redefinition loop kicks in if blocked tasks remain or the judge returns PARTIAL/FAIL:
+
+1. The **redefiner agent** reads failure logs and the judge verdict, diagnoses root causes (convention mismatch, environment limitation, logic error, test fragility), and rewrites blocked task `do` fields with lessons learned.
+2. The redefiner may add new tasks for judge-identified gaps (using phase N+1 numbering).
+3. Blocked tasks are reset to `"pending"` and the task loop re-executes.
+4. Maximum **3 redefinition passes**. After that, ralph stops and reports remaining issues — they likely require human judgment.
+
+During redefinition, `status.json` shows `"currentPhase": "redefining"` and includes a `redefinitionPass` field. Redefiner logs are written to `logs/ralph-<feature>/redefiner-pass-N.log`.
+
 ## Reporting
 
 When done (or when stopping due to blocked tasks), report:

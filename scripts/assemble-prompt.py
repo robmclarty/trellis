@@ -105,12 +105,56 @@ def get_tasks_summary(tasks_data):
     """
     lines = []
     for t in tasks_data["tasks"]:
-        status_icon = {"done": "DONE", "blocked": "BLOCKED", "pending": "PENDING"}[
-            t["status"]
-        ]
+        status_icon = {"done": "DONE", "blocked": "BLOCKED", "pending": "PENDING"}.get(
+            t["status"], t["status"].upper()
+        )
         lines.append(f"- [{status_icon}] {t['id']}: {t['title']}")
         lines.append(f"  Verify: {t['verify']}")
     return "\n".join(lines)
+
+
+def gather_blocked_diagnostics(tasks_data, feature):
+    """Gather log diagnostics for each blocked task.
+
+    For each blocked task, reads check output (full), impl log (last 80 lines),
+    and retry log (last 80 lines) from the ralph log directory. The check output
+    is kept in full because it contains the actual error messages the redefiner
+    needs for diagnosis. Impl/retry logs are truncated because they contain full
+    Claude output which can be very long.
+    """
+    log_dir = os.path.join("logs", f"ralph-{feature}")
+    blocked = [t for t in tasks_data.get("tasks", []) if t["status"] == "blocked"]
+    if not blocked:
+        return "No blocked tasks."
+
+    def tail_lines(content, n):
+        lines = content.splitlines()
+        return "\n".join(lines[-n:]) if len(lines) > n else content
+
+    sections = []
+    for task in blocked:
+        tid = task["id"]
+        section = f"### Task {tid}: {task['title']}\n\n"
+        section += f"**do:** {task['do']}\n\n"
+        section += f"**verify:** {task['verify']}\n\n"
+
+        check_log = read_file_safe(os.path.join(log_dir, f"task-{tid}-check.log"))
+        if check_log:
+            section += f"**Check output (full):**\n```\n{check_log}\n```\n\n"
+        else:
+            section += "**Check output:** No check log found.\n\n"
+
+        impl_log = read_file_safe(os.path.join(log_dir, f"task-{tid}-impl.log"))
+        if impl_log:
+            section += f"**Impl log (last 80 lines):**\n```\n{tail_lines(impl_log, 80)}\n```\n\n"
+
+        retry_log = read_file_safe(os.path.join(log_dir, f"task-{tid}-retry.log"))
+        if retry_log:
+            section += f"**Retry log (last 80 lines):**\n```\n{tail_lines(retry_log, 80)}\n```\n\n"
+
+        sections.append(section)
+
+    return "\n".join(sections)
 
 
 def get_git_diff_stat():
@@ -131,7 +175,7 @@ def get_git_diff_stat():
         return "Unable to get git diff"
 
 
-def assemble(template_name, feature, task_id=None, check_output_path=None):
+def assemble(template_name, feature, task_id=None, check_output_path=None, redef_pass=0):
     """Resolve all template variables and produce the final prompt.
 
     Each template type needs different variables. Rather than conditionally
@@ -182,6 +226,10 @@ def assemble(template_name, feature, task_id=None, check_output_path=None):
         "tasks_summary": get_tasks_summary(tasks_data) if tasks_data else "",
         "test_conventions": extract_test_conventions(guidelines),
         "git_diff_stat": get_git_diff_stat() if template_name == "judge" else "",
+        "judge_verdict": read_file_safe(os.path.join("logs", f"ralph-{feature}", "judge.log")) if template_name == "redefiner" else "",
+        "blocked_task_diagnostics": gather_blocked_diagnostics(tasks_data, feature) if template_name == "redefiner" else "",
+        "tasks_json_raw": json.dumps(tasks_data, indent=2) if template_name == "redefiner" else "",
+        "redefinition_pass": str(redef_pass),
     }
 
     # Resolve template variables
@@ -200,17 +248,18 @@ def main():
     )
     parser.add_argument(
         "template",
-        choices=["test-writer", "builder", "builder-retry", "judge"],
+        choices=["test-writer", "builder", "builder-retry", "judge", "redefiner"],
         help="Template name",
     )
     parser.add_argument("feature", help="Feature name")
     parser.add_argument("--task-id", help="Task ID (required for task-specific templates)")
     parser.add_argument("--check-output", help="Path to file with check command output")
+    parser.add_argument("--redef-pass", type=int, default=0, help="Redefinition pass number (1-3)")
 
     args = parser.parse_args()
 
     prompt = assemble(
-        args.template, args.feature, args.task_id, args.check_output
+        args.template, args.feature, args.task_id, args.check_output, args.redef_pass
     )
 
     result = {"prompt": prompt}
