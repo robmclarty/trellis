@@ -2,6 +2,12 @@
 
 All notable changes to Trellis are documented in this file.
 
+## 0.8.0
+
+- Add post-judge redefiner agent for automated task redefinition on blocked/failed builds
+- Add post-judge polish phase with optimizer and improver agents (opt-out with `--no-polish`)
+- Rename generation agents: guidelines-writer → guideliner, pitch-writer → pitcher, plan-writer → planner, sketch-writer → sketcher, spec-writer → specifier
+
 ## 0.7.18
 
 - Rename `--max-iterations` flag to `--limit` in Ralph loop for clarity
