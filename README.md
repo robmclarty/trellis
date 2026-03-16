@@ -62,7 +62,7 @@ These skills run in sequence. Each builds on the output of the previous one.
 - `/trellis:run`
   Orchestrate the full pipeline from pitch through prep in one session. Supports interactive and automatic modes.
 - `/trellis:build`
-  Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet. See [docs/implementation-loop.md](docs/implementation-loop.md).
+  Turn tasks into working code through a check-driven feedback loop with TDD and judge review. Auto-runs prep if tasks.json doesn't exist yet. See [docs/build.md](docs/build.md).
 - `/trellis:status`
   Show pipeline status for all features — which artifacts exist and what's ready for the next step.
 

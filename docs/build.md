@@ -1,4 +1,4 @@
-# The Implementation Loop
+# Build
 
 This document explains how `trellis:build` turns spec artifacts into working code.
 

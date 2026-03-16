@@ -5,7 +5,7 @@ All notable changes to Trellis are documented in this file.
 ## 0.8.1
 
 - Add judge and polish phase documentation explaining goals, mechanics, and pipeline integration
-- Document redefinition loop, polish phase, and updated ralph orchestration in implementation-loop.md
+- Document redefinition loop, polish phase, and updated ralph orchestration in build.md
 
 ## 0.8.0
 
