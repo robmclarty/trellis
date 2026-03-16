@@ -92,7 +92,7 @@ The `&&` chain provides stop-on-failure for free — if lint fails, tests don't 
 
 ## Judge Review
 
-After all tasks complete (or all remaining are blocked), the judge agent runs once. It evaluates **intent alignment**: did you build what the spec asked for, not just what the tasks described?
+After all tasks complete (or all remaining are blocked), the [judge](judge.md) agent runs once. It evaluates **intent alignment**: did you build what the spec asked for, not just what the tasks described?
 
 The judge receives:
 
@@ -102,7 +102,7 @@ The judge receives:
 
 It outputs a verdict: `PASS`, `PARTIAL`, or `FAIL`.
 
-The judge is default-on. Opt out with `--no-judge`.
+The judge is default-on. Opt out with `--no-judge`. See [judge.md](judge.md) for full details on evaluation criteria, output format, and the judge-redefiner feedback loop.
 
 ## Redefinition Loop
 
@@ -149,7 +149,7 @@ Each pass through the outer loop starts a fresh task loop that picks up all pend
 
 ## Polish Phase
 
-After the build is functionally complete — either the judge passed with no blocked tasks, or the redefinition limit was reached — the polish phase runs. Two review agents execute sequentially:
+After the build is functionally complete — either the judge passed with no blocked tasks, or the redefinition limit was reached — the [polish phase](polish.md) runs. Two review agents execute sequentially:
 
 ### Optimizer
 
@@ -181,7 +181,7 @@ The improver appends §12 to plan.md documenting its additions.
 
 If either agent created new tasks, they're executed in one final task pass — same task loop as above, but without a subsequent judge or redefinition cycle. The polish phase runs at most once.
 
-Opt out with `--no-polish`. Skipped automatically if the judge was disabled (`--no-judge`).
+Opt out with `--no-polish`. Skipped automatically if the judge was disabled (`--no-judge`). See [polish.md](polish.md) for full details on how the optimizer and improver work and how polish tasks re-use the existing task pipeline.
 
 ## In-Session Mode
 
