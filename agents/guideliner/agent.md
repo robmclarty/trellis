@@ -1,5 +1,5 @@
 ---
-name: guidelines-writer
+name: guideliner
 description: Generates project guidelines documents from user interview
 model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep

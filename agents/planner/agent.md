@@ -1,5 +1,5 @@
 ---
-name: plan-writer
+name: planner
 description: Generates technical implementation plans from specs and guidelines
 model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep

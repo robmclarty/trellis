@@ -1,5 +1,5 @@
 ---
-name: spec-writer
+name: specifier
 description: Generates functional specification documents from pitch and guidelines
 model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep

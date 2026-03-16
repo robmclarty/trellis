@@ -46,7 +46,7 @@ If `.specs/guidelines.md` already exists, read it first. Then ask the user:
 
 ## Generation
 
-After gathering all user input via the interview, spawn the `guidelines-writer` agent. Pass it: the specs directory path and all interview responses. The agent will generate the guidelines document.
+After gathering all user input via the interview, spawn the `guideliner` agent. Pass it: the specs directory path and all interview responses. The agent will generate the guidelines document.
 
 ## Quality gate
 

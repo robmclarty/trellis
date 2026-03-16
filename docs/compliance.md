@@ -75,7 +75,7 @@ The detection is keyword-based — a regex scan for terms like `PII`, `personal 
 
 Technical decisions depend on compliance constraints. If FIPPA applies, infrastructure must use Canadian data centers. If COPPA applies, behavioral advertising is prohibited. If GDPR applies, the architecture needs erasure and portability endpoints. These aren't details you bolt on later — they shape the plan from the start.
 
-The plan-writer agent reads `compliance.md` and incorporates its constraints into the technical architecture (storage decisions, access controls, data retention, audit logging). Every compliance constraint must be addressed with a specific technical approach in the plan.
+The planner agent reads `compliance.md` and incorporates its constraints into the technical architecture (storage decisions, access controls, data retention, audit logging). Every compliance constraint must be addressed with a specific technical approach in the plan.
 
 ## Privacy Checks Without Friction
 

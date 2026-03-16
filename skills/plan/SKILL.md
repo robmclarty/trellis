@@ -52,7 +52,7 @@ If the user runs `/plan` without additional context, check if the prerequisites 
 
 ## Generation
 
-After gathering all user input, spawn the `plan-writer` agent. Pass it: the feature name, specs directory path, and all user-provided context. The agent will read prerequisite files and generate the plan document.
+After gathering all user input, spawn the `planner` agent. Pass it: the feature name, specs directory path, and all user-provided context. The agent will read prerequisite files and generate the plan document.
 
 ## Quality gate
 

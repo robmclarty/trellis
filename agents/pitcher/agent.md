@@ -1,5 +1,5 @@
 ---
-name: pitch-writer
+name: pitcher
 description: Generates pitch documents from user-provided context
 model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep

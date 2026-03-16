@@ -1,5 +1,5 @@
 ---
-name: sketch-writer
+name: sketcher
 description: Generates experiment/sketch documents from user hypotheses
 model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Grep

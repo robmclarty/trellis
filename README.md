@@ -147,11 +147,11 @@ Trellis includes 8 built-in agents defined in `agents/`. Six handle document gen
 
 | Agent | Used by | Description |
 |-------|---------|-------------|
-| **guidelines-writer** | `/trellis:guidelines` | Generates `guidelines.md` from stack/convention interview |
-| **sketch-writer** | `/trellis:sketch` | Generates experiment documents in `.specs/sketches/` |
-| **pitch-writer** | `/trellis:pitch` | Generates `pitch.md` with problem framing |
-| **spec-writer** | `/trellis:spec` | Generates `spec.md` with full functional specification |
-| **plan-writer** | `/trellis:plan` | Generates `plan.md` with architecture and technology decisions |
+| **guideliner** | `/trellis:guidelines` | Generates `guidelines.md` from stack/convention interview |
+| **sketcher** | `/trellis:sketch` | Generates experiment documents in `.specs/sketches/` |
+| **pitcher** | `/trellis:pitch` | Generates `pitch.md` with problem framing |
+| **specifier** | `/trellis:spec` | Generates `spec.md` with full functional specification |
+| **planner** | `/trellis:plan` | Generates `plan.md` with architecture and technology decisions |
 | **task-writer** | `/trellis:prep` | Generates `tasks.json` with phased, ordered tasks |
 | **Test Writer** | `/trellis:build` | Writes targeted tests for tricky logic before implementation exists (TDD) |
 | **Judge** | `/trellis:build` | Reviews implementation against specifications for intent alignment. Runs once at the end. |

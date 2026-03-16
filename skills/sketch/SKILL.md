@@ -32,7 +32,7 @@ If the user provides a description, extract the hypothesis from it. Every sketch
 
 ## Generation
 
-After gathering all user input, spawn the `sketch-writer` agent. Pass it: the specs directory path and all user-provided context (hypothesis, approach, constraints, slug name). The agent will generate the sketch document.
+After gathering all user input, spawn the `sketcher` agent. Pass it: the specs directory path and all user-provided context (hypothesis, approach, constraints, slug name). The agent will generate the sketch document.
 
 ## Quality gate
 

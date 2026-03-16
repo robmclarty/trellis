@@ -37,7 +37,7 @@ If the user provides a description, extract as much structure as you can and con
 
 ## Generation
 
-After gathering all user input, spawn the `spec-writer` agent. Pass it: the feature name, specs directory path, and all user-provided context. The agent will read prerequisite files (guidelines.md, pitch.md) and generate the spec document.
+After gathering all user input, spawn the `specifier` agent. Pass it: the feature name, specs directory path, and all user-provided context. The agent will read prerequisite files (guidelines.md, pitch.md) and generate the spec document.
 
 ## Quality gate
 

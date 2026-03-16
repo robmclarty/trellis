@@ -231,7 +231,7 @@ All notable changes to Trellis are documented in this file.
 
 ## 0.3.1
 
-- Synthesize guidelines in plan-writer instead of restating them
+- Synthesize guidelines in planner instead of restating them
 
 ## 0.3.0
 

@@ -36,7 +36,7 @@ If the user runs `/pitch` without enough context, ask:
 
 ## Generation
 
-After gathering all user input, spawn the `pitch-writer` agent. Pass it: the feature name, specs directory path, and all user-provided context (problem description, appetite, solution shape, no-gos, rabbit holes). The agent will read prerequisite files and generate the pitch document.
+After gathering all user input, spawn the `pitcher` agent. Pass it: the feature name, specs directory path, and all user-provided context (problem description, appetite, solution shape, no-gos, rabbit holes). The agent will read prerequisite files and generate the pitch document.
 
 ## Quality gate
 
