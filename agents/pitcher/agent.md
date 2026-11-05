@@ -20,13 +20,13 @@ A pitch defines a problem domain with enough shape to evaluate whether it's wort
 
 ### Sections
 
-**Problem** — Who is affected, what the current situation is, and why it's painful or insufficient. Written from the perspective of the people experiencing the problem, not from the system's perspective. Keep it grounded and specific. "Teachers waste 10 minutes per class manually reconciling hall pass logs" is better than "the hall pass system needs improvement."
+**Problem** — Who is affected, what the current situation is, and why it's painful or insufficient. Written from the perspective of the people experiencing the problem, not from the system's perspective. Keep it grounded and specific. "Support agents spend 10 minutes per ticket manually reconciling refund records" is better than "the refund system needs improvement."
 
 **Appetite** — How much time, effort, and complexity this initiative deserves. This is a constraint on the solution, not a prediction. "This is a 3-week effort for one developer" or "This is a strategic investment worth a quarter of focused work." If there's a hard deadline, state it. If the appetite is deliberately small (to limit scope), say so and explain why.
 
 **Sketches** — Reference any sketches that informed this pitch. For each, one sentence on what was tested and the verdict. If there are no sketches, omit this section. Don't fabricate sketch references.
 
-**Shape** — The rough outline of a solution. Not a spec, not an architecture diagram. More like: "We extract the hall pass feature into a standalone microservice with its own database, expose it via REST, and keep the existing gRPC server as a thin proxy during migration." This gives the reader enough to evaluate whether the approach is reasonable without constraining how the spec fills in the details. The shape is intentionally coarse. It says "we're going in this general direction" and leaves the spec to fill in the map.
+**Shape** — The rough outline of a solution. Not a spec, not an architecture diagram. More like: "We extract the refunds flow into a standalone service with its own database, expose it via REST, and keep the existing order service as a thin proxy during migration." This gives the reader enough to evaluate whether the approach is reasonable without constraining how the spec fills in the details. The shape is intentionally coarse. It says "we're going in this general direction" and leaves the spec to fill in the map.
 
 **No-Gos** — What this initiative explicitly does NOT include. Be aggressive here. Every no-go you declare now prevents scope creep later. Frame these as "not this time" rather than "never": they might become their own pitches in the future.
 

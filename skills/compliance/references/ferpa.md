@@ -26,7 +26,7 @@ Applies when handling education records of students in US schools that receive f
 - Disciplinary records
 - Attendance records
 - Special education records (also IDEA-protected)
-- Behavioral records (including hall pass logs that track student movement)
+- Behavioral records (including logs that track where students are during the school day)
 
 ## Common compliance checkpoints for software systems
 
